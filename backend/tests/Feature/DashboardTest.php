@@ -1,0 +1,96 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
+
+class DashboardTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // The pages use @vite(); skip loading the built CSS/JS files in tests.
+        $this->withoutVite();
+    }
+
+    // Runs BEFORE RefreshDatabase wipes the database. Safety net: refuse to
+    // continue unless we are on the dedicated test database.
+    protected function beforeRefreshingDatabase(): void
+    {
+        $this->assertSame('whatsapp_gateway_test', DB::connection()->getDatabaseName());
+    }
+
+    public function test_guest_is_redirected_to_login(): void
+    {
+        $this->get('/dashboard')->assertRedirect(route('login'));
+    }
+
+    public function test_home_page_forwards_guests_to_login_in_the_end(): void
+    {
+        $this->followingRedirects()->get('/')->assertOk()->assertSee('Log in');
+    }
+
+    public function test_home_page_forwards_logged_in_users_to_dashboard(): void
+    {
+        $this->actingAs(User::factory()->create(['name' => 'Jane Doe']))
+            ->followingRedirects()
+            ->get('/')
+            ->assertOk()
+            ->assertSee('Welcome, Jane Doe');
+    }
+
+    public function test_dashboard_shows_the_users_own_account_details(): void
+    {
+        $user = User::factory()->create(['name' => 'Jane Doe', 'email' => 'jane@example.com']);
+
+        $this->actingAs($user)->get('/dashboard')
+            ->assertOk()
+            ->assertSee('Welcome, Jane Doe')
+            ->assertSee('jane@example.com')
+            ->assertSee('Member since '.$user->created_at->format('M j, Y'));
+    }
+
+    public function test_dashboard_never_shows_another_users_details(): void
+    {
+        $me = User::factory()->create(['name' => 'Jane Doe']);
+        User::factory()->create(['name' => 'Other Person', 'email' => 'other@example.com']);
+
+        $this->actingAs($me)->get('/dashboard')
+            ->assertOk()
+            ->assertDontSee('Other Person')
+            ->assertDontSee('other@example.com');
+    }
+
+    public function test_dashboard_shows_zero_instances_and_no_connection_yet(): void
+    {
+        $this->actingAs(User::factory()->create())->get('/dashboard')
+            ->assertOk()
+            ->assertSee('Instances')
+            ->assertSee('No instances yet');
+    }
+
+    public function test_navigation_links_are_shown_to_logged_in_users(): void
+    {
+        $this->actingAs(User::factory()->create())->get('/dashboard')
+            ->assertOk()
+            ->assertSee('Dashboard')
+            ->assertSee('Instances')
+            ->assertSee('API Docs')
+            ->assertSee('Log out');
+    }
+
+    public function test_guest_pages_show_login_and_register_links_not_the_app_nav(): void
+    {
+        $this->get('/login')
+            ->assertOk()
+            ->assertSee('Register')
+            ->assertDontSee('API Docs')
+            ->assertDontSee('Log out');
+    }
+}

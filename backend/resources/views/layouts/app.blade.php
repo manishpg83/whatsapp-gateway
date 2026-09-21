@@ -7,20 +7,43 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
-    <nav class="navbar navbar-expand navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="{{ auth()->check() ? route('dashboard') : url('/') }}">{{ config('app.name') }}</a>
+            <a class="navbar-brand" href="{{ auth()->check() ? route('dashboard') : route('login') }}">{{ config('app.name') }}</a>
 
-            <div class="ms-auto d-flex align-items-center">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
+                    aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="mainNav">
                 @auth
-                    <span class="navbar-text me-3">{{ auth()->user()->name }}</span>
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="btn btn-outline-light btn-sm">Log out</button>
-                    </form>
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
+                               href="{{ route('dashboard') }}">Dashboard</a>
+                        </li>
+                        {{-- Placeholders: these pages are built in later milestones. --}}
+                        <li class="nav-item">
+                            <span class="nav-link disabled">Instances <span class="badge text-bg-secondary">soon</span></span>
+                        </li>
+                        <li class="nav-item">
+                            <span class="nav-link disabled">API Docs <span class="badge text-bg-secondary">soon</span></span>
+                        </li>
+                    </ul>
+
+                    <div class="d-flex align-items-center">
+                        <span class="navbar-text me-3">{{ auth()->user()->name }}</span>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-light btn-sm">Log out</button>
+                        </form>
+                    </div>
                 @else
-                    <a class="btn btn-outline-light btn-sm me-2" href="{{ route('login') }}">Log in</a>
-                    <a class="btn btn-primary btn-sm" href="{{ route('register') }}">Register</a>
+                    <div class="ms-auto d-flex align-items-center">
+                        <a class="btn btn-outline-light btn-sm me-2" href="{{ route('login') }}">Log in</a>
+                        <a class="btn btn-primary btn-sm" href="{{ route('register') }}">Register</a>
+                    </div>
                 @endauth
             </div>
         </div>
