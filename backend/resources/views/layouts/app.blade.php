@@ -38,7 +38,7 @@
                     </ul>
 
                     <div class="d-flex align-items-center">
-                        <span class="navbar-text me-3">{{ auth()->user()->name }}</span>
+                        <a href="{{ route('account.edit') }}" class="navbar-text me-3 link-light text-decoration-none {{ request()->routeIs('account.*') ? 'fw-semibold' : '' }}">{{ auth()->user()->name }}</a>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="btn btn-outline-light btn-sm">Log out</button>

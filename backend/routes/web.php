@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
@@ -54,6 +55,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
     Route::post('/billing/subscribe/{plan}', [BillingController::class, 'subscribe'])->name('billing.subscribe');
+
+    Route::get('/account', [AccountController::class, 'edit'])->name('account.edit');
+    Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password.update');
+    Route::delete('/account', [AccountController::class, 'destroy'])->name('account.destroy');
 });
 
 // Called by the Node worker only — authenticated by shared secret, not a

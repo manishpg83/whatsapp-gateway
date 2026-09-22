@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\DeliverWebhook;
 use App\Models\Message;
 use App\Models\WhatsappSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -139,7 +139,7 @@ class WorkerWebhookTest extends TestCase
 
     public function test_message_received_event_stores_an_incoming_message(): void
     {
-        Http::fake(); // no webhook_url configured, so nothing should be sent at all
+        Queue::fake(); // no webhook_url configured, so nothing should be queued at all
 
         $instance = WhatsappSession::factory()->connected()->create();
 
@@ -161,12 +161,12 @@ class WorkerWebhookTest extends TestCase
         $this->assertSame('WA-INCOMING-1', $message->whatsapp_message_id);
         $this->assertSame('received', $message->status);
 
-        Http::assertNothingSent();
+        Queue::assertNothingPushed();
     }
 
-    public function test_message_received_event_dispatches_to_the_configured_webhook_with_a_valid_signature(): void
+    public function test_message_received_event_queues_a_webhook_delivery_when_one_is_configured(): void
     {
-        Http::fake(['https://example.test/webhook' => Http::response('', 200)]);
+        Queue::fake();
 
         $instance = WhatsappSession::factory()->connected()->create([
             'webhook_url' => 'https://example.test/webhook',
@@ -182,20 +182,24 @@ class WorkerWebhookTest extends TestCase
             'timestamp' => now()->toIso8601String(),
         ], ['X-Internal-Secret' => self::SECRET])->assertNoContent();
 
-        Http::assertSent(function ($request) {
-            $expectedSignature = 'sha256='.hash_hmac('sha256', $request->body(), 'a-fixed-webhook-secret');
-
-            return $request->url() === 'https://example.test/webhook'
-                && $request->header('X-Webhook-Signature')[0] === $expectedSignature
-                && json_decode($request->body(), true)['message'] === 'Hi there';
-        });
+        // The actual signed HTTP delivery is DeliverWebhook's own job —
+        // tested directly in tests/Feature/DeliverWebhookTest.php. Here we
+        // only need to confirm the right job was queued with the right data.
+        Queue::assertPushed(
+            DeliverWebhook::class,
+            fn (DeliverWebhook $job) => $job->whatsappSessionId === $instance->id
+                && $job->payload['message'] === 'Hi there'
+                && $job->payload['from'] === '919999999999'
+        );
     }
 
-    public function test_webhook_dispatch_failure_does_not_fail_the_original_request(): void
+    public function test_queuing_a_webhook_delivery_never_fails_the_original_request(): void
     {
-        Http::fake(function () {
-            throw new ConnectionException('Connection refused');
-        });
+        // Queuing onto the database driver can't itself fail the way a
+        // live HTTP call could — that's the whole point of moving
+        // delivery into a job. This just confirms the request completes
+        // normally and the message is stored regardless.
+        Queue::fake();
 
         $instance = WhatsappSession::factory()->connected()->create([
             'webhook_url' => 'https://example.test/webhook',
