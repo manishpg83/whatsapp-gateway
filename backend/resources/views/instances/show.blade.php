@@ -4,13 +4,13 @@
 
 @section('content')
 <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-md-8">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3 mb-0">{{ $instance->name }}</h1>
             <a href="{{ route('instances.index') }}" class="btn btn-sm btn-outline-secondary">Back to instances</a>
         </div>
 
-        <div class="card shadow-sm">
+        <div class="card shadow-sm mb-4">
             <div class="card-body text-center py-5" id="instance-status" data-instance-status="{{ $instance->status }}">
 
                 @if ($instance->status === 'connected')
@@ -49,6 +49,81 @@
                             <p class="text-muted">Waiting for QR code&hellip;</p>
                         @endif
                     </div>
+                @endif
+
+            </div>
+        </div>
+
+        {{-- API credentials --}}
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">API credentials</div>
+            <div class="card-body">
+
+                @if (session('new_token'))
+                    <div class="alert alert-warning">
+                        <strong>Copy this token now — you won't be able to see it again:</strong>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control font-monospace" value="{{ session('new_token') }}" id="new-token-value" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('new-token-value').value)">Copy</button>
+                        </div>
+                    </div>
+                @endif
+
+                @if ($instance->apiTokens->isEmpty())
+                    <p class="text-muted mb-3">No tokens yet.</p>
+                @else
+                    <table class="table table-sm align-middle mb-3">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Token</th>
+                                <th>Created</th>
+                                <th>Last used</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($instance->apiTokens as $token)
+                                <tr>
+                                    <td>{{ $token->name }}</td>
+                                    <td class="font-monospace">{{ $token->token_prefix }}&hellip;</td>
+                                    <td>{{ $token->created_at->format('M j, Y') }}</td>
+                                    <td>{{ $token->last_used_at?->diffForHumans() ?? 'Never' }}</td>
+                                    <td class="text-end">
+                                        @if ($token->revoked_at)
+                                            <span class="badge text-bg-secondary">Revoked</span>
+                                        @else
+                                            <form method="POST" action="{{ route('instances.tokens.destroy', [$instance, $token]) }}"
+                                                  onsubmit="return confirm('Revoke this token? Anything using it will stop working immediately.');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Revoke</button>
+                                            </form>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+
+                @if ($instance->status === 'connected')
+                    <form method="POST" action="{{ route('instances.tokens.store', $instance) }}" class="row g-2 align-items-end">
+                        @csrf
+                        <div class="col-auto">
+                            <label for="token-name" class="form-label small mb-0">New token name</label>
+                            <input type="text" class="form-control form-control-sm @error('name') is-invalid @enderror"
+                                   id="token-name" name="name" placeholder="e.g. Production server" required>
+                            @error('name')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-sm btn-primary">Generate token</button>
+                        </div>
+                    </form>
+                @else
+                    <p class="text-muted small mb-0">Connect this instance to generate an API token.</p>
                 @endif
 
             </div>

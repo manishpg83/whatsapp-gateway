@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\DashboardController;
@@ -32,6 +33,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/instances/{instance}/status', [InstanceController::class, 'status'])->name('instances.status');
     Route::post('/instances/{instance}/reconnect', [InstanceController::class, 'reconnect'])->name('instances.reconnect');
     Route::delete('/instances/{instance}', [InstanceController::class, 'destroy'])->name('instances.destroy');
+
+    Route::post('/instances/{instance}/tokens', [ApiTokenController::class, 'store'])->name('instances.tokens.store');
+    Route::delete('/instances/{instance}/tokens/{token}', [ApiTokenController::class, 'destroy'])->name('instances.tokens.destroy');
 });
 
 // Called by the Node worker only — authenticated by shared secret, not a
