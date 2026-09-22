@@ -43,7 +43,7 @@ export async function sessionsRoute(app: FastifyInstance, config: Config) {
     async (request, reply) => {
       const { instanceId } = request.params as { instanceId: string };
 
-      await stopSession(instanceId);
+      await stopSession(instanceId, config);
 
       return reply.code(200).send({ stopped: true });
     }

@@ -7,5 +7,6 @@ export const testConfig: Config = {
   PORT: 3001,
   INTERNAL_API_SECRET: "test-secret-at-least-16-chars",
   LARAVEL_CALLBACK_URL: "http://127.0.0.1:8000/internal/worker/events",
+  LARAVEL_BASE_URL: "http://127.0.0.1:8000",
   SESSION_STORAGE_PATH: "./tests/tmp-whatsapp-secrets",
 };

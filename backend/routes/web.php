@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InstanceController;
+use App\Http\Controllers\InternalSessionsController;
 use App\Http\Controllers\WorkerWebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,3 +46,8 @@ Route::middleware('auth')->group(function () {
 Route::post('/internal/worker/events', WorkerWebhookController::class)
     ->middleware('internal.secret')
     ->name('internal.worker.events');
+
+// Called by the worker once at boot, to reconnect whatever should be live.
+Route::get('/internal/worker/sessions', InternalSessionsController::class)
+    ->middleware('internal.secret')
+    ->name('internal.worker.sessions');

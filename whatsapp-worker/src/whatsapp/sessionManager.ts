@@ -1,4 +1,5 @@
 import path from "node:path";
+import fs from "node:fs/promises";
 import makeWASocket, { DisconnectReason, useMultiFileAuthState } from "baileys";
 import QRCode from "qrcode";
 import type { FastifyBaseLogger } from "fastify";
@@ -11,26 +12,56 @@ type Session = {
 };
 
 // One entry per running instance. This is in-memory on purpose for the
-// MVP: if the worker process restarts, sessions are gone and Laravel's
-// "Reconnect" button starts a fresh one. Fine for now; revisit if we ever
-// need the worker itself to survive restarts without user action.
+// MVP: if the worker process restarts, sessions are gone — see
+// reconnectActiveSessions() in reconnectAll.ts, called once at boot, for
+// how they come back automatically without the user having to click
+// "Reconnect" by hand.
 const sessions = new Map<string, Session>();
 
+// Instance ids currently in the middle of connect(), i.e. past the
+// startSession() "already running?" check but before sessions.set() has
+// happened (that gap involves an await). Without this, two near-
+// simultaneous startSession() calls for the same instance — easy to
+// trigger with an impatient double-click on "Reconnect" — could both
+// pass the check and open two sockets for the same instance/auth files.
+const startingInstanceIds = new Set<string>();
+
 /**
- * Starts (or no-ops if already running) a Baileys session for one
- * instance. QR codes and connection state changes are reported back to
- * Laravel via notifyLaravel() as they happen.
+ * Starts (or no-ops if already running/starting) a Baileys session for
+ * one instance. QR codes and connection state changes are reported back
+ * to Laravel via notifyLaravel() as they happen.
  */
 export async function startSession(
   instanceId: string,
   config: Config,
   logger: FastifyBaseLogger
 ): Promise<void> {
-  if (sessions.has(instanceId)) {
+  if (sessions.has(instanceId) || startingInstanceIds.has(instanceId)) {
     return;
   }
 
-  await connect(instanceId, config, logger);
+  startingInstanceIds.add(instanceId);
+
+  try {
+    await connect(instanceId, config, logger);
+  } finally {
+    startingInstanceIds.delete(instanceId);
+  }
+}
+
+/**
+ * Deletes an instance's saved Baileys credentials. Called whenever a
+ * session is genuinely logged out (explicit Disconnect, or WhatsApp
+ * reporting loggedOut for any other reason, e.g. unlinked from the
+ * phone) — without this, a later "Reconnect" would silently keep retrying
+ * with dead credentials and never produce a fresh QR code.
+ */
+async function clearAuthState(instanceId: string, config: Config): Promise<void> {
+  const authDir = path.join(config.SESSION_STORAGE_PATH, instanceId);
+
+  await fs.rm(authDir, { recursive: true, force: true }).catch(() => {
+    // Nothing to clear, or a permissions hiccup — either way, not fatal.
+  });
 }
 
 /**
@@ -100,8 +131,15 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
       }
 
       // loggedOut means the user unlinked the device from their phone —
-      // no point reconnecting automatically. Anything else (lost network,
-      // etc.), Laravel offers a "Reconnect" button instead of guessing.
+      // no point reconnecting automatically, and the saved credentials
+      // are now dead, so clear them (a later "Reconnect" then correctly
+      // starts a fresh pairing instead of failing forever). Anything else
+      // (lost network, etc.), Laravel offers a "Reconnect" button and the
+      // existing credentials are still good.
+      if (loggedOut) {
+        await clearAuthState(instanceId, config);
+      }
+
       await notifyLaravel(
         config,
         {
@@ -192,19 +230,21 @@ export async function sendMessage(instanceId: string, to: string, text: string):
 
 /**
  * Stops a running session (logs the device out on WhatsApp's side) and
- * forgets it. A no-op if nothing is running for that instance — that's
- * normal, e.g. the worker restarted since it last ran.
+ * forgets it. Always clears the saved credentials, whether or not a live
+ * socket existed for this instance in this worker process — the intent
+ * of "disconnect" is always "this instance is no longer linked", so a
+ * later "Reconnect" should start a fresh pairing either way.
  */
-export async function stopSession(instanceId: string): Promise<void> {
+export async function stopSession(instanceId: string, config: Config): Promise<void> {
   const session = sessions.get(instanceId);
 
-  if (!session) {
-    return;
+  if (session) {
+    sessions.delete(instanceId);
+
+    await session.socket.logout().catch(() => {
+      // Already disconnected on WhatsApp's side — nothing more to do.
+    });
   }
 
-  sessions.delete(instanceId);
-
-  await session.socket.logout().catch(() => {
-    // Already disconnected on WhatsApp's side — nothing more to do.
-  });
+  await clearAuthState(instanceId, config);
 }

@@ -13,6 +13,11 @@ const envSchema = z.object({
   INTERNAL_API_SECRET: z.string().min(16, "INTERNAL_API_SECRET must be at least 16 characters"),
   // Where Laravel's internal webhook lives, for QR/connection callbacks.
   LARAVEL_CALLBACK_URL: z.string().url().default("http://127.0.0.1:8000/internal/worker/events"),
+  // Laravel's base URL, used once at boot to ask "which instances should
+  // currently be connected?" so they can be reconnected automatically
+  // (see reconnectAll.ts) instead of staying stuck until someone clicks
+  // "Reconnect" by hand.
+  LARAVEL_BASE_URL: z.string().url().default("http://127.0.0.1:8000"),
   // Baileys auth files live here, one sub-folder per instance_id. Must stay
   // outside the repo and outside C:\xampp\htdocs (see CLAUDE.md §4/§9) —
   // Apache serves htdocs, so anything under it could become web-reachable.
