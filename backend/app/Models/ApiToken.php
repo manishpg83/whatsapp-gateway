@@ -48,7 +48,7 @@ class ApiToken extends Model
      */
     public static function generateFor(WhatsappSession $session, string $name): array
     {
-        $plainText = Str::random(64);
+        $plainText = Str::random(32);
 
         $token = static::create([
             'whatsapp_session_id' => $session->id,

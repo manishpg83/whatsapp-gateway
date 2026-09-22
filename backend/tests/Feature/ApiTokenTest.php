@@ -49,7 +49,7 @@ class ApiTokenTest extends TestCase
         $response->assertSessionHas('new_token');
 
         $plainText = $response->getSession()->get('new_token');
-        $this->assertSame(64, strlen($plainText));
+        $this->assertSame(32, strlen($plainText));
 
         $token = ApiToken::where('whatsapp_session_id', $instance->id)->firstOrFail();
         $this->assertSame('Production server', $token->name);
