@@ -6,7 +6,7 @@
 
 ## Where we are
 
-**M0–M5 are code-complete and automated-tested. M5 still needs ONE manual step from the owner: scan a real QR code with your phone to confirm the live Baileys connection actually works end to end (never exercised in CI — see M5 notes).**
+**M0–M7 are code-complete, automated-tested, AND verified live: M5 (owner scanned a real QR), M7 (owner sent a real WhatsApp message via the API — arrived on the receiving phone, `messages` row shows `status = sent`). M6 not yet manually verified live. M4/M5 committed by the owner; M6/M7 not yet committed.**
 
 ## Milestones
 
@@ -43,7 +43,7 @@
   - [x] Manually smoke-tested with `npm run dev` + `curl`: `/health` → 200, `/internal/ping` with no/wrong secret → 401, with correct secret → 200
   - [x] `.env` (real random secret, local only, git-ignored) + `.env.example` (documents the vars, no secret)
   - Installed versions: `fastify` ^5.12.5, `zod` ^4.6.5, `typescript` ^7.0.2, `tsx` ^4.23.15, `vitest` ^5.0.1, `@types/node` ^26.6.2, `pino-pretty` ^13.1.3.
-- [x] **M5 — Instance + QR** *(code-complete; live QR scan still to be verified manually by the owner)*
+- [x] **M5 — Instance + QR** *(verified live — owner scanned a real QR and reached Connected)*
   - **Backend (`backend/`):**
     - [x] `whatsapp_sessions` migration/table: `instance_id` (UUID, unique, public), `user_id` FK cascade-delete, `name`, `status` (`connecting`/`qr_pending`/`connected`/`disconnected`/`logged_out`), `qr_code`, `qr_updated_at`, `phone_number`, `connected_at`, `last_disconnect_reason`
     - [x] `WhatsappSession` model — route-bound by `instance_id` (never the internal id), auto-generates the UUID on creating; `User::whatsappSessions()` relation; `WhatsappSessionFactory` (with a `connected()` state) for tests
@@ -62,18 +62,44 @@
     - [x] `src/routes/sessions.ts` — `POST /sessions`, `DELETE /sessions/:instanceId`, both secret-protected. **Replaced** the M4 demo `/internal/ping` route (deleted, along with its test)
     - [x] `config.ts` gained `LARAVEL_CALLBACK_URL` (default `http://127.0.0.1:8000/internal/worker/events`) and `SESSION_STORAGE_PATH` (default `C:\whatsapp-secrets`)
     - [x] Created `C:\whatsapp-secrets\` on disk (outside the repo and outside `htdocs`, per CLAUDE.md §4/§9)
-    - [x] `tests/sessions.test.ts` — only covers the auth/validation layer (401s, 400 on bad body, DELETE-of-unknown-id no-ops). **Deliberately does not** exercise a real `POST /sessions` success path in CI — that opens a real Baileys socket and reaches WhatsApp's servers, so it's verified manually instead (see below)
-  - **Still to do (not code, an action):** with `php artisan serve` (8000) and the worker's `npm run dev` (3001) both running, log in, create an instance, and **scan the QR with your own WhatsApp** to confirm status flips to Connected with your phone number. This is the one part of M5 no automated test can cover.
+    - [x] `tests/sessions.test.ts` — only covers the auth/validation layer (401s, 400 on bad body, DELETE-of-unknown-id no-ops). **Deliberately does not** exercise a real `POST /sessions` success path in CI — that opens a real Baileys socket and reaches WhatsApp's servers, so it's verified manually instead
+  - **Post-live-test bugfix:** the first real QR scan surfaced two bugs, both fixed in `sessionManager.ts`:
+    1. Right after a fresh pairing, WhatsApp always closes the connection once with `restartRequired` (515) — expected protocol behaviour, not a real disconnect. The worker was treating it as terminal ("Not connected", needed a manual Reconnect click). Now it reconnects automatically with the saved creds and never bothers Laravel about it.
+    2. Phone number was showing the WhatsApp device-id suffix (`919054961320:9`) because `socket.user.phoneNumber` isn't populated, so it fell back to `socket.user.id` unparsed. Fixed to strip both `:` and `@`.
   - Re-verified before installing: `baileys@7.0.0-rc14` was still `latest` on npm (unchanged since M0), `qrcode@1.5.4` current.
-- [ ] **M6 — API credentials** — `api_tokens` table, token shown once, SHA-256 hash stored, revocable
-- [ ] **M7 — Send text message** — `POST /api/v1/messages/send`, token auth + ownership check, synchronous send via worker, `messages` table
+  - Committed by the owner as `c985028` (M4) and `05be00c` (M5, includes the bugfix).
+- [x] **M6 — API credentials**
+  - [x] `api_tokens` migration/table: `whatsapp_session_id` FK cascade-delete, `name`, `token_hash` (unique, SHA-256 — not bcrypt, per CLAUDE.md §6), `token_prefix` (first 8 chars, shown forever in the UI so a token is identifiable without ever re-showing it), `last_used_at`, `revoked_at`
+  - [x] `ApiToken` model: `generateFor(WhatsappSession, name)` creates a random 64-char token, returns the **plaintext to the caller only** (never stored/logged); `WhatsappSession::apiTokens()` relation; `ApiTokenFactory` (with a `revoked()` state)
+  - [x] `ApiTokenController`: `store` (generate — **gated on `status === 'connected'`**, 422 otherwise, per the owner's explicit choice), `destroy` (revoke — sets `revoked_at`, never hard-deletes). Same ownership pattern as M5: scoped query + explicit `abort_unless`, 404 either way
+  - [x] Routes nested under the instance: `POST /instances/{instance}/tokens`, `DELETE /instances/{instance}/tokens/{token}`
+  - [x] `instances/show.blade.php` gained an "API credentials" card: existing tokens (name/prefix/created/last-used/Revoke), a one-time plaintext reveal read from `session('new_token')` (gone on the next unrelated page load), a "Generate token" form when connected, a note to connect first otherwise
+  - [x] `tests/Feature/ApiTokenTest.php` (9 tests): hash-not-plaintext stored, one-time reveal, connected-gating (422), cross-user (404), cross-instance token/instance mismatch (404)
+  - No new packages — `Str::random()` + `hash('sha256', ...)`, both already in Laravel/PHP.
+- [x] **M7 — Send text message**
+  - **Backend (`backend/`):**
+    - [x] `messages` migration/table: `whatsapp_session_id` FK cascade-delete, `direction` (`outgoing` for now), `to_number`, `from_number` (unused until M8), `body`, `status` (`pending`/`sent`/`failed`), `whatsapp_message_id`, `error`
+    - [x] `Message` model + `WhatsappSession::messages()` relation + `MessageFactory`
+    - [x] `routes/api.php` **created and wired up** (`bootstrap/app.php` had no `api:` routing group before this — added it, prefixes routes with `api/` automatically, matching `CLAUDE.md`'s `/api/v1/...` contract)
+    - [x] `AuthenticateApiToken` middleware (alias `api.token`): `Authorization: Bearer` → SHA-256 lookup against `token_hash`, rejects missing/unknown/revoked (401), updates `last_used_at`, attaches the resolved `WhatsappSession` to the request — controllers never trust a caller-supplied user/session id, only what the token itself resolves to
+    - [x] `Api\MessageController@send`: validates `instance_id` (uuid) / `to` (7-15 digits) / `message` (≤4096 chars), cross-checks body `instance_id` against the token's own instance (422 on mismatch — defence-in-depth beyond the token alone), 422 if not connected, creates a `pending` message row, calls the worker synchronously, updates to `sent`/`failed`
+    - [x] `WorkerClient::sendMessage()` added
+    - [x] Rate limiting: `RateLimiter::for('messages', ...)` in `AppServiceProvider` — 30/min, keyed by the bearer token (falls back to IP) — first milestone that can spam a real phone number, so it got one
+    - [x] `tests/Feature/MessageTest.php` (9 tests): auth (missing/invalid/revoked), `instance_id` mismatch, not-connected, invalid `to` format, successful send (`Http::fake()`, asserts `sent` + `last_used_at` updated), worker failure (asserts `failed` + `error` stored), rate-limit headers present
+  - **Worker (`whatsapp-worker/`):**
+    - [x] `sessionManager.ts` gained `sendMessage(instanceId, to, text)` — looks up the live socket, throws `SessionNotActiveError` if the instance isn't actively connected in this worker process (individual chats only — `<to>@s.whatsapp.net`, no group JIDs, per `CLAUDE.md` §0 scope)
+    - [x] `src/routes/sessions.ts` gained `POST /sessions/:instanceId/messages` (secret-protected, Zod-validated) — 409 when not active, 502 on any other Baileys failure
+    - [x] `tests/sessions.test.ts` — unlike `/sessions`, this route's failure path (no active session) never touches Baileys/network, so it's fully tested here: auth, bad `to`/empty `message` → 400, no active session → 409 (10 tests total in the file)
+  - No new packages either side — `Str`/`hash()`/`RateLimiter` (Laravel), Baileys' existing `sendMessage()` (worker).
+  - **Verified live:** owner sent a real message via `Invoke-RestMethod`; it arrived on the receiving phone; `messages` row confirmed `status = sent` with the real WhatsApp `whatsapp_message_id`.
+  - **Rough edge hit during live testing (not a code bug, a dev-workflow gotcha — see "Things to remember"):** the DB can say `connected` while the worker process actually has no live socket, if the worker restarted since the last real connect. First attempt 502'd because of exactly this.
 - [ ] **M8 — Incoming messages + webhooks**
 
 ## Test status
 
-`php artisan test` (from `backend/`): **51 passed, 189 assertions** (as of M5). `vendor/bin/pint --test`: clean.
+`php artisan test` (from `backend/`): **68 passed, 252 assertions** (as of M7). `vendor/bin/pint --test`: clean.
 
-`npm test` (from `whatsapp-worker/`, Vitest): **6 passed** (as of M5). `npm run typecheck`: clean.
+`npm test` (from `whatsapp-worker/`, Vitest): **10 passed** (as of M7). `npm run typecheck`: clean.
 
 ## Things to remember (learned the hard way)
 
@@ -91,6 +117,8 @@
 
 **Shared secret.** `backend/.env`'s `INTERNAL_API_SECRET` and `whatsapp-worker/.env`'s `INTERNAL_API_SECRET` must be the **exact same string** — that's the whole mechanism. If you ever regenerate one, copy it into the other too. WhatsApp auth files live in `C:\whatsapp-secrets\` (one folder per `instance_id`), outside the repo/`htdocs` on purpose — never move that under `backend/` or `whatsapp-worker/`.
 
+**The worker's "connected" state is in-memory only — it does NOT survive the worker process restarting** (including `tsx watch` auto-reloading on every file save during active development). The database can keep saying `status = connected` long after the actual worker process has forgotten it, because nothing currently re-checks that in the background. Symptom: any worker action (most obviously sending a message) fails with a 409/502 even though the instance page says "Connected". Fix: click **Disconnect** then **Reconnect** on the instance page — this re-establishes a real socket in whichever worker process is currently running (no QR needed, it reuses the saved credentials in `C:\whatsapp-secrets\`). Hit this for real during M7 live-testing right after a run of worker code edits.
+
 **Front-end.** Bootstrap comes in through `resources/css/app.css` (`@import 'bootstrap/dist/css/bootstrap.min.css'`) and `resources/js/app.js` (`import 'bootstrap'`). No Sass, no Tailwind. Run `npm run build` (or `npm run dev`) so pages get their CSS; `public/build` is git-ignored.
 
 **Environment fixes done on 2026-09-21 (Windows/XAMPP), in case they come back:**
@@ -103,6 +131,7 @@
 
 ## Next step
 
-**Finish verifying M5 live, then start M6.** At the start of the next session:
-1. Run `php artisan serve` (backend, 8000) and `npm run dev` (worker, 3001) together, log in, create an instance, and scan the real QR with your phone — confirm it reaches "Connected" with your phone number, then confirm "Disconnect" and "Reconnect" both work.
-2. Once that's confirmed, read `CLAUDE.md` §13 (M6 row), inspect the repo, then present the M6 plan (`api_tokens` table, token generation shown once, SHA-256 hash stored, revocable) and **wait for approval** before creating anything.
+**M7 is fully verified live (real message sent and received).** Optional/quick: revoke that token and confirm a repeat request now 401s (proves revoke actually blocks it, closing the loop on M6 too). Then, at the start of the next session:
+
+1. Read `CLAUDE.md` §13 (M8 row), inspect the repo, then present the M8 plan (receiving messages, storing them, delivering via webhook/event — webhook settings are explicitly "decided at M8") and **wait for approval** before creating anything.
+2. Remind the owner to commit M6+M7 when ready (`c985028`/`05be00c` covered M4/M5 only) — never commit without being asked.

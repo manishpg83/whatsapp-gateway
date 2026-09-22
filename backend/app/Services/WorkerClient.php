@@ -37,4 +37,19 @@ class WorkerClient
     {
         $this->http()->delete("/sessions/{$instanceId}")->throw();
     }
+
+    /**
+     * Sends a text message synchronously (no queue yet, per CLAUDE.md
+     * §13 M7) and returns WhatsApp's message id. Throws on any failure —
+     * network, worker error, or the instance not actually being connected
+     * in the worker's memory — the caller decides how to record that.
+     */
+    public function sendMessage(string $instanceId, string $to, string $message): string
+    {
+        $response = $this->http()
+            ->post("/sessions/{$instanceId}/messages", ['to' => $to, 'message' => $message])
+            ->throw();
+
+        return $response->json('message_id');
+    }
 }

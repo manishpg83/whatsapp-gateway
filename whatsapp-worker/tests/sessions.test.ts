@@ -80,3 +80,68 @@ describe("DELETE /sessions/:instanceId", () => {
     await app.close();
   });
 });
+
+describe("POST /sessions/:instanceId/messages", () => {
+  // A request with no active session for that instance never reaches
+  // Baileys/the network at all (it 409s before calling sendMessage), so
+  // — unlike POST /sessions — this whole route is safe to exercise here.
+
+  it("rejects a request with no secret", async () => {
+    const app = await buildApp(testConfig);
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/sessions/${randomUUID()}/messages`,
+      payload: { to: "919999999999", message: "hi" },
+    });
+
+    expect(response.statusCode).toBe(401);
+
+    await app.close();
+  });
+
+  it("rejects a request with a non-numeric to", async () => {
+    const app = await buildApp(testConfig);
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/sessions/${randomUUID()}/messages`,
+      headers: { "x-internal-secret": testConfig.INTERNAL_API_SECRET },
+      payload: { to: "not-a-number", message: "hi" },
+    });
+
+    expect(response.statusCode).toBe(400);
+
+    await app.close();
+  });
+
+  it("rejects a request with an empty message", async () => {
+    const app = await buildApp(testConfig);
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/sessions/${randomUUID()}/messages`,
+      headers: { "x-internal-secret": testConfig.INTERNAL_API_SECRET },
+      payload: { to: "919999999999", message: "" },
+    });
+
+    expect(response.statusCode).toBe(400);
+
+    await app.close();
+  });
+
+  it("returns 409 when the instance has no active session", async () => {
+    const app = await buildApp(testConfig);
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/sessions/${randomUUID()}/messages`,
+      headers: { "x-internal-secret": testConfig.INTERNAL_API_SECRET },
+      payload: { to: "919999999999", message: "hi" },
+    });
+
+    expect(response.statusCode).toBe(409);
+
+    await app.close();
+  });
+});

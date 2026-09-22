@@ -116,6 +116,42 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
 }
 
 /**
+ * Thrown when a send is requested for an instance with no live socket in
+ * this worker process — e.g. the worker restarted since the instance last
+ * connected. The caller (Laravel) turns this into a "not connected" error
+ * instead of a generic 500.
+ */
+export class SessionNotActiveError extends Error {
+  constructor(instanceId: string) {
+    super(`No active WhatsApp session for instance ${instanceId}`);
+    this.name = "SessionNotActiveError";
+  }
+}
+
+/**
+ * Sends a plain text message and returns WhatsApp's own message id.
+ */
+export async function sendMessage(instanceId: string, to: string, text: string): Promise<string> {
+  const session = sessions.get(instanceId);
+
+  if (!session) {
+    throw new SessionNotActiveError(instanceId);
+  }
+
+  // Individual chats only for M7 (no group JIDs) — matches the scope in
+  // CLAUDE.md §0.
+  const jid = `${to}@s.whatsapp.net`;
+  const result = await session.socket.sendMessage(jid, { text });
+  const messageId = result?.key?.id;
+
+  if (!messageId) {
+    throw new Error("Baileys did not return a message id");
+  }
+
+  return messageId;
+}
+
+/**
  * Stops a running session (logs the device out on WhatsApp's side) and
  * forgets it. A no-op if nothing is running for that instance — that's
  * normal, e.g. the worker restarted since it last ran.
