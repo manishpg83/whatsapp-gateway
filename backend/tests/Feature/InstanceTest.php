@@ -239,4 +239,69 @@ class InstanceTest extends TestCase
 
         Http::assertSent(fn ($request) => $request->url() === 'http://127.0.0.1:3001/sessions');
     }
+
+    public function test_owner_can_send_a_test_message_from_the_dashboard(): void
+    {
+        Http::fake(['*' => Http::response(['message_id' => 'WA-DASH-1'], 200)]);
+
+        $user = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($user)->connected()->create();
+
+        $this->actingAs($user)->post(route('instances.send-test-message', $instance), [
+            'to' => '919999999999',
+            'message' => 'Hello from the dashboard',
+        ])->assertRedirect(route('instances.show', $instance));
+
+        $sent = Message::where('whatsapp_session_id', $instance->id)->firstOrFail();
+        $this->assertSame('sent', $sent->status);
+        $this->assertSame('WA-DASH-1', $sent->whatsapp_message_id);
+
+        Http::assertSent(fn ($request) => $request->url() === "http://127.0.0.1:3001/sessions/{$instance->instance_id}/messages");
+    }
+
+    public function test_sending_a_test_message_shows_an_error_when_the_worker_fails(): void
+    {
+        Http::fake(function () {
+            throw new ConnectionException('Connection refused');
+        });
+
+        $user = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($user)->connected()->create();
+
+        $this->actingAs($user)->post(route('instances.send-test-message', $instance), [
+            'to' => '919999999999',
+            'message' => 'Hello from the dashboard',
+        ])->assertRedirect(route('instances.show', $instance))
+            ->assertSessionHas('error');
+
+        $this->assertSame('failed', Message::where('whatsapp_session_id', $instance->id)->firstOrFail()->status);
+    }
+
+    public function test_cannot_send_a_test_message_when_not_connected(): void
+    {
+        $user = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($user)->create(['status' => 'disconnected']);
+
+        $this->actingAs($user)->post(route('instances.send-test-message', $instance), [
+            'to' => '919999999999',
+            'message' => 'Hello',
+        ])->assertStatus(422);
+
+        $this->assertSame(0, Message::where('whatsapp_session_id', $instance->id)->count());
+    }
+
+    public function test_user_cannot_send_a_test_message_on_another_users_instance(): void
+    {
+        $owner = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($owner)->connected()->create();
+
+        $intruder = User::factory()->create();
+
+        $this->actingAs($intruder)->post(route('instances.send-test-message', $instance), [
+            'to' => '919999999999',
+            'message' => 'Hello',
+        ])->assertNotFound();
+
+        $this->assertSame(0, Message::where('whatsapp_session_id', $instance->id)->count());
+    }
 }

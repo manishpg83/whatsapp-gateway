@@ -54,6 +54,39 @@
             </div>
         </div>
 
+        @if ($instance->status === 'connected')
+            {{-- Send a test message --}}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white fw-semibold">Send a test message</div>
+                <div class="card-body">
+                    <p class="text-muted small">This is exactly what the public API does — a quick way to try sending without curl/Postman.</p>
+
+                    <form method="POST" action="{{ route('instances.send-test-message', $instance) }}" class="row g-2 align-items-end">
+                        @csrf
+                        <div class="col-md-4">
+                            <label for="test-message-to" class="form-label small mb-0">To (digits only, country code first)</label>
+                            <input type="text" class="form-control form-control-sm @error('to') is-invalid @enderror"
+                                   id="test-message-to" name="to" placeholder="919XXXXXXXXX" value="{{ old('to') }}" required>
+                            @error('to')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label for="test-message-body" class="form-label small mb-0">Message</label>
+                            <input type="text" class="form-control form-control-sm @error('message') is-invalid @enderror"
+                                   id="test-message-body" name="message" placeholder="Hello from the dashboard" value="{{ old('message') }}" required>
+                            @error('message')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-sm btn-primary">Send</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endif
+
         {{-- API credentials --}}
         <div class="card shadow-sm">
             <div class="card-header bg-white fw-semibold">API credentials</div>

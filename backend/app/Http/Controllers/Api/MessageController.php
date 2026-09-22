@@ -4,15 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\WhatsappSession;
-use App\Services\WorkerClient;
+use App\Services\MessageSender;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Throwable;
 
 class MessageController extends Controller
 {
-    public function send(Request $request, WorkerClient $worker): JsonResponse
+    public function send(Request $request, MessageSender $sender): JsonResponse
     {
         /** @var WhatsappSession $whatsappSession set by AuthenticateApiToken */
         $whatsappSession = $request->attributes->get('whatsapp_session');
@@ -38,28 +36,12 @@ class MessageController extends Controller
             return response()->json(['success' => false, 'error' => 'Instance is not connected'], 422);
         }
 
-        $message = $whatsappSession->messages()->create([
-            'direction' => 'outgoing',
-            'to_number' => $data['to'],
-            'body' => $data['message'],
-            'status' => 'pending',
-        ]);
+        $message = $sender->send($whatsappSession, $data['to'], $data['message']);
 
-        try {
-            $messageId = $worker->sendMessage($whatsappSession->instance_id, $data['to'], $data['message']);
-        } catch (Throwable $e) {
-            Log::error('Worker failed to send a message', [
-                'instance_id' => $whatsappSession->instance_id,
-                'error' => $e->getMessage(),
-            ]);
-
-            $message->update(['status' => 'failed', 'error' => $e->getMessage()]);
-
+        if ($message->status === 'failed') {
             return response()->json(['success' => false, 'error' => 'Could not send message'], 502);
         }
 
-        $message->update(['status' => 'sent', 'whatsapp_message_id' => $messageId]);
-
-        return response()->json(['success' => true, 'message_id' => $messageId]);
+        return response()->json(['success' => true, 'message_id' => $message->whatsapp_message_id]);
     }
 }

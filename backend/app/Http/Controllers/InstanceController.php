@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\WhatsappSession;
+use App\Services\MessageSender;
 use App\Services\WorkerClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -87,6 +88,33 @@ class InstanceController extends Controller
 
         return redirect()->route('instances.show', $whatsappSession)
             ->with('status', $webhookUrl ? 'Webhook saved.' : 'Webhook cleared.');
+    }
+
+    /**
+     * The dashboard's own "send a test message" button — a convenience
+     * for trying the connection out without needing curl/Postman. Uses
+     * the exact same MessageSender the public API uses underneath, so
+     * this is also a live example of what that API actually does.
+     */
+    public function sendTestMessage(Request $request, string $instance, MessageSender $sender): RedirectResponse
+    {
+        $whatsappSession = $this->findOwnedInstance($request, $instance);
+
+        abort_unless($whatsappSession->status === 'connected', 422, 'Connect this instance before sending a message.');
+
+        $data = $request->validate([
+            'to' => ['required', 'regex:/^\d{7,15}$/'],
+            'message' => ['required', 'string', 'max:4096'],
+        ]);
+
+        $message = $sender->send($whatsappSession, $data['to'], $data['message']);
+
+        return redirect()->route('instances.show', $whatsappSession)->with(
+            $message->status === 'sent' ? 'status' : 'error',
+            $message->status === 'sent'
+                ? 'Message sent.'
+                : 'Could not send message. Is the worker running and this instance actually connected?'
+        );
     }
 
     /**

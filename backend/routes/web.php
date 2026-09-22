@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InstanceController;
@@ -19,6 +20,11 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/login', [LoginController::class, 'create'])->name('login');
     Route::post('/login', [LoginController::class, 'store']);
+
+    Route::get('/forgot-password', [PasswordResetController::class, 'create'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetController::class, 'store'])->name('password.email');
+    Route::get('/reset-password/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
+    Route::post('/reset-password', [PasswordResetController::class, 'update'])->name('password.update');
 });
 
 // Only for logged-in users.
@@ -39,6 +45,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/instances/{instance}/tokens/{token}', [ApiTokenController::class, 'destroy'])->name('instances.tokens.destroy');
 
     Route::post('/instances/{instance}/webhook', [InstanceController::class, 'updateWebhook'])->name('instances.webhook.update');
+
+    Route::post('/instances/{instance}/send-test-message', [InstanceController::class, 'sendTestMessage'])
+        ->middleware('throttle:messages')
+        ->name('instances.send-test-message');
 });
 
 // Called by the Node worker only — authenticated by shared secret, not a

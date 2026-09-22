@@ -6,7 +6,7 @@
 
 ## Where we are
 
-**All 8 roadmap milestones (M0-M8) are code-complete, automated-tested, AND verified live: M5 (real QR scan), M7 (real outbound send), M8 (real inbound messages stored — `direction=incoming`, `status=received`, confirmed via direct DB query, not just trusting the UI). M4/M5/M6/M7 committed by the owner (`c985028`/`05be00c`/`109c521`/`41f802f`); M8 not yet committed.**
+**All 8 roadmap milestones (M0-M8) are done and live-verified. M4-M8 all committed by the owner (`c985028`/`05be00c`/`109c521`/`41f802f`/`3ab782a`+`91a7b31`). Post-roadmap work now underway, beyond `CLAUDE.md`'s original scope, per the owner's direction: (1) hardening fixes [worker-restart-forgets-connections, stale-credentials-after-logout, a race condition] + a "Send a test message" dashboard button — coded, not yet live-verified or committed; (2) password reset — coded and fully tested, not yet live-verified or committed; (3) billing — pricing model decided (free tier + paid plans), exact tier limits/prices still needed before building, not started.**
 
 ## Milestones
 
@@ -110,11 +110,38 @@
   - No new packages either side.
   - **Verified live** (took several tries — see "Things to remember" for the three separate gotchas hit along the way): two genuine incoming messages from a different phone number, sent as a direct 1-on-1 chat, are stored with `direction = incoming`, `status = received`, confirmed by querying the `messages` table directly rather than trusting the UI alone.
 
+## Post-roadmap hardening (beyond `CLAUDE.md`'s M0-M8 — bugs found through today's own live testing)
+
+- [ ] **Fix: worker forgets "connected" instances on restart** *(code done, not yet live-verified)*
+  - [x] New `GET /internal/worker/sessions` (Laravel, secret-protected) — returns `instance_id`s currently `connected`/`connecting`/`qr_pending` (i.e. should have a live socket)
+  - [x] Worker's `reconnectAll.ts`: called once at boot (`index.ts`), fetches that list, calls `startSession()` for each — reuses already-saved credentials, no QR needed. Best-effort: if Laravel isn't reachable yet, the worker still starts normally
+  - [x] Tests: `InternalSessionsTest.php` (4: secret required, correct status filter, empty case), `tests/reconnectAll.test.ts` (3: fetches + reconnects each id, tolerates Laravel being down, tolerates an error status — all with `startSession` mocked, no real socket)
+- [x] **Fix: stale credentials after logout break "Reconnect"** *(code done; found by reading Baileys' source — `logout()` only tells the server to unlink, it never touches the local credential files)*
+  - `sessionManager.ts`: new `clearAuthState()` deletes an instance's `SESSION_STORAGE_PATH` folder. Called from two places: the `connection.update` close handler whenever `loggedOut` is the real reason (not just the explicit Disconnect button — an unlink from the phone hits this too), and unconditionally from `stopSession()` (explicit Disconnect), regardless of whether a live socket existed
+  - Without this, "Reconnect" after a real logout would silently keep retrying dead credentials forever and never show a fresh QR
+- [x] **Fix: a TOCTOU race in `startSession()`** — the "already running?" check and the actual connect were separated by an `await` gap; two near-simultaneous calls for the same instance (e.g. an impatient double-click on Reconnect) could both pass and open two sockets. Added a `startingInstanceIds` guard set synchronously before the gap.
+- [x] **Added: "Send a test message" button on the instance page** (the owner's own request, once it was pointed out the API is meant for *their customers'* code to call, not something to test via terminal every time)
+  - New `App\Services\MessageSender` — the actual "create a pending row, call the worker, mark sent/failed" logic, extracted so `Api\MessageController` (public API) and this new button share one implementation instead of drifting apart. `Api\MessageController::send()` refactored onto it (all 9 `MessageTest.php` tests still pass unchanged — confirms it's behavior-preserving, not just a rename)
+  - `InstanceController::sendTestMessage()` (`POST /instances/{instance}/send-test-message`, `throttle:messages` same as the API), form added to `instances/show.blade.php`, visible only when connected
+  - Tests: `InstanceTest.php` (+4: sends and marks `sent`, worker failure marks `failed` + flashes an error, 422 when not connected, 404 for another user's instance)
+- All of the above: 86 backend tests passing (was 78), 21 worker tests passing (was 18), Pint clean, `npm run typecheck` clean. **Not yet committed. Not yet live-verified** — see Next step.
+
+## Post-roadmap features (owner-directed — production-readiness gaps identified when asked "is it finished?")
+
+- [x] **Password reset** *(code done, fully tested, NOT yet live-verified or committed)*
+  - Standard Laravel password-broker flow (`Illuminate\Support\Facades\Password`) — the `password_reset_tokens` table has existed since M1's default migrations, unused until now. `User` already supports it via `CanResetPassword` (bundled in the base `Authenticatable` class), no model changes needed.
+  - New `Auth\PasswordResetController`: `create`/`store` (request a link — always the same generic "if that email exists…" message and redirect regardless of whether it does, matching login's existing anti-enumeration approach, CLAUDE.md §10 — deliberately overrides Laravel's default per-status message, which would otherwise leak whether an email is registered), `edit`/`update` (the emailed link → set new password)
+  - Routes named `password.request`/`password.email`/`password.reset`/`password.update` — `password.reset` specifically is required verbatim, it's hard-coded into Laravel's default `ResetPassword` notification's link-building
+  - Views: `auth/forgot-password.blade.php`, `auth/reset-password.blade.php`; "Forgot password?" link added to `auth/login.blade.php`
+  - **`MAIL_MAILER=log` in `.env`** (unchanged since M1) — the reset email isn't actually sent anywhere yet, it's written to `storage/logs/laravel.log`. Fine for now; needs a real mail driver (or at least Mailtrap/similar) before this is usable by an actual user, not just in tests.
+  - Tests: `PasswordResetTest.php` (7): page renders, guest-only, real-email sends a notification, unknown-email shows the identical message and sends nothing, full reset-then-login-with-new-password round trip (old password stops working, new one works), invalid token rejected without touching the password hash
+- [ ] **Billing** — pricing model decided: **free tier + paid plans**. Payment provider defaulted to **Stripe via Laravel Cashier** (the obvious choice for this stack) pending objection. **Blocked on:** exact tier definitions (price points, instance/message limits per tier) — genuine business decisions, not started until the owner supplies them.
+
 ## Test status
 
-`php artisan test` (from `backend/`): **78 passed, 294 assertions** (as of M8). `vendor/bin/pint --test`: clean.
+`php artisan test` (from `backend/`): **93 passed, 353 assertions**. `vendor/bin/pint --test`: clean.
 
-`npm test` (from `whatsapp-worker/`, Vitest): **18 passed** (as of M8). `npm run typecheck`: clean.
+`npm test` (from `whatsapp-worker/`, Vitest): **21 passed**. `npm run typecheck`: clean.
 
 ## Things to remember (learned the hard way)
 
@@ -134,7 +161,7 @@
 
 **Webhook delivery (M8) is synchronous and best-effort, like the worker calls in M5-M7** — no queue, no retries. A slow or dead receiving endpoint adds latency to (but can't fail) the request that stores the incoming message, since `WebhookDispatcher` catches everything. `webhook_url` is also a straightforward SSRF surface (server-side request to an owner-supplied URL) — flagged in the class docblock, not solved; fine for this MVP's single-beginner-instance threat model, revisit before this is ever exposed more broadly.
 
-**The worker's "connected" state is in-memory only — it does NOT survive the worker process restarting** (including `tsx watch` auto-reloading on every file save during active development). The database can keep saying `status = connected` long after the actual worker process has forgotten it, because nothing currently re-checks that in the background. Symptom: any worker action (most obviously sending a message) fails with a 409/502 even though the instance page says "Connected". Fix: click **Disconnect** then **Reconnect** on the instance page — this re-establishes a real socket in whichever worker process is currently running (no QR needed, it reuses the saved credentials in `C:\whatsapp-secrets\`). Hit this for real during M7 live-testing right after a run of worker code edits, and again during M8 (I was still editing worker files, so it kept recurring).
+**~~The worker's "connected" state is in-memory only~~ — FIXED in post-roadmap hardening (pending live verification).** Was: it did not survive the worker process restarting (including `tsx watch` auto-reloading on every file save during active development), so the database could keep saying `status = connected` long after the worker had forgotten it — any worker action (most obviously sending a message) then failed with 409/502 even though the page said "Connected". Hit this for real during M7 and M8 live-testing. Now: the worker calls `GET /internal/worker/sessions` once at boot and reconnects everything Laravel thinks should be live, automatically, using the saved credentials — no more manual Disconnect+Reconnect after every restart. If this ever regresses, the manual fix is still: click **Disconnect** then **Reconnect** on the instance page.
 
 **Testing "incoming message" (M8) live has three separate, easy-to-hit false negatives — all correct behaviour, not bugs, but confusing until you know them:**
 1. **Messaging the connected number FROM the connected number itself** (or from any of its own linked devices — including "Message Yourself" on the same phone) always looks like `fromMe: true` to Baileys, account-wide, not device-specific. It will never be treated as incoming. Must send from a genuinely different WhatsApp account.
@@ -155,7 +182,12 @@
 
 ## Next step
 
-**All 8 roadmap milestones are code-complete AND live-verified. `CLAUDE.md`'s roadmap (§13) formally ends at M8.** At the start of the next session:
+**Live-verify everything from today (fixes + new buttons + password reset), then commit, then get billing tier numbers.**
 
-1. Remind the owner to commit M8 when ready — M4/M5/M6/M7 are already committed (`c985028`/`05be00c`/`109c521`/`41f802f`), never commit without being asked.
-2. Ask the owner what's next — don't assume. Likely candidates not yet built: queues/Redis for the worker calls (everything is still synchronous, flagged throughout M5-M8), webhook retries (currently one best-effort attempt, no retry on failure), a production deploy plan (still `php artisan serve`/`npm run dev` only), or continued hardening/polish. This is a genuine open conversation, not a scripted milestone.
+1. **Stale-credentials fix**: click Reconnect on an instance whose status is `logged_out`/`disconnected` — confirm a genuinely fresh QR appears and scanning it reaches Connected again.
+2. **Boot-reconnect fix**: once connected, restart the worker (save any worker file, or stop/start `npm run dev`) and confirm the instance goes back to "Connected" **on its own**.
+3. **"Send a test message" button**: try it on a connected instance, confirm the flash message and "Recent messages" both reflect it.
+4. **Password reset**: visit `/forgot-password`, submit a real (or throwaway) email, then open `backend/storage/logs/laravel.log` and find the emailed reset link (nothing is actually sent yet — `MAIL_MAILER=log`), follow it, set a new password, confirm login works with the new one and not the old one.
+5. Remind the owner to commit once everything checks out — M4 through M8 are already committed; today's work (hardening + password reset) is not.
+6. There's a stray, unused `backend/CLAUDE.md` (Aug 25, from Laravel's installer, suggesting an unrelated "Laravel Boost" install) — separate from the root `CLAUDE.md`. Never acted on; ask if the owner wants it deleted.
+7. **Billing is next but blocked**: need exact tier definitions from the owner (price points, instance/message limits per tier) before any Stripe/Cashier code gets written — this is a business decision, not something to assume. Once supplied, present a plan (migrations for plan/subscription state, Cashier setup, usage-limit enforcement points) before building, same as every other milestone.
