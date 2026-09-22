@@ -5,12 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\WhatsappSession;
 use App\Services\MessageSender;
+use App\Services\PlanLimiter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class MessageController extends Controller
 {
-    public function send(Request $request, MessageSender $sender): JsonResponse
+    public function send(Request $request, MessageSender $sender, PlanLimiter $limiter): JsonResponse
     {
         /** @var WhatsappSession $whatsappSession set by AuthenticateApiToken */
         $whatsappSession = $request->attributes->get('whatsapp_session');
@@ -34,6 +35,13 @@ class MessageController extends Controller
 
         if ($whatsappSession->status !== 'connected') {
             return response()->json(['success' => false, 'error' => 'Instance is not connected'], 422);
+        }
+
+        if (! $limiter->canSendMessage($whatsappSession->user)) {
+            return response()->json([
+                'success' => false,
+                'error' => "You've reached your plan's monthly message limit. Upgrade to send more.",
+            ], 422);
         }
 
         $message = $sender->send($whatsappSession, $data['to'], $data['message']);

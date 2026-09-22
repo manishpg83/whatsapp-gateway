@@ -27,6 +27,10 @@
                             <a class="nav-link {{ request()->routeIs('instances.*') ? 'active' : '' }}"
                                href="{{ route('instances.index') }}">Instances</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('billing.*') ? 'active' : '' }}"
+                               href="{{ route('billing.index') }}">Billing</a>
+                        </li>
                         {{-- Placeholder: built in a later milestone. --}}
                         <li class="nav-item">
                             <span class="nav-link disabled">API Docs <span class="badge text-bg-secondary">soon</span></span>

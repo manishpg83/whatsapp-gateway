@@ -112,6 +112,25 @@ class MessageTest extends TestCase
             && $request['to'] === '919999999999');
     }
 
+    public function test_cannot_send_past_the_plans_monthly_message_limit(): void
+    {
+        Http::fake(['*' => Http::response(['message_id' => 'x'], 200)]);
+
+        $instance = WhatsappSession::factory()->connected()->create();
+        ['plainText' => $plainText] = ApiToken::generateFor($instance, 'x');
+
+        // Free plan's limit is 50 messages/month (config/plans.php).
+        Message::factory()->for($instance, 'whatsappSession')->count(50)->create();
+
+        $this->send($plainText, [
+            'instance_id' => $instance->instance_id,
+            'to' => '919999999999',
+            'message' => 'One too many',
+        ])->assertStatus(422);
+
+        $this->assertSame(50, Message::where('whatsapp_session_id', $instance->id)->count());
+    }
+
     public function test_worker_failure_marks_the_message_failed(): void
     {
         Http::fake(function () {

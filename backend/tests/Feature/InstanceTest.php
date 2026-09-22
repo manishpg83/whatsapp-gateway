@@ -56,6 +56,20 @@ class InstanceTest extends TestCase
             && $request->hasHeader('X-Internal-Secret'));
     }
 
+    public function test_cannot_create_an_instance_past_the_plans_limit(): void
+    {
+        Http::fake(['*' => Http::response(['started' => true], 202)]);
+
+        // Free plan's limit is 1 instance (config/plans.php).
+        $user = User::factory()->create();
+        WhatsappSession::factory()->for($user)->create();
+
+        $this->actingAs($user)->post('/instances', ['name' => 'One too many'])
+            ->assertStatus(422);
+
+        $this->assertSame(1, WhatsappSession::where('user_id', $user->id)->count());
+    }
+
     public function test_instance_creation_shows_a_friendly_error_when_the_worker_is_unreachable(): void
     {
         Http::fake(function () {

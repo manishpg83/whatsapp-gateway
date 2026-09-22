@@ -24,10 +24,15 @@ return Application::configure(basePath: dirname(__DIR__))
             'api.token' => AuthenticateApiToken::class,
         ]);
 
-        // The worker calls this route directly (no browser session, no
-        // CSRF token) — it's authenticated by the shared secret instead.
+        // The worker and Cashfree both call these routes directly (no
+        // browser session, no CSRF token) — authenticated by the shared
+        // secret / webhook signature instead. billing/return is Cashfree's
+        // checkout posting the customer's browser back to us, also with
+        // no CSRF token of ours.
         $middleware->validateCsrfTokens(except: [
             'internal/worker/events',
+            'webhooks/cashfree',
+            'billing/return',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

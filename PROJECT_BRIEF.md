@@ -548,3 +548,11 @@ Then give me:
 STOP after this.
 
 Do not start building the application until I approve the architecture.
+
+<!--
+  Cashfree sandbox credentials used to live here in plaintext. Moved to
+  backend/.env (git-ignored) — see CASHFREE_API_KEY / CASHFREE_API_SECRET /
+  CASHFREE_ENV there. This file is committed to Git, so it's not a safe
+  place for even sandbox credentials.
+-->
+PAYMENTS_GATEWAY=cashfree

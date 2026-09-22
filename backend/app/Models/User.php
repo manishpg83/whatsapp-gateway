@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -37,5 +38,24 @@ class User extends Authenticatable
     public function whatsappSessions(): HasMany
     {
         return $this->hasMany(WhatsappSession::class);
+    }
+
+    /**
+     * @return HasOne<Subscription, $this>
+     */
+    public function subscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class);
+    }
+
+    protected static function booted(): void
+    {
+        // Every user has exactly one Subscription row, starting on the
+        // free plan — created automatically so nothing that creates a
+        // User (registration, factories, future admin tools) has to
+        // remember to also set up billing.
+        static::created(function (User $user) {
+            $user->subscription()->create(['plan' => 'free']);
+        });
     }
 }

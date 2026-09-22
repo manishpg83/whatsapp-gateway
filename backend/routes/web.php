@@ -4,6 +4,8 @@ use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\BillingController;
+use App\Http\Controllers\CashfreeWebhookController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InstanceController;
 use App\Http\Controllers\InternalSessionsController;
@@ -49,6 +51,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/instances/{instance}/send-test-message', [InstanceController::class, 'sendTestMessage'])
         ->middleware('throttle:messages')
         ->name('instances.send-test-message');
+
+    Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
+    Route::post('/billing/subscribe/{plan}', [BillingController::class, 'subscribe'])->name('billing.subscribe');
 });
 
 // Called by the Node worker only — authenticated by shared secret, not a
@@ -61,3 +66,13 @@ Route::post('/internal/worker/events', WorkerWebhookController::class)
 Route::get('/internal/worker/sessions', InternalSessionsController::class)
     ->middleware('internal.secret')
     ->name('internal.worker.sessions');
+
+// Called by Cashfree only — authenticated by its own webhook signature,
+// not a browser session or our internal secret. See CashfreeWebhookController.
+Route::post('/webhooks/cashfree', CashfreeWebhookController::class)->name('webhooks.cashfree');
+
+// Where Cashfree's checkout sends the customer's browser back to. Deliberately
+// outside the 'auth' group and CSRF (see bootstrap/app.php) — Cashfree POSTs
+// here itself, not via a form with our session/CSRF token, and it's just a
+// bounce-back to /billing either way, so no auth is actually needed here.
+Route::match(['get', 'post'], '/billing/return', [BillingController::class, 'return'])->name('billing.return');
