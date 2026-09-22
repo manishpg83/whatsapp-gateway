@@ -8,6 +8,14 @@ export type WorkerEvent =
       status: "connected" | "disconnected" | "logged_out";
       phone_number?: string | null;
       last_disconnect_reason?: string | null;
+    }
+  | {
+      event: "message.received";
+      instance_id: string;
+      from: string;
+      message: string;
+      whatsapp_message_id: string;
+      timestamp: string;
     };
 
 type EventLogger = {

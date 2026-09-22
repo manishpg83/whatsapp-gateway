@@ -4,6 +4,7 @@ import QRCode from "qrcode";
 import type { FastifyBaseLogger } from "fastify";
 import type { Config } from "../config.js";
 import { notifyLaravel } from "./callbacks.js";
+import { parseIncomingMessage } from "./incomingMessage.js";
 
 type Session = {
   socket: ReturnType<typeof makeWASocket>;
@@ -108,6 +109,44 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
           instance_id: instanceId,
           status: loggedOut ? "logged_out" : "disconnected",
           last_disconnect_reason: lastDisconnect?.error?.message ?? null,
+        },
+        logger
+      );
+    }
+  });
+
+  socket.ev.on("messages.upsert", async ({ messages, type }) => {
+    logger.info({ instanceId, type, count: messages.length }, "messages.upsert received");
+
+    // "notify" = a genuinely new, real-time message. "append" (history
+    // sync on first link, etc.) is replayed old messages — not something
+    // to forward as if it just arrived.
+    if (type !== "notify") {
+      return;
+    }
+
+    for (const msg of messages) {
+      const parsed = parseIncomingMessage(msg);
+
+      if (!parsed) {
+        logger.info(
+          { instanceId, remoteJid: msg.key.remoteJid, fromMe: msg.key.fromMe },
+          "Skipped a message.upsert entry (not a forwardable incoming text)"
+        );
+        continue;
+      }
+
+      logger.info({ instanceId, from: parsed.from }, "Forwarding incoming message to Laravel");
+
+      await notifyLaravel(
+        config,
+        {
+          event: "message.received",
+          instance_id: instanceId,
+          from: parsed.from,
+          message: parsed.text,
+          whatsapp_message_id: parsed.whatsappMessageId,
+          timestamp: parsed.timestamp,
         },
         logger
       );
