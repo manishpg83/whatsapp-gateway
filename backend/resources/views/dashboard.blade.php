@@ -52,11 +52,11 @@
     <ul class="list-group list-group-flush">
         <li class="list-group-item d-flex justify-content-between align-items-center">
             <span>1. Create a WhatsApp instance</span>
-            <span class="badge text-bg-secondary">coming soon</span>
+            <a href="{{ route('instances.create') }}" class="btn btn-sm btn-outline-primary">Create instance</a>
         </li>
         <li class="list-group-item d-flex justify-content-between align-items-center">
             <span>2. Scan the QR code with your phone</span>
-            <span class="badge text-bg-secondary">coming soon</span>
+            <a href="{{ route('instances.index') }}" class="btn btn-sm btn-outline-secondary">View instances</a>
         </li>
         <li class="list-group-item d-flex justify-content-between align-items-center">
             <span>3. Get your instance ID and access token</span>

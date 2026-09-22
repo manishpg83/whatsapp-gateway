@@ -9,10 +9,8 @@ class DashboardController extends Controller
 {
     public function __invoke(Request $request): View
     {
-        // M5 will replace these two numbers with real counts of THIS user's
-        // instances (from the whatsapp_sessions table, scoped to the owner).
-        $instanceCount = 0;
-        $connectedCount = 0;
+        $instanceCount = $request->user()->whatsappSessions()->count();
+        $connectedCount = $request->user()->whatsappSessions()->where('status', 'connected')->count();
 
         return view('dashboard', [
             'user' => $request->user(),

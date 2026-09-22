@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\VerifyInternalSecret;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -15,6 +16,16 @@ return Application::configure(basePath: dirname(__DIR__))
         // Where to send visitors who are not logged in / already logged in.
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn () => route('dashboard'));
+
+        $middleware->alias([
+            'internal.secret' => VerifyInternalSecret::class,
+        ]);
+
+        // The worker calls this route directly (no browser session, no
+        // CSRF token) — it's authenticated by the shared secret instead.
+        $middleware->validateCsrfTokens(except: [
+            'internal/worker/events',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

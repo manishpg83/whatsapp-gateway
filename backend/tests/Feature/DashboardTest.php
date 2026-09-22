@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\WhatsappSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -73,6 +74,22 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertSee('Instances')
             ->assertSee('No instances yet');
+    }
+
+    public function test_dashboard_shows_real_per_user_instance_counts(): void
+    {
+        $me = User::factory()->create();
+        WhatsappSession::factory()->for($me)->connected()->create();
+        WhatsappSession::factory()->for($me)->create(['status' => 'connecting']);
+
+        // Another user's instances must never affect my counts.
+        $other = User::factory()->create();
+        WhatsappSession::factory()->for($other)->connected()->create();
+
+        $this->actingAs($me)->get('/dashboard')
+            ->assertOk()
+            ->assertSee('2') // instanceCount
+            ->assertSee('1 of 2 connected');
     }
 
     public function test_navigation_links_are_shown_to_logged_in_users(): void

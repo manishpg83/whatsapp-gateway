@@ -3,6 +3,8 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InstanceController;
+use App\Http\Controllers\WorkerWebhookController;
 use Illuminate\Support\Facades\Route;
 
 // The home page is the dashboard (guests are then sent on to the login page).
@@ -22,4 +24,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    Route::get('/instances', [InstanceController::class, 'index'])->name('instances.index');
+    Route::get('/instances/create', [InstanceController::class, 'create'])->name('instances.create');
+    Route::post('/instances', [InstanceController::class, 'store'])->name('instances.store');
+    Route::get('/instances/{instance}', [InstanceController::class, 'show'])->name('instances.show');
+    Route::get('/instances/{instance}/status', [InstanceController::class, 'status'])->name('instances.status');
+    Route::post('/instances/{instance}/reconnect', [InstanceController::class, 'reconnect'])->name('instances.reconnect');
+    Route::delete('/instances/{instance}', [InstanceController::class, 'destroy'])->name('instances.destroy');
 });
+
+// Called by the Node worker only — authenticated by shared secret, not a
+// browser session. See App\Http\Middleware\VerifyInternalSecret.
+Route::post('/internal/worker/events', WorkerWebhookController::class)
+    ->middleware('internal.secret')
+    ->name('internal.worker.events');

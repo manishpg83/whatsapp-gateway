@@ -23,10 +23,11 @@
                             <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
                                href="{{ route('dashboard') }}">Dashboard</a>
                         </li>
-                        {{-- Placeholders: these pages are built in later milestones. --}}
                         <li class="nav-item">
-                            <span class="nav-link disabled">Instances <span class="badge text-bg-secondary">soon</span></span>
+                            <a class="nav-link {{ request()->routeIs('instances.*') ? 'active' : '' }}"
+                               href="{{ route('instances.index') }}">Instances</a>
                         </li>
+                        {{-- Placeholder: built in a later milestone. --}}
                         <li class="nav-item">
                             <span class="nav-link disabled">API Docs <span class="badge text-bg-secondary">soon</span></span>
                         </li>
@@ -50,6 +51,13 @@
     </nav>
 
     <main class="container py-5">
+        @if (session('status'))
+            <div class="alert alert-success">{{ session('status') }}</div>
+        @endif
+        @if (session('error'))
+            <div class="alert alert-danger">{{ session('error') }}</div>
+        @endif
+
         @yield('content')
     </main>
 </body>

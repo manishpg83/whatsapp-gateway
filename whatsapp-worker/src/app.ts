@@ -1,7 +1,7 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import type { Config } from "./config.js";
 import { healthRoute } from "./routes/health.js";
-import { pingRoute } from "./routes/ping.js";
+import { sessionsRoute } from "./routes/sessions.js";
 
 /**
  * Builds (but does not start) the Fastify instance. Kept separate from
@@ -19,7 +19,7 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
   });
 
   await app.register(healthRoute);
-  await app.register((instance) => pingRoute(instance, config));
+  await app.register((instance) => sessionsRoute(instance, config));
 
   return app;
 }
