@@ -128,6 +128,83 @@
 
             </div>
         </div>
+
+        {{-- Webhook --}}
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white fw-semibold">Webhook</div>
+            <div class="card-body">
+                <p class="text-muted small">When someone messages this WhatsApp number, we'll forward it here as JSON, signed with the secret below.</p>
+
+                <form method="POST" action="{{ route('instances.webhook.update', $instance) }}" class="row g-2 align-items-end mb-3">
+                    @csrf
+                    <div class="col-md-8">
+                        <label for="webhook-url" class="form-label small mb-0">Webhook URL</label>
+                        <input type="url" class="form-control form-control-sm @error('webhook_url') is-invalid @enderror"
+                               id="webhook-url" name="webhook_url" placeholder="https://your-app.example.com/webhooks/whatsapp"
+                               value="{{ old('webhook_url', $instance->webhook_url) }}">
+                        @error('webhook_url')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                    </div>
+                    @if ($instance->webhook_url)
+                        <div class="col-auto">
+                            <button type="submit" name="webhook_url" value="" class="btn btn-sm btn-outline-danger">Clear</button>
+                        </div>
+                    @endif
+                </form>
+
+                @if ($instance->webhook_secret)
+                    <p class="small text-muted mb-0">
+                        Signing secret: <code>{{ $instance->webhook_secret }}</code><br>
+                        Each request carries an <code>X-Webhook-Signature: sha256=&lt;hmac&gt;</code> header — HMAC-SHA256 of the raw JSON body using this secret.
+                    </p>
+                @endif
+            </div>
+        </div>
+
+        {{-- Recent messages --}}
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">Recent messages</div>
+            <div class="card-body">
+                @if ($messages->isEmpty())
+                    <p class="text-muted mb-0">No messages yet.</p>
+                @else
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>Number</th>
+                                <th>Message</th>
+                                <th>Status</th>
+                                <th>When</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($messages as $message)
+                                <tr>
+                                    <td>
+                                        @if ($message->direction === 'incoming')
+                                            <span class="badge text-bg-info">In</span>
+                                        @else
+                                            <span class="badge text-bg-secondary">Out</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $message->direction === 'incoming' ? $message->from_number : $message->to_number }}</td>
+                                    <td>{{ \Illuminate\Support\Str::limit($message->body, 60) }}</td>
+                                    <td>
+                                        <span class="badge text-bg-{{ $message->status === 'failed' ? 'danger' : 'light text-dark' }}">{{ $message->status }}</span>
+                                    </td>
+                                    <td>{{ $message->created_at->diffForHumans() }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+            </div>
+        </div>
     </div>
 </div>
 

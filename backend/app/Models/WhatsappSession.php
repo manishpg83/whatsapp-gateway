@@ -20,6 +20,8 @@ use Illuminate\Support\Str;
     'phone_number',
     'connected_at',
     'last_disconnect_reason',
+    'webhook_url',
+    'webhook_secret',
 ])]
 class WhatsappSession extends Model
 {

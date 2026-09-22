@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Message;
 use App\Models\User;
 use App\Models\WhatsappSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -121,6 +122,32 @@ class InstanceTest extends TestCase
             ->assertOk()
             ->assertSee('Connected')
             ->assertSee($instance->phone_number);
+    }
+
+    public function test_show_page_lists_recent_messages(): void
+    {
+        $user = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($user)->connected()->create();
+        Message::factory()->for($instance, 'whatsappSession')->create([
+            'direction' => 'incoming',
+            'from_number' => '919999999999',
+            'body' => 'A message only this test can see',
+        ]);
+
+        $this->actingAs($user)->get(route('instances.show', $instance))
+            ->assertOk()
+            ->assertSee('A message only this test can see')
+            ->assertSee('919999999999');
+    }
+
+    public function test_show_page_says_no_messages_yet_when_there_are_none(): void
+    {
+        $user = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($user)->connected()->create();
+
+        $this->actingAs($user)->get(route('instances.show', $instance))
+            ->assertOk()
+            ->assertSee('No messages yet');
     }
 
     public function test_show_page_renders_when_disconnected(): void

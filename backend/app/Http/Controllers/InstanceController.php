@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Throwable;
 
@@ -53,7 +54,39 @@ class InstanceController extends Controller
 
     public function show(Request $request, string $instance): View
     {
-        return view('instances.show', ['instance' => $this->findOwnedInstance($request, $instance)]);
+        $whatsappSession = $this->findOwnedInstance($request, $instance);
+
+        return view('instances.show', [
+            'instance' => $whatsappSession,
+            'messages' => $whatsappSession->messages()->latest()->take(20)->get(),
+        ]);
+    }
+
+    /**
+     * Sets or clears the webhook URL that incoming messages get forwarded
+     * to. A signing secret is generated the first time a URL is set, and
+     * kept (not regenerated) on later updates so the owner's receiving
+     * end doesn't need to change anything just because the URL changed.
+     */
+    public function updateWebhook(Request $request, string $instance): RedirectResponse
+    {
+        $whatsappSession = $this->findOwnedInstance($request, $instance);
+
+        $data = $request->validate([
+            'webhook_url' => ['nullable', 'url', 'max:2048'],
+        ]);
+
+        $webhookUrl = $data['webhook_url'] ?? null;
+
+        $whatsappSession->update([
+            'webhook_url' => $webhookUrl,
+            'webhook_secret' => $webhookUrl
+                ? ($whatsappSession->webhook_secret ?? Str::random(40))
+                : null,
+        ]);
+
+        return redirect()->route('instances.show', $whatsappSession)
+            ->with('status', $webhookUrl ? 'Webhook saved.' : 'Webhook cleared.');
     }
 
     /**

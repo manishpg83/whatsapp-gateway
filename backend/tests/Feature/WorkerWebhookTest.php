@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\Message;
 use App\Models\WhatsappSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -132,5 +135,83 @@ class WorkerWebhookTest extends TestCase
             'event' => 'something.else',
             'instance_id' => $instance->instance_id,
         ], ['X-Internal-Secret' => self::SECRET])->assertStatus(422);
+    }
+
+    public function test_message_received_event_stores_an_incoming_message(): void
+    {
+        Http::fake(); // no webhook_url configured, so nothing should be sent at all
+
+        $instance = WhatsappSession::factory()->connected()->create();
+
+        $response = $this->postJson('/internal/worker/events', [
+            'event' => 'message.received',
+            'instance_id' => $instance->instance_id,
+            'from' => '919999999999',
+            'message' => 'Hi there',
+            'whatsapp_message_id' => 'WA-INCOMING-1',
+            'timestamp' => now()->toIso8601String(),
+        ], ['X-Internal-Secret' => self::SECRET]);
+
+        $response->assertNoContent();
+
+        $message = Message::where('whatsapp_session_id', $instance->id)->firstOrFail();
+        $this->assertSame('incoming', $message->direction);
+        $this->assertSame('919999999999', $message->from_number);
+        $this->assertSame('Hi there', $message->body);
+        $this->assertSame('WA-INCOMING-1', $message->whatsapp_message_id);
+        $this->assertSame('received', $message->status);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_message_received_event_dispatches_to_the_configured_webhook_with_a_valid_signature(): void
+    {
+        Http::fake(['https://example.test/webhook' => Http::response('', 200)]);
+
+        $instance = WhatsappSession::factory()->connected()->create([
+            'webhook_url' => 'https://example.test/webhook',
+            'webhook_secret' => 'a-fixed-webhook-secret',
+        ]);
+
+        $this->postJson('/internal/worker/events', [
+            'event' => 'message.received',
+            'instance_id' => $instance->instance_id,
+            'from' => '919999999999',
+            'message' => 'Hi there',
+            'whatsapp_message_id' => 'WA-INCOMING-2',
+            'timestamp' => now()->toIso8601String(),
+        ], ['X-Internal-Secret' => self::SECRET])->assertNoContent();
+
+        Http::assertSent(function ($request) {
+            $expectedSignature = 'sha256='.hash_hmac('sha256', $request->body(), 'a-fixed-webhook-secret');
+
+            return $request->url() === 'https://example.test/webhook'
+                && $request->header('X-Webhook-Signature')[0] === $expectedSignature
+                && json_decode($request->body(), true)['message'] === 'Hi there';
+        });
+    }
+
+    public function test_webhook_dispatch_failure_does_not_fail_the_original_request(): void
+    {
+        Http::fake(function () {
+            throw new ConnectionException('Connection refused');
+        });
+
+        $instance = WhatsappSession::factory()->connected()->create([
+            'webhook_url' => 'https://example.test/webhook',
+            'webhook_secret' => 'a-fixed-webhook-secret',
+        ]);
+
+        $response = $this->postJson('/internal/worker/events', [
+            'event' => 'message.received',
+            'instance_id' => $instance->instance_id,
+            'from' => '919999999999',
+            'message' => 'Hi there',
+            'whatsapp_message_id' => 'WA-INCOMING-3',
+            'timestamp' => now()->toIso8601String(),
+        ], ['X-Internal-Secret' => self::SECRET]);
+
+        $response->assertNoContent();
+        $this->assertSame(1, Message::where('whatsapp_session_id', $instance->id)->count());
     }
 }

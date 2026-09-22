@@ -36,6 +36,8 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/instances/{instance}/tokens', [ApiTokenController::class, 'store'])->name('instances.tokens.store');
     Route::delete('/instances/{instance}/tokens/{token}', [ApiTokenController::class, 'destroy'])->name('instances.tokens.destroy');
+
+    Route::post('/instances/{instance}/webhook', [InstanceController::class, 'updateWebhook'])->name('instances.webhook.update');
 });
 
 // Called by the Node worker only — authenticated by shared secret, not a
