@@ -7,10 +7,10 @@ use Tests\TestCase;
 class ExampleTest extends TestCase
 {
     /**
-     * The home page just forwards to the dashboard.
+     * The home page is the public landing page for guests (see HomeTest).
      */
-    public function test_the_home_page_redirects_to_the_dashboard(): void
+    public function test_the_home_page_loads(): void
     {
-        $this->get('/')->assertRedirect('/dashboard');
+        $this->get('/')->assertOk();
     }
 }

@@ -32,9 +32,9 @@ class DashboardTest extends TestCase
         $this->get('/dashboard')->assertRedirect(route('login'));
     }
 
-    public function test_home_page_forwards_guests_to_login_in_the_end(): void
+    public function test_home_page_shows_the_landing_page_to_guests(): void
     {
-        $this->followingRedirects()->get('/')->assertOk()->assertSee('Log in');
+        $this->get('/')->assertOk()->assertSee('Log in');
     }
 
     public function test_home_page_forwards_logged_in_users_to_dashboard(): void

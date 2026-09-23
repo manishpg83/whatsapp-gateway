@@ -10,14 +10,16 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\CashfreeWebhookController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InstanceController;
 use App\Http\Controllers\InternalSessionsController;
 use App\Http\Controllers\TermsController;
 use App\Http\Controllers\WorkerWebhookController;
 use Illuminate\Support\Facades\Route;
 
-// The home page is the dashboard (guests are then sent on to the login page).
-Route::redirect('/', '/dashboard');
+// Guests see the marketing landing page; logged-in users are sent straight
+// to the dashboard (see HomeController).
+Route::get('/', HomeController::class)->name('home');
 
 // Public — no auth required either way, so it can be linked from the
 // register page before an account exists, and still read afterward.

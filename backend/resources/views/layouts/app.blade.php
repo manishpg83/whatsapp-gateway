@@ -115,7 +115,7 @@
 @else
     <nav class="navbar navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('login') }}">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('home') }}">
                 <i class="bi bi-chat-dots-fill fs-4"></i>
                 <span>{{ config('app.name') }}</span>
             </a>
