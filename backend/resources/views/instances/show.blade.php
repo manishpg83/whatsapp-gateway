@@ -92,6 +92,12 @@
             <div class="card-header bg-white fw-semibold">API credentials</div>
             <div class="card-body">
 
+                <label for="instance-id-value" class="form-label small mb-0">instance_id</label>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control font-monospace" value="{{ $instance->instance_id }}" id="instance-id-value" readonly>
+                    <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('instance-id-value').value)">Copy</button>
+                </div>
+
                 @if (session('new_token'))
                     <div class="alert alert-warning">
                         <strong>Copy this token now — you won't be able to see it again:</strong>

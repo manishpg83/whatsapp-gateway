@@ -135,7 +135,8 @@ class InstanceTest extends TestCase
         $this->actingAs($user)->get(route('instances.show', $instance))
             ->assertOk()
             ->assertSee('Connected')
-            ->assertSee($instance->phone_number);
+            ->assertSee($instance->phone_number)
+            ->assertSee($instance->instance_id);
     }
 
     public function test_show_page_lists_recent_messages(): void
