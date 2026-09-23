@@ -20,6 +20,16 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn () => route('dashboard'));
 
+        // Trust reverse proxies (ngrok for now, a real load balancer/host
+        // later) to tell us the request was actually HTTPS via
+        // X-Forwarded-Proto. Without this, Laravel thinks every request
+        // is plain HTTP (ngrok terminates TLS at its own edge and forwards
+        // to us over HTTP), so every generated URL — including form
+        // actions — came out as http://, triggering the browser's "this
+        // form is not secure" warning even though the page itself loaded
+        // over HTTPS.
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'internal.secret' => VerifyInternalSecret::class,
             'api.token' => AuthenticateApiToken::class,
