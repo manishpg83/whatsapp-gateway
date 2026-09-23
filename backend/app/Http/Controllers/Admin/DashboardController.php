@@ -18,14 +18,16 @@ class DashboardController extends Controller
 {
     public function __invoke(): View
     {
+        $thisMonth = Message::where('created_at', '>=', now()->startOfMonth());
+
         return view('admin.dashboard', [
             'totalUsers' => User::count(),
             'paidUsers' => Subscription::where('plan', '!=', 'free')->count(),
             'totalInstances' => WhatsappSession::count(),
             'connectedInstances' => WhatsappSession::where('status', 'connected')->count(),
-            'messagesThisMonth' => Message::where('direction', 'outgoing')
-                ->where('created_at', '>=', now()->startOfMonth())
-                ->count(),
+            'sentCount' => (clone $thisMonth)->where('direction', 'outgoing')->where('status', 'sent')->count(),
+            'failedCount' => (clone $thisMonth)->where('direction', 'outgoing')->where('status', 'failed')->count(),
+            'receivedCount' => (clone $thisMonth)->where('direction', 'incoming')->count(),
             'planBreakdown' => Plan::withCount('subscriptions')->orderBy('price')->get(),
         ]);
     }

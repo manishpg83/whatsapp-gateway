@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ApiToken;
 use App\Models\WhatsappSession;
 use App\Services\MessageSender;
 use App\Services\PlanLimiter;
@@ -15,6 +16,8 @@ class MessageController extends Controller
     {
         /** @var WhatsappSession $whatsappSession set by AuthenticateApiToken */
         $whatsappSession = $request->attributes->get('whatsapp_session');
+        /** @var ApiToken $apiToken set by AuthenticateApiToken */
+        $apiToken = $request->attributes->get('api_token');
 
         $data = $request->validate([
             'instance_id' => ['required', 'uuid'],
@@ -44,7 +47,7 @@ class MessageController extends Controller
             ], 422);
         }
 
-        $message = $sender->send($whatsappSession, $data['to'], $data['message']);
+        $message = $sender->send($whatsappSession, $data['to'], $data['message'], $apiToken);
 
         if ($message->status === 'failed') {
             return response()->json(['success' => false, 'error' => 'Could not send message'], 502);

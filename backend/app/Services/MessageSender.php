@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ApiToken;
 use App\Models\Message;
 use App\Models\WhatsappSession;
 use Illuminate\Support\Facades\Log;
@@ -23,10 +24,16 @@ class MessageSender
      * throwing — "the worker couldn't send it" is an expected, common
      * outcome here (worker not running, bad number, etc.), not a bug, so
      * callers check $message->status instead of catching an exception.
+     *
+     * $apiToken is only ever passed by the real public API — the
+     * dashboard's own "send a test message" button has no token, so its
+     * messages stay untagged and don't show up on the API Logs page
+     * (there's no real HTTP request/response to log for those).
      */
-    public function send(WhatsappSession $session, string $to, string $body): Message
+    public function send(WhatsappSession $session, string $to, string $body, ?ApiToken $apiToken = null): Message
     {
         $message = $session->messages()->create([
+            'api_token_id' => $apiToken?->id,
             'direction' => 'outgoing',
             'to_number' => $to,
             'body' => $body,

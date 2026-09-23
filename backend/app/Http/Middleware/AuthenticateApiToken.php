@@ -39,6 +39,7 @@ class AuthenticateApiToken
         $token->update(['last_used_at' => now()]);
 
         $request->attributes->set('whatsapp_session', $token->whatsappSession);
+        $request->attributes->set('api_token', $token);
 
         return $next($request);
     }

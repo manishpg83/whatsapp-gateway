@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PlanController as AdminPlanController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\ApiDocsController;
+use App\Http\Controllers\ApiLogController;
 use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
@@ -71,6 +72,10 @@ Route::middleware(['auth', 'not_suspended'])->group(function () {
     Route::post('/billing/cancel', [BillingController::class, 'cancel'])->name('billing.cancel');
 
     Route::get('/docs', ApiDocsController::class)->name('docs.index');
+
+    // A standalone module (not nested under one instance) — one flat log
+    // across every instance the user owns, optionally filtered to one.
+    Route::get('/api-logs', [ApiLogController::class, 'index'])->name('api-logs.index');
 
     Route::get('/account', [AccountController::class, 'edit'])->name('account.edit');
     Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password.update');

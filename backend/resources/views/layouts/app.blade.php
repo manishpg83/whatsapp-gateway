@@ -63,6 +63,11 @@
                                 <i class="bi bi-code-slash me-2"></i>API Docs
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link sidebar-link {{ request()->routeIs('api-logs.*') ? 'active' : '' }}" href="{{ route('api-logs.index') }}">
+                                <i class="bi bi-clock-history me-2"></i>API Logs
+                            </a>
+                        </li>
                     @endif
                 </ul>
 

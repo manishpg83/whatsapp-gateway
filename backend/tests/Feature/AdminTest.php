@@ -145,6 +145,26 @@ class AdminTest extends TestCase
             ->assertSeeInOrder(['Total', '2', '0', '1']); // the instances table's footer row
     }
 
+    public function test_admin_user_detail_page_message_counts_are_scoped_to_this_month(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $other = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($other)->connected()->create();
+
+        Message::factory()->for($instance, 'whatsappSession')->create([
+            'direction' => 'outgoing', 'status' => 'sent',
+            'created_at' => now()->startOfMonth()->subDay(), // last month
+        ]);
+        Message::factory()->for($instance, 'whatsappSession')->create([
+            'direction' => 'outgoing', 'status' => 'sent',
+            'created_at' => now(), // this month
+        ]);
+
+        $this->actingAs($admin)->get(route('admin.users.show', $other))
+            ->assertOk()
+            ->assertSee('1 sent'); // only this month's, not both
+    }
+
     public function test_admin_users_index_does_not_expose_message_content(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
@@ -187,6 +207,33 @@ class AdminTest extends TestCase
             ->assertViewHas('totalInstances', 2)
             ->assertViewHas('connectedInstances', 1)
             ->assertSee('Growth'); // plan-breakdown table
+    }
+
+    public function test_admin_dashboard_message_counts_are_scoped_to_this_month(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $instance = WhatsappSession::factory()->connected()->create();
+
+        Message::factory()->for($instance, 'whatsappSession')->create([
+            'direction' => 'outgoing', 'status' => 'sent',
+            'created_at' => now()->startOfMonth()->subDay(), // last month — excluded
+        ]);
+        Message::factory()->for($instance, 'whatsappSession')->count(2)->create([
+            'direction' => 'outgoing', 'status' => 'sent',
+            'created_at' => now(), // this month — included
+        ]);
+        Message::factory()->for($instance, 'whatsappSession')->create([
+            'direction' => 'outgoing', 'status' => 'failed', 'created_at' => now(),
+        ]);
+        Message::factory()->for($instance, 'whatsappSession')->create([
+            'direction' => 'incoming', 'created_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertViewHas('sentCount', 2)
+            ->assertViewHas('failedCount', 1)
+            ->assertViewHas('receivedCount', 1);
     }
 
     public function test_admin_can_change_a_users_plan(): void

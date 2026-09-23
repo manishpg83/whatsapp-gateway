@@ -30,9 +30,17 @@
     <div class="col-md-3 col-sm-6">
         <div class="card stat-card stat-card-purple shadow-sm h-100">
             <div class="card-body">
-                <div class="text-muted small text-uppercase">Messages sent</div>
-                <div class="display-6 fw-semibold">{{ $messagesThisMonth }}</div>
-                <div class="text-muted small">This calendar month, all users</div>
+                <div class="text-muted small text-uppercase">Messages this month</div>
+                <div class="text-muted small mt-1">
+                    <i class="bi bi-arrow-up-short text-primary"></i>{{ $sentCount }} sent
+                </div>
+                <div class="text-muted small">
+                    <i class="bi bi-arrow-down-short text-primary"></i>{{ $receivedCount }} received
+                </div>
+                <div class="text-muted small">
+                    <i class="bi bi-exclamation-triangle{{ $failedCount > 0 ? '-fill text-danger' : '' }}"></i>
+                    {{ $failedCount }} failed
+                </div>
             </div>
         </div>
     </div>

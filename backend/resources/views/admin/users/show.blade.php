@@ -22,7 +22,7 @@
         </div>
     </div>
     <a href="{{ route('admin.users.index') }}" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-arrow-left me-1"></i>Back to users
+        <i class="bi bi-arrow-left me-1"></i>Back to Users
     </a>
 </div>
 
@@ -48,12 +48,16 @@
     <div class="col-md-3 col-sm-6">
         <div class="card stat-card shadow-sm h-100" style="border-left-color: var(--wa-primary-dark);">
             <div class="card-body">
-                <div class="text-muted small text-uppercase">Messages</div>
+                <div class="text-muted small text-uppercase">Messages this month</div>
                 <div class="text-muted small">
                     <i class="bi bi-arrow-up-short text-primary"></i>{{ $instances->sum('messages_sent_count') }} sent
                 </div>
                 <div class="text-muted small">
                     <i class="bi bi-arrow-down-short text-primary"></i>{{ $instances->sum('messages_received_count') }} received
+                </div>
+                <div class="text-muted small">
+                    <i class="bi bi-exclamation-triangle{{ $instances->sum('messages_failed_count') > 0 ? '-fill text-danger' : '' }}"></i>
+                    {{ $instances->sum('messages_failed_count') }} failed
                 </div>
             </div>
         </div>
@@ -119,7 +123,7 @@
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="btn btn-sm btn-outline-danger">
-                            <i class="bi bi-trash me-1"></i>Delete user
+                            <i class="bi bi-trash me-1"></i>Delete User
                         </button>
                     </form>
                 </div>
@@ -133,7 +137,10 @@
         <div class="bg-wa-light text-primary rounded-circle p-2 fs-4 lh-1">
             <i class="bi bi-hdd-stack"></i>
         </div>
-        <div class="fw-semibold">Instances</div>
+        <div>
+            <div class="fw-semibold">Instances</div>
+            <div class="text-muted small">Message counts are for this calendar month</div>
+        </div>
     </div>
     <div class="card-body">
         @if ($instances->isEmpty())

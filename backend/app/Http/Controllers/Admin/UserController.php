@@ -36,14 +36,21 @@ class UserController extends Controller
     {
         $user->load('subscription');
 
+        // This calendar month only — matches the platform dashboard's own
+        // "Messages this month" stat, so the two never disagree.
+        $startOfMonth = now()->startOfMonth();
+
         $instances = $user->whatsappSessions()
             ->withCount([
                 'messages as messages_sent_count' => fn ($query) => $query
-                    ->where('direction', 'outgoing')->where('status', 'sent'),
+                    ->where('direction', 'outgoing')->where('status', 'sent')
+                    ->where('created_at', '>=', $startOfMonth),
                 'messages as messages_failed_count' => fn ($query) => $query
-                    ->where('direction', 'outgoing')->where('status', 'failed'),
+                    ->where('direction', 'outgoing')->where('status', 'failed')
+                    ->where('created_at', '>=', $startOfMonth),
                 'messages as messages_received_count' => fn ($query) => $query
-                    ->where('direction', 'incoming'),
+                    ->where('direction', 'incoming')
+                    ->where('created_at', '>=', $startOfMonth),
             ])
             ->latest()
             ->get();

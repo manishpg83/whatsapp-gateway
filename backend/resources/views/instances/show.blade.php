@@ -12,9 +12,14 @@
                 </span>
                 <h1 class="h3 mb-0">{{ $instance->name }}</h1>
             </div>
-            <a href="{{ route('instances.index') }}" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-arrow-left me-1"></i>Back to instances
-            </a>
+            <div class="d-flex gap-2">
+                <a href="{{ route('api-logs.index', ['instance_id' => $instance->instance_id]) }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-clock-history me-1"></i>API Logs
+                </a>
+                <a href="{{ route('instances.index') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Back to instances
+                </a>
+            </div>
         </div>
 
         <div class="card shadow-sm mb-4">

@@ -290,6 +290,9 @@ class InstanceTest extends TestCase
         $sent = Message::where('whatsapp_session_id', $instance->id)->firstOrFail();
         $this->assertSame('sent', $sent->status);
         $this->assertSame('WA-DASH-1', $sent->whatsapp_message_id);
+        // No token involved — this isn't a real API call, so it must never
+        // show up on the API Logs page (InstanceController::logs()).
+        $this->assertNull($sent->api_token_id);
 
         Http::assertSent(fn ($request) => $request->url() === "http://127.0.0.1:3001/sessions/{$instance->instance_id}/messages");
     }

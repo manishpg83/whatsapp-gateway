@@ -105,6 +105,7 @@ class MessageTest extends TestCase
         $this->assertSame('WA-MESSAGE-123', $message->whatsapp_message_id);
         $this->assertSame('919999999999', $message->to_number);
         $this->assertSame('Hello there', $message->body);
+        $this->assertSame($token->id, $message->api_token_id);
 
         $this->assertNotNull($token->fresh()->last_used_at);
 
