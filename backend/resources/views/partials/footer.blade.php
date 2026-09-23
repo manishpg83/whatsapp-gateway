@@ -18,13 +18,22 @@
             </div>
             <div class="col-md-3">
                 @auth
-                    <div class="text-white small fw-semibold text-uppercase mb-2">Product</div>
-                    <ul class="list-unstyled small mb-0">
-                        <li class="mb-1"><a href="{{ route('dashboard') }}" class="link-light text-decoration-none">Dashboard</a></li>
-                        <li class="mb-1"><a href="{{ route('instances.index') }}" class="link-light text-decoration-none">Instances</a></li>
-                        <li class="mb-1"><a href="{{ route('billing.index') }}" class="link-light text-decoration-none">Billing</a></li>
-                        <li><a href="{{ route('docs.index') }}" class="link-light text-decoration-none">API Docs</a></li>
-                    </ul>
+                    @if (auth()->user()->is_admin)
+                        <div class="text-white small fw-semibold text-uppercase mb-2">Admin</div>
+                        <ul class="list-unstyled small mb-0">
+                            <li class="mb-1"><a href="{{ route('admin.dashboard') }}" class="link-light text-decoration-none">Dashboard</a></li>
+                            <li class="mb-1"><a href="{{ route('admin.users.index') }}" class="link-light text-decoration-none">Users</a></li>
+                            <li><a href="{{ route('admin.plans.index') }}" class="link-light text-decoration-none">Billing</a></li>
+                        </ul>
+                    @else
+                        <div class="text-white small fw-semibold text-uppercase mb-2">Product</div>
+                        <ul class="list-unstyled small mb-0">
+                            <li class="mb-1"><a href="{{ route('dashboard') }}" class="link-light text-decoration-none">Dashboard</a></li>
+                            <li class="mb-1"><a href="{{ route('instances.index') }}" class="link-light text-decoration-none">Instances</a></li>
+                            <li class="mb-1"><a href="{{ route('billing.index') }}" class="link-light text-decoration-none">Billing</a></li>
+                            <li><a href="{{ route('docs.index') }}" class="link-light text-decoration-none">API Docs</a></li>
+                        </ul>
+                    @endif
                 @else
                     <div class="text-white small fw-semibold text-uppercase mb-2">Account</div>
                     <ul class="list-unstyled small mb-0">

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Plan;
 use App\Services\CashfreeClient;
 use App\Services\PlanLimiter;
 use Illuminate\Http\RedirectResponse;
@@ -19,7 +20,7 @@ class BillingController extends Controller
 
         return view('billing.index', [
             'subscription' => $user->subscription,
-            'plans' => config('plans'),
+            'plans' => Plan::orderBy('price')->get()->keyBy('slug'),
             'instanceCount' => $user->whatsappSessions()->count(),
             'messageCount' => $limiter->messagesSentThisMonth($user),
         ]);
@@ -32,9 +33,11 @@ class BillingController extends Controller
      */
     public function subscribe(Request $request, string $plan, CashfreeClient $cashfree): View|RedirectResponse
     {
-        $planDetails = config("plans.{$plan}");
+        $planRow = Plan::where('slug', $plan)->first();
 
-        abort_if(! $planDetails || $planDetails['price'] <= 0, 404);
+        abort_if(! $planRow || $planRow->price <= 0, 404);
+
+        $planDetails = $planRow->toArray();
 
         $data = $request->validate([
             'phone' => ['required', 'regex:/^\d{7,15}$/'],

@@ -36,14 +36,17 @@ class Subscription extends Model
     }
 
     /**
-     * The config/plans.php entry for this subscription's plan. Falls back
-     * to the free plan if the stored key is somehow unrecognised (e.g. a
-     * plan got renamed/removed) rather than erroring the user's account.
+     * The Plan row matching this subscription's plan slug. Falls back to
+     * the free plan if the stored slug is somehow unrecognised (e.g. an
+     * admin deleted the plan this subscription still references) rather
+     * than erroring the user's account.
      *
      * @return array{name: string, price: int, instances: int, messages_per_month: int}
      */
     public function planDetails(): array
     {
-        return config('plans.'.$this->plan) ?? config('plans.free');
+        $plan = Plan::where('slug', $this->plan)->first() ?? Plan::where('slug', 'free')->first();
+
+        return $plan->toArray();
     }
 }

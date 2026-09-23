@@ -27,7 +27,7 @@
 
 {{-- Summary cards --}}
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
+    <div class="col-md-3 col-sm-6">
         <div class="card stat-card stat-card-green shadow-sm h-100">
             <div class="card-body d-flex align-items-start gap-3">
                 <div class="bg-wa-light text-primary rounded-3 p-2 fs-4 lh-1">
@@ -42,7 +42,7 @@
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-md-3 col-sm-6">
         <div class="card stat-card stat-card-blue shadow-sm h-100">
             <div class="card-body d-flex align-items-start gap-3">
                 <div class="rounded-3 p-2 fs-4 lh-1" style="background-color: var(--wa-info-light); color: var(--wa-info);">
@@ -61,7 +61,27 @@
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-md-3 col-sm-6">
+        <div class="card stat-card shadow-sm h-100" style="border-left-color: var(--wa-primary-dark);">
+            <div class="card-body d-flex align-items-start gap-3">
+                <div class="bg-wa-light text-primary rounded-3 p-2 fs-4 lh-1">
+                    <i class="bi bi-chat-left-text"></i>
+                </div>
+                <div>
+                    <div class="text-muted small text-uppercase">Messages</div>
+                    <div class="text-muted small">
+                        <i class="bi bi-arrow-up-short text-primary"></i>{{ $sentCount }} sent
+                    </div>
+                    <div class="text-muted small">
+                        <i class="bi bi-arrow-down-short text-primary"></i>{{ $receivedCount }} received
+                    </div>
+                    <div class="text-muted small mt-1">Across all your instances</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
         <div class="card stat-card stat-card-purple shadow-sm h-100">
             <div class="card-body d-flex align-items-start gap-3">
                 <div class="rounded-3 p-2 fs-4 lh-1" style="background-color: var(--wa-purple-light); color: var(--wa-purple);">

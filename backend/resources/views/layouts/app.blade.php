@@ -16,36 +16,51 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#sidebarMenu" aria-label="Close"></button>
             </div>
             <div class="offcanvas-body d-flex flex-column p-3">
-                <a href="{{ route('dashboard') }}" class="d-none d-md-flex align-items-center gap-2 text-white text-decoration-none mb-4">
+                <a href="{{ auth()->user()->is_admin ? route('admin.dashboard') : route('dashboard') }}" class="d-none d-md-flex align-items-center gap-2 text-white text-decoration-none mb-4">
                     <span class="sidebar-logo-badge"><i class="bi bi-chat-dots-fill"></i></span>
                     <span class="fw-bold lh-sm">WhatsApp<br>Gateway</span>
                 </a>
 
+                {{-- An admin account is a platform-management account, not a
+                     customer account — its sidebar is entirely the admin
+                     section (no Instances/personal Billing/API Docs, no
+                     nested "Admin" link to a second, separate nav). --}}
                 <ul class="nav nav-pills flex-column gap-1 mb-auto">
-                    <li class="nav-item">
-                        <a class="nav-link sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
-                            <i class="bi bi-house-door me-2"></i>Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link sidebar-link {{ request()->routeIs('instances.*') ? 'active' : '' }}" href="{{ route('instances.index') }}">
-                            <i class="bi bi-hdd-stack me-2"></i>Instances
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link sidebar-link {{ request()->routeIs('billing.*') ? 'active' : '' }}" href="{{ route('billing.index') }}">
-                            <i class="bi bi-credit-card me-2"></i>Billing
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link sidebar-link {{ request()->routeIs('docs.*') ? 'active' : '' }}" href="{{ route('docs.index') }}">
-                            <i class="bi bi-code-slash me-2"></i>API Docs
-                        </a>
-                    </li>
                     @if (auth()->user()->is_admin)
                         <li class="nav-item">
-                            <a class="nav-link sidebar-link {{ request()->routeIs('admin.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
-                                <i class="bi bi-shield-lock me-2"></i>Admin
+                            <a class="nav-link sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">
+                                <i class="bi bi-house-door me-2"></i>Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
+                                <i class="bi bi-people me-2"></i>Users
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link sidebar-link {{ request()->routeIs('admin.plans.*') ? 'active' : '' }}" href="{{ route('admin.plans.index') }}">
+                                <i class="bi bi-credit-card me-2"></i>Billing
+                            </a>
+                        </li>
+                    @else
+                        <li class="nav-item">
+                            <a class="nav-link sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
+                                <i class="bi bi-house-door me-2"></i>Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link sidebar-link {{ request()->routeIs('instances.*') ? 'active' : '' }}" href="{{ route('instances.index') }}">
+                                <i class="bi bi-hdd-stack me-2"></i>Instances
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link sidebar-link {{ request()->routeIs('billing.*') ? 'active' : '' }}" href="{{ route('billing.index') }}">
+                                <i class="bi bi-credit-card me-2"></i>Billing
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link sidebar-link {{ request()->routeIs('docs.*') ? 'active' : '' }}" href="{{ route('docs.index') }}">
+                                <i class="bi bi-code-slash me-2"></i>API Docs
                             </a>
                         </li>
                     @endif

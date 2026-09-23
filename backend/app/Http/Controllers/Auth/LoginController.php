@@ -50,6 +50,15 @@ class LoginController extends Controller
             ]);
         }
 
+        if (Auth::user()->is_suspended) {
+            Auth::logout();
+            RateLimiter::hit($throttleKey);
+
+            throw ValidationException::withMessages([
+                'email' => 'This account has been suspended. Contact support if you believe this is a mistake.',
+            ]);
+        }
+
         RateLimiter::clear($throttleKey);
         $request->session()->regenerate(); // new session id after login (prevents session fixation)
 

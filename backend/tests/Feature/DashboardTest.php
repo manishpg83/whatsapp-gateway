@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Message;
 use App\Models\User;
 use App\Models\WhatsappSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -92,6 +93,29 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertSee('2') // instanceCount
             ->assertSee('1 of 2 connected');
+    }
+
+    public function test_dashboard_shows_total_sent_and_received_across_all_instances(): void
+    {
+        $me = User::factory()->create();
+        $instanceA = WhatsappSession::factory()->for($me)->connected()->create();
+        $instanceB = WhatsappSession::factory()->for($me)->connected()->create();
+        Message::factory()->for($instanceA, 'whatsappSession')->create(['direction' => 'outgoing', 'status' => 'sent']);
+        Message::factory()->for($instanceB, 'whatsappSession')->create(['direction' => 'outgoing', 'status' => 'sent']);
+        Message::factory()->for($instanceA, 'whatsappSession')->create(['direction' => 'outgoing', 'status' => 'failed']);
+        Message::factory()->for($instanceB, 'whatsappSession')->create(['direction' => 'incoming']);
+
+        // Another user's messages must never count toward my totals.
+        $other = User::factory()->create();
+        $otherInstance = WhatsappSession::factory()->for($other)->connected()->create();
+        Message::factory()->for($otherInstance, 'whatsappSession')->create(['direction' => 'outgoing', 'status' => 'sent']);
+
+        $this->actingAs($me)->get('/dashboard')
+            ->assertOk()
+            ->assertViewHas('sentCount', 2)
+            ->assertViewHas('receivedCount', 1)
+            ->assertSee('2 sent')
+            ->assertSee('1 received');
     }
 
     public function test_navigation_links_are_shown_to_logged_in_users(): void

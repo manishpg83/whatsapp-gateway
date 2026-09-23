@@ -156,6 +156,25 @@ class InstanceTest extends TestCase
             ->assertSee('919999999999');
     }
 
+    public function test_show_page_shows_sent_failed_and_received_counts(): void
+    {
+        $user = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($user)->connected()->create();
+        Message::factory()->for($instance, 'whatsappSession')->create(['direction' => 'outgoing', 'status' => 'sent']);
+        Message::factory()->for($instance, 'whatsappSession')->create(['direction' => 'outgoing', 'status' => 'sent']);
+        Message::factory()->for($instance, 'whatsappSession')->create(['direction' => 'outgoing', 'status' => 'failed']);
+        Message::factory()->for($instance, 'whatsappSession')->create(['direction' => 'incoming']);
+
+        $this->actingAs($user)->get(route('instances.show', $instance))
+            ->assertOk()
+            ->assertViewHas('sentCount', 2)
+            ->assertViewHas('failedCount', 1)
+            ->assertViewHas('receivedCount', 1)
+            ->assertSee('2 sent')
+            ->assertSee('1 failed')
+            ->assertSee('1 received');
+    }
+
     public function test_show_page_says_no_messages_yet_when_there_are_none(): void
     {
         $user = User::factory()->create();

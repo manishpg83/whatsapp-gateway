@@ -30,6 +30,9 @@
                             @if ($user->is_admin)
                                 <span class="badge text-bg-secondary">Admin</span>
                             @endif
+                            @if ($user->is_suspended)
+                                <span class="badge text-bg-danger">Suspended</span>
+                            @endif
                         </div>
                     </td>
                     <td>{{ $user->email }}</td>

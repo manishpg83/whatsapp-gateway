@@ -66,6 +66,9 @@ class InstanceController extends Controller
         return view('instances.show', [
             'instance' => $whatsappSession,
             'messages' => $whatsappSession->messages()->latest()->take(20)->get(),
+            'sentCount' => $whatsappSession->messages()->where('direction', 'outgoing')->where('status', 'sent')->count(),
+            'failedCount' => $whatsappSession->messages()->where('direction', 'outgoing')->where('status', 'failed')->count(),
+            'receivedCount' => $whatsappSession->messages()->where('direction', 'incoming')->count(),
         ]);
     }
 

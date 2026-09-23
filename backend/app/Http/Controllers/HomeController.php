@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Plan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -13,6 +14,6 @@ class HomeController extends Controller
             return redirect()->route('dashboard');
         }
 
-        return view('home', ['plans' => config('plans')]);
+        return view('home', ['plans' => Plan::orderBy('price')->get()->keyBy('slug')]);
     }
 }

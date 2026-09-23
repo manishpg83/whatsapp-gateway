@@ -246,7 +246,16 @@
                 <div class="bg-wa-light text-primary rounded-circle p-2 fs-4 lh-1">
                     <i class="bi bi-chat-left-text"></i>
                 </div>
-                <div class="fw-semibold">Recent messages</div>
+                <div>
+                    <div class="fw-semibold">Recent messages</div>
+                    <div class="text-muted small">
+                        <i class="bi bi-arrow-up-short text-primary"></i>{{ $sentCount }} sent
+                        @if ($failedCount > 0)
+                            &middot; <span class="text-danger">{{ $failedCount }} failed</span>
+                        @endif
+                        &middot; <i class="bi bi-arrow-down-short text-primary"></i>{{ $receivedCount }} received
+                    </div>
+                </div>
             </div>
             <div class="card-body">
                 @if ($messages->isEmpty())
