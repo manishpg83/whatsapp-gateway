@@ -30,11 +30,10 @@ class InstanceController extends Controller
 
     public function store(Request $request, WorkerClient $worker, PlanLimiter $limiter): RedirectResponse
     {
-        abort_unless(
-            $limiter->canCreateInstance($request->user()),
-            422,
-            "You've reached your plan's instance limit. Upgrade to add more."
-        );
+        if (! $limiter->canCreateInstance($request->user())) {
+            return redirect()->route('instances.create')
+                ->with('error', "You've reached your plan's instance limit. Upgrade to add more.");
+        }
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -107,12 +106,15 @@ class InstanceController extends Controller
     {
         $whatsappSession = $this->findOwnedInstance($request, $instance);
 
-        abort_unless($whatsappSession->status === 'connected', 422, 'Connect this instance before sending a message.');
-        abort_unless(
-            $limiter->canSendMessage($request->user()),
-            422,
-            "You've reached your plan's monthly message limit. Upgrade to send more."
-        );
+        if ($whatsappSession->status !== 'connected') {
+            return redirect()->route('instances.show', $whatsappSession)
+                ->with('error', 'Connect this instance before sending a message.');
+        }
+
+        if (! $limiter->canSendMessage($request->user())) {
+            return redirect()->route('instances.show', $whatsappSession)
+                ->with('error', "You've reached your plan's monthly message limit. Upgrade to send more.");
+        }
 
         $data = $request->validate([
             'to' => ['required', 'regex:/^\d{7,15}$/'],

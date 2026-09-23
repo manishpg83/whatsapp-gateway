@@ -65,7 +65,8 @@ class InstanceTest extends TestCase
         WhatsappSession::factory()->for($user)->create();
 
         $this->actingAs($user)->post('/instances', ['name' => 'One too many'])
-            ->assertStatus(422);
+            ->assertRedirect(route('instances.create'))
+            ->assertSessionHas('error');
 
         $this->assertSame(1, WhatsappSession::where('user_id', $user->id)->count());
     }
@@ -300,9 +301,27 @@ class InstanceTest extends TestCase
         $this->actingAs($user)->post(route('instances.send-test-message', $instance), [
             'to' => '919999999999',
             'message' => 'Hello',
-        ])->assertStatus(422);
+        ])->assertRedirect(route('instances.show', $instance))
+            ->assertSessionHas('error');
 
         $this->assertSame(0, Message::where('whatsapp_session_id', $instance->id)->count());
+    }
+
+    public function test_cannot_send_a_test_message_past_the_plans_message_limit(): void
+    {
+        $user = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($user)->connected()->create();
+
+        // Free plan's limit is 50 messages/month (config/plans.php).
+        Message::factory()->count(50)->for($instance, 'whatsappSession')->create();
+
+        $this->actingAs($user)->post(route('instances.send-test-message', $instance), [
+            'to' => '919999999999',
+            'message' => 'One too many',
+        ])->assertRedirect(route('instances.show', $instance))
+            ->assertSessionHas('error');
+
+        $this->assertSame(50, Message::where('whatsapp_session_id', $instance->id)->count());
     }
 
     public function test_user_cannot_send_a_test_message_on_another_users_instance(): void
