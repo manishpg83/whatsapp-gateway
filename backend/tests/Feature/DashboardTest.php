@@ -43,7 +43,8 @@ class DashboardTest extends TestCase
             ->followingRedirects()
             ->get('/')
             ->assertOk()
-            ->assertSee('Welcome, Jane Doe');
+            ->assertSee('Welcome,')
+            ->assertSee('Jane Doe');
     }
 
     public function test_dashboard_shows_the_users_own_account_details(): void
@@ -52,7 +53,8 @@ class DashboardTest extends TestCase
 
         $this->actingAs($user)->get('/dashboard')
             ->assertOk()
-            ->assertSee('Welcome, Jane Doe')
+            ->assertSee('Welcome,')
+            ->assertSee('Jane Doe')
             ->assertSee('jane@example.com')
             ->assertSee('Member since '.$user->created_at->format('M j, Y'));
     }

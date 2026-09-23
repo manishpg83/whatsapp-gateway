@@ -1,6 +1,261 @@
 @import 'bootstrap/dist/css/bootstrap.min.css';
+@import 'bootstrap-icons/font/bootstrap-icons.css';
 
-/* Our own small tweaks go below. */
+/*
+ * Brand palette. Bootstrap's compiled CSS hardcodes most component colors
+ * (e.g. .btn-primary) as literal hex values rather than reading the
+ * top-level --bs-primary variable, so we retint by overriding each
+ * component's own local custom properties (the pattern Bootstrap 5.3
+ * itself documents for this) instead of just setting --bs-primary once.
+ */
+:root {
+    --wa-primary: #0b8457;
+    --wa-primary-dark: #086b46;
+    --wa-primary-light: #e7f7ef;
+    --wa-dark: #10231c;
+    --wa-info: #3b82f6;
+    --wa-info-light: #dbeafe;
+    --wa-purple: #8b5cf6;
+    --wa-purple-light: #ede9fe;
+}
+
 body {
-    background-color: #f5f7fa;
+    background-color: #f6faf8;
+}
+
+a {
+    color: var(--wa-primary);
+}
+
+a:hover {
+    color: var(--wa-primary-dark);
+}
+
+.text-primary {
+    color: var(--wa-primary) !important;
+}
+
+.bg-primary {
+    background-color: var(--wa-primary) !important;
+}
+
+.badge.text-bg-primary {
+    background-color: var(--wa-primary) !important;
+}
+
+.btn-primary {
+    --bs-btn-bg: var(--wa-primary);
+    --bs-btn-border-color: var(--wa-primary);
+    --bs-btn-hover-bg: var(--wa-primary-dark);
+    --bs-btn-hover-border-color: var(--wa-primary-dark);
+    --bs-btn-active-bg: var(--wa-primary-dark);
+    --bs-btn-active-border-color: var(--wa-primary-dark);
+    --bs-btn-disabled-bg: var(--wa-primary);
+    --bs-btn-disabled-border-color: var(--wa-primary);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--wa-primary);
+    --bs-btn-border-color: var(--wa-primary);
+    --bs-btn-hover-bg: var(--wa-primary);
+    --bs-btn-hover-border-color: var(--wa-primary);
+    --bs-btn-active-bg: var(--wa-primary);
+    --bs-btn-active-border-color: var(--wa-primary);
+}
+
+.navbar-dark.bg-dark {
+    background-color: var(--wa-dark) !important;
+}
+
+.bg-wa-light {
+    background-color: var(--wa-primary-light);
+}
+
+/*
+ * Sidebar (layouts/app.blade.php). Built on Bootstrap's .offcanvas-md: at
+ * md+ it resets itself back to plain static content with
+ * `background-color: transparent !important` on both the offcanvas element
+ * and its .offcanvas-body (so it stops looking like an offcanvas panel) -
+ * our own background-color has no chance against that without matching
+ * !important. Below md, where it's a real slide-in offcanvas, this same
+ * !important simply reapplies our color instead of fighting anything.
+ */
+.sidebar-shell,
+.sidebar-shell .offcanvas-body {
+    background-color: var(--wa-dark) !important;
+}
+
+.sidebar-shell {
+    width: 260px;
+    --bs-offcanvas-width: 260px;
+}
+
+@media (min-width: 768px) {
+    .sidebar-shell {
+        flex-shrink: 0;
+    }
+}
+
+/*
+ * .nav-pills declares --bs-nav-pills-link-active-bg/-color itself (default
+ * Bootstrap blue) and .nav-pills .nav-link.active reads them - scoping our
+ * own values to .sidebar-shell .nav-pills overrides Bootstrap's defaults
+ * for just this sidebar without touching .active styling anywhere else.
+ */
+.sidebar-shell .nav-pills {
+    --bs-nav-pills-link-active-bg: var(--wa-primary-light);
+    --bs-nav-pills-link-active-color: var(--wa-primary-dark);
+}
+
+.sidebar-logo-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background-color: var(--wa-primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.sidebar-link {
+    color: rgba(255, 255, 255, 0.75);
+    border-radius: 0.5rem;
+    padding: 0.6rem 0.9rem;
+}
+
+.sidebar-link:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-link.active {
+    /* Color/background come from the --bs-nav-pills-link-active-* override
+       above (Bootstrap's own .nav-pills .nav-link.active rule reads them
+       and always beats this selector on specificity). */
+    font-weight: 600;
+}
+
+.sidebar-copyright {
+    font-size: 0.7rem;
+}
+
+.avatar-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--wa-primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+/* Dashboard hero illustration (dashboard.blade.php) */
+.hero-illustration {
+    width: 170px;
+    height: 150px;
+    flex-shrink: 0;
+}
+
+.hero-blob {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.6;
+}
+
+.hero-blob-1 {
+    width: 110px;
+    height: 110px;
+    background-color: #ffffff;
+    top: 0;
+    right: 5px;
+}
+
+.hero-blob-2 {
+    width: 70px;
+    height: 70px;
+    background-color: var(--wa-info-light);
+    bottom: 0;
+    left: 0;
+}
+
+.hero-phone {
+    position: relative;
+    width: 88px;
+    height: 128px;
+    background-color: #fff;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(16, 35, 28, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero-phone i {
+    color: var(--wa-primary);
+}
+
+.hero-phone-badge {
+    position: absolute;
+    bottom: -10px;
+    right: -10px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background-color: var(--wa-primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 10px rgba(11, 132, 87, 0.4);
+}
+
+/* Stat card left-border accents (dashboard.blade.php) */
+.stat-card {
+    border-left: 4px solid transparent;
+}
+
+.stat-card-green {
+    border-left-color: var(--wa-primary);
+}
+
+.stat-card-blue {
+    border-left-color: var(--wa-info);
+}
+
+.stat-card-purple {
+    border-left-color: var(--wa-purple);
+}
+
+.step-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.step-number-1 {
+    background-color: var(--wa-primary-light);
+    color: var(--wa-primary-dark);
+}
+
+.step-number-2 {
+    background-color: var(--wa-info-light);
+    color: var(--wa-info);
+}
+
+.step-number-3 {
+    background-color: var(--wa-purple-light);
+    color: var(--wa-purple);
 }

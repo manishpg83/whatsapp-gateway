@@ -7,49 +7,109 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
-    <nav class="navbar navbar-expand-md navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="{{ auth()->check() ? route('dashboard') : route('login') }}">{{ config('app.name') }}</a>
+@auth
+    <div class="d-flex app-shell">
+        {{-- Sidebar: a static column at md+, a slide-in offcanvas below it --}}
+        <div class="offcanvas-md offcanvas-start sidebar-shell" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
+            <div class="offcanvas-header d-md-none">
+                <h5 class="offcanvas-title text-white" id="sidebarMenuLabel">{{ config('app.name') }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#sidebarMenu" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body d-flex flex-column p-3">
+                <a href="{{ route('dashboard') }}" class="d-none d-md-flex align-items-center gap-2 text-white text-decoration-none mb-4">
+                    <span class="sidebar-logo-badge"><i class="bi bi-chat-dots-fill"></i></span>
+                    <span class="fw-bold lh-sm">WhatsApp<br>Gateway</span>
+                </a>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
-                    aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+                <ul class="nav nav-pills flex-column gap-1 mb-auto">
+                    <li class="nav-item">
+                        <a class="nav-link sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
+                            <i class="bi bi-house-door me-2"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sidebar-link {{ request()->routeIs('instances.*') ? 'active' : '' }}" href="{{ route('instances.index') }}">
+                            <i class="bi bi-hdd-stack me-2"></i>Instances
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sidebar-link {{ request()->routeIs('billing.*') ? 'active' : '' }}" href="{{ route('billing.index') }}">
+                            <i class="bi bi-credit-card me-2"></i>Billing
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sidebar-link {{ request()->routeIs('docs.*') ? 'active' : '' }}" href="{{ route('docs.index') }}">
+                            <i class="bi bi-code-slash me-2"></i>API Docs
+                        </a>
+                    </li>
+                </ul>
 
-            <div class="collapse navbar-collapse" id="mainNav">
-                @auth
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
-                               href="{{ route('dashboard') }}">Dashboard</a>
+                <div class="sidebar-footer mt-4 pt-3 border-top border-light-subtle text-center">
+                    <div class="d-flex justify-content-center align-items-center gap-2 text-white-50 small">
+                        <i class="bi bi-chat-dots-fill"></i>
+                        <span>{{ config('app.name') }}</span>
+                    </div>
+                    <div class="text-white-50 small">Connect &bull; Automate &bull; Grow</div>
+                    <div class="text-white-50 sidebar-copyright">&copy; {{ now()->year }}</div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Content column --}}
+        <div class="d-flex flex-column flex-grow-1 min-vh-100 app-content">
+            <header class="d-flex align-items-center bg-white border-bottom px-3 px-md-4 py-2 sticky-top">
+                <button class="btn btn-outline-secondary d-md-none me-2" type="button"
+                        data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
+                    <i class="bi bi-list fs-5"></i>
+                </button>
+
+                <div class="ms-auto dropdown">
+                    <button class="btn btn-light dropdown-toggle d-flex align-items-center gap-2" type="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="avatar-badge">{{ mb_strtoupper(mb_substr(auth()->user()->name, 0, 1)) }}</span>
+                        <span>{{ auth()->user()->name }}</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item {{ request()->routeIs('account.*') ? 'active' : '' }}" href="{{ route('account.edit') }}">
+                                <i class="bi bi-gear me-2"></i>Account
+                            </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('instances.*') ? 'active' : '' }}"
-                               href="{{ route('instances.index') }}">Instances</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('billing.*') ? 'active' : '' }}"
-                               href="{{ route('billing.index') }}">Billing</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('docs.*') ? 'active' : '' }}"
-                               href="{{ route('docs.index') }}">API Docs</a>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="dropdown-item">
+                                    <i class="bi bi-box-arrow-right me-2"></i>Log out
+                                </button>
+                            </form>
                         </li>
                     </ul>
+                </div>
+            </header>
 
-                    <div class="d-flex align-items-center">
-                        <a href="{{ route('account.edit') }}" class="navbar-text me-3 link-light text-decoration-none {{ request()->routeIs('account.*') ? 'fw-semibold' : '' }}">{{ auth()->user()->name }}</a>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button type="submit" class="btn btn-outline-light btn-sm">Log out</button>
-                        </form>
-                    </div>
-                @else
-                    <div class="ms-auto d-flex align-items-center">
-                        <a class="btn btn-outline-light btn-sm me-2" href="{{ route('login') }}">Log in</a>
-                        <a class="btn btn-primary btn-sm" href="{{ route('register') }}">Register</a>
-                    </div>
-                @endauth
+            <main class="flex-grow-1 p-3 p-md-4">
+                @if (session('status'))
+                    <div class="alert alert-success">{{ session('status') }}</div>
+                @endif
+                @if (session('error'))
+                    <div class="alert alert-danger">{{ session('error') }}</div>
+                @endif
+
+                @yield('content')
+            </main>
+        </div>
+    </div>
+@else
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('login') }}">
+                <i class="bi bi-chat-dots-fill fs-4"></i>
+                <span>{{ config('app.name') }}</span>
+            </a>
+            <div class="d-flex align-items-center">
+                <a class="btn btn-outline-light btn-sm me-2" href="{{ route('login') }}">Log in</a>
+                <a class="btn btn-primary btn-sm" href="{{ route('register') }}">Register</a>
             </div>
         </div>
     </nav>
@@ -64,5 +124,6 @@
 
         @yield('content')
     </main>
+@endauth
 </body>
 </html>
