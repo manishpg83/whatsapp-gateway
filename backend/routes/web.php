@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\ApiDocsController;
 use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\Auth\LoginController;
@@ -68,6 +69,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/account', [AccountController::class, 'edit'])->name('account.edit');
     Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password.update');
     Route::delete('/account', [AccountController::class, 'destroy'])->name('account.destroy');
+});
+
+// Cross-tenant visibility for admin accounts only — see
+// App\Http\Middleware\EnsureUserIsAdmin. There is no in-app way to become
+// an admin; it's granted by directly setting is_admin on a user row.
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}', [AdminUserController::class, 'show'])->name('users.show');
 });
 
 // Called by the Node worker only — authenticated by shared secret, not a

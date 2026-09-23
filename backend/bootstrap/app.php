@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthenticateApiToken;
+use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\VerifyInternalSecret;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'internal.secret' => VerifyInternalSecret::class,
             'api.token' => AuthenticateApiToken::class,
+            'admin' => EnsureUserIsAdmin::class,
         ]);
 
         // The worker and Cashfree both call these routes directly (no

@@ -108,3 +108,13 @@ If any outbound HTTPS call from PHP (e.g. billing/Cashfree) fails with `SSL cert
 
 - **Redis** — not used; queue/cache/session all run on the `database` driver.
 - **Docker** — only relevant if you later add Redis.
+
+To set admin and go to admin dashboard: 
+
+Register with normal register page
+then from tinker set that email to admin
+
+php artisan tinker
+>>> $u = App\Models\User::where('email', 'admin@admin.com')->first();
+>>> $u->is_admin = true;
+>>> $u->save();

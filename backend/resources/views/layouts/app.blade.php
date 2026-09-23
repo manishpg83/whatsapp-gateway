@@ -42,6 +42,13 @@
                             <i class="bi bi-code-slash me-2"></i>API Docs
                         </a>
                     </li>
+                    @if (auth()->user()->is_admin)
+                        <li class="nav-item">
+                            <a class="nav-link sidebar-link {{ request()->routeIs('admin.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
+                                <i class="bi bi-shield-lock me-2"></i>Admin
+                            </a>
+                        </li>
+                    @endif
                 </ul>
 
                 {{-- Just a tagline — Terms/copyright live in the page footer below
