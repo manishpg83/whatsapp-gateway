@@ -63,7 +63,8 @@ a:hover {
     --bs-btn-active-border-color: var(--wa-primary);
 }
 
-.navbar-dark.bg-dark {
+.navbar-dark.bg-dark,
+.site-footer {
     background-color: var(--wa-dark) !important;
 }
 
@@ -136,10 +137,6 @@ a:hover {
        above (Bootstrap's own .nav-pills .nav-link.active rule reads them
        and always beats this selector on specificity). */
     font-weight: 600;
-}
-
-.sidebar-copyright {
-    font-size: 0.7rem;
 }
 
 .avatar-badge {

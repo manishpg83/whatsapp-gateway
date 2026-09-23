@@ -78,6 +78,49 @@ class BillingController extends Controller
     }
 
     /**
+     * Cancels the user's active/pending paid subscription at Cashfree,
+     * then reverts them to the free plan locally. Immediate, not
+     * end-of-period — `current_period_end` isn't reliably populated yet
+     * (the webhook that would confirm it has never been verified live,
+     * see progress.md), so there's no trustworthy date to grace-period
+     * against. Simpler and still honest: the Terms of Service only
+     * promise no refund for the current period, not continued access.
+     */
+    public function cancel(Request $request, CashfreeClient $cashfree): RedirectResponse
+    {
+        $user = $request->user();
+        $subscription = $user->subscription;
+
+        if ($subscription->plan === 'free' || ! $subscription->cashfree_subscription_id) {
+            return redirect()->route('billing.index')
+                ->with('error', 'You do not have an active paid subscription to cancel.');
+        }
+
+        try {
+            $cashfree->cancelSubscription($subscription->cashfree_subscription_id);
+        } catch (Throwable $e) {
+            Log::error('Cashfree: failed to cancel subscription', [
+                'user_id' => $user->id,
+                'subscription_id' => $subscription->cashfree_subscription_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->route('billing.index')
+                ->with('error', 'Could not cancel your subscription — please try again or contact support.');
+        }
+
+        $subscription->update([
+            'plan' => 'free',
+            'status' => 'active',
+            'cashfree_subscription_id' => null,
+            'current_period_end' => null,
+        ]);
+
+        return redirect()->route('billing.index')
+            ->with('status', 'Your subscription has been cancelled. You are now on the Free plan.');
+    }
+
+    /**
      * Where Cashfree's hosted checkout sends the browser back to when the
      * customer finishes (or abandons) authorizing the payment. Cashfree
      * does this as a POST, not a GET redirect, so this route has to

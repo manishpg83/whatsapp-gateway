@@ -117,4 +117,22 @@ class CashfreeClient
 
         return $response->json();
     }
+
+    /**
+     * Cancels a subscription at Cashfree — stops future recurring charges.
+     * Per Cashfree's "Manage Subscription" API: POST .../manage with
+     * {"action": "CANCEL"} (verified against a real sandbox subscription,
+     * not just the docs — see progress.md for why that matters here).
+     */
+    public function cancelSubscription(string $subscriptionId): array
+    {
+        $response = $this->http()
+            ->post("/subscriptions/{$subscriptionId}/manage", [
+                'subscription_id' => $subscriptionId,
+                'action' => 'CANCEL',
+            ])
+            ->throw();
+
+        return $response->json();
+    }
 }

@@ -23,9 +23,16 @@
                             <div class="h5 mb-0">{{ $subscription->planDetails()['name'] }}</div>
                         </div>
                         @if ($subscription->plan !== 'free')
-                            <span class="badge rounded-pill text-bg-{{ $subscription->status === 'active' ? 'success' : 'secondary' }}">
-                                <i class="bi bi-circle-fill me-1" style="font-size: .5rem;"></i>{{ ucfirst(str_replace('_', ' ', $subscription->status)) }}
-                            </span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge rounded-pill text-bg-{{ $subscription->status === 'active' ? 'success' : 'secondary' }}">
+                                    <i class="bi bi-circle-fill me-1" style="font-size: .5rem;"></i>{{ ucfirst(str_replace('_', ' ', $subscription->status)) }}
+                                </span>
+                                <form method="POST" action="{{ route('billing.cancel') }}"
+                                      onsubmit="return confirm('Cancel your subscription? You will be moved to the Free plan immediately. Already-charged amounts for this period are not refunded.');">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Cancel subscription</button>
+                                </form>
+                            </div>
                         @endif
                     </div>
                 </div>

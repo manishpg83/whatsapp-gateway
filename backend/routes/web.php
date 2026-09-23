@@ -11,11 +11,16 @@ use App\Http\Controllers\CashfreeWebhookController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InstanceController;
 use App\Http\Controllers\InternalSessionsController;
+use App\Http\Controllers\TermsController;
 use App\Http\Controllers\WorkerWebhookController;
 use Illuminate\Support\Facades\Route;
 
 // The home page is the dashboard (guests are then sent on to the login page).
 Route::redirect('/', '/dashboard');
+
+// Public — no auth required either way, so it can be linked from the
+// register page before an account exists, and still read afterward.
+Route::get('/terms', TermsController::class)->name('terms');
 
 // Only for visitors who are NOT logged in.
 Route::middleware('guest')->group(function () {
@@ -56,6 +61,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
     Route::post('/billing/subscribe/{plan}', [BillingController::class, 'subscribe'])->name('billing.subscribe');
+    Route::post('/billing/cancel', [BillingController::class, 'cancel'])->name('billing.cancel');
 
     Route::get('/docs', ApiDocsController::class)->name('docs.index');
 

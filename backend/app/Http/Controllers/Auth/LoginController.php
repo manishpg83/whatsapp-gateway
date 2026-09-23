@@ -40,7 +40,7 @@ class LoginController extends Controller
             ]);
         }
 
-        if (! Auth::attempt($credentials)) {
+        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             RateLimiter::hit($throttleKey);
 
             // Same message for "no such email" and "wrong password" so nobody can

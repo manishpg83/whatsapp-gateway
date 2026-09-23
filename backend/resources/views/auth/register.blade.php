@@ -54,7 +54,10 @@
                     <button type="submit" class="btn btn-primary w-100"><i class="bi bi-person-plus me-1"></i>Register</button>
                 </form>
 
-                <p class="text-center text-muted mt-3 mb-0">
+                <p class="text-center text-muted small mt-3 mb-1">
+                    By creating an account, you agree to our <a href="{{ route('terms') }}">Terms of Service</a>.
+                </p>
+                <p class="text-center text-muted mb-0">
                     Already registered? <a href="{{ route('login') }}">Log in</a>
                 </p>
             </div>

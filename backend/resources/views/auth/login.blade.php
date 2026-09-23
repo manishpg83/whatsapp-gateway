@@ -33,9 +33,14 @@
                         @error('password')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                        <div class="text-end mt-1">
-                            <a href="{{ route('password.request') }}" class="small">Forgot password?</a>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                            <label for="remember" class="form-check-label small">Remember me</label>
                         </div>
+                        <a href="{{ route('password.request') }}" class="small">Forgot password?</a>
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100"><i class="bi bi-box-arrow-in-right me-1"></i>Log in</button>

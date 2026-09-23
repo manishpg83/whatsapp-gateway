@@ -123,6 +123,29 @@ class AuthTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    public function test_remember_me_checkbox_issues_a_persistent_remember_token(): void
+    {
+        $user = User::factory()->create(['password' => 'secret-pass-123', 'remember_token' => null]);
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'secret-pass-123',
+            'remember' => 'on',
+        ])->assertRedirect(route('dashboard'));
+
+        $this->assertNotNull($user->fresh()->remember_token);
+    }
+
+    public function test_login_without_remember_me_does_not_issue_a_remember_token(): void
+    {
+        $user = User::factory()->create(['password' => 'secret-pass-123', 'remember_token' => null]);
+
+        $this->post('/login', ['email' => $user->email, 'password' => 'secret-pass-123'])
+            ->assertRedirect(route('dashboard'));
+
+        $this->assertNull($user->fresh()->remember_token);
+    }
+
     public function test_login_fails_with_wrong_password(): void
     {
         $user = User::factory()->create(['password' => 'secret-pass-123']);

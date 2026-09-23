@@ -130,6 +130,62 @@ class BillingTest extends TestCase
         $this->assertSame('free', $user->subscription->fresh()->plan);
     }
 
+    public function test_cancelling_a_paid_subscription_reverts_to_the_free_plan(): void
+    {
+        Http::fake(['*' => Http::response(['subscription_status' => 'CANCELLED'], 200)]);
+
+        $user = User::factory()->create();
+        $user->subscription()->update([
+            'plan' => 'growth',
+            'status' => 'active',
+            'cashfree_subscription_id' => 'sub_test_123',
+        ]);
+
+        $this->actingAs($user)->post(route('billing.cancel'))
+            ->assertRedirect(route('billing.index'))
+            ->assertSessionHas('status');
+
+        $subscription = $user->subscription->fresh();
+        $this->assertSame('free', $subscription->plan);
+        $this->assertSame('active', $subscription->status);
+        $this->assertNull($subscription->cashfree_subscription_id);
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/pg/subscriptions/sub_test_123/manage')
+            && $request['action'] === 'CANCEL');
+    }
+
+    public function test_cannot_cancel_when_already_on_the_free_plan(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('billing.cancel'))
+            ->assertRedirect(route('billing.index'))
+            ->assertSessionHas('error');
+
+        $this->assertSame('free', $user->subscription->fresh()->plan);
+    }
+
+    public function test_shows_a_friendly_error_when_cashfree_cancellation_fails(): void
+    {
+        Http::fake(function () {
+            throw new ConnectionException('Connection refused');
+        });
+
+        $user = User::factory()->create();
+        $user->subscription()->update([
+            'plan' => 'growth',
+            'status' => 'active',
+            'cashfree_subscription_id' => 'sub_test_123',
+        ]);
+
+        $this->actingAs($user)->post(route('billing.cancel'))
+            ->assertRedirect(route('billing.index'))
+            ->assertSessionHas('error');
+
+        // Still on the paid plan — the failed cancel attempt changed nothing.
+        $this->assertSame('growth', $user->subscription->fresh()->plan);
+    }
+
     public function test_user_cannot_have_two_subscription_rows(): void
     {
         $user = User::factory()->create();

@@ -6,7 +6,7 @@
     <title>@yield('title', 'Dashboard') - {{ config('app.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
 @auth
     <div class="d-flex app-shell">
         {{-- Sidebar: a static column at md+, a slide-in offcanvas below it --}}
@@ -44,13 +44,14 @@
                     </li>
                 </ul>
 
+                {{-- Just a tagline — Terms/copyright live in the page footer below
+                     @yield('content') now, no need to duplicate them here too. --}}
                 <div class="sidebar-footer mt-4 pt-3 border-top border-light-subtle text-center">
                     <div class="d-flex justify-content-center align-items-center gap-2 text-white-50 small">
                         <i class="bi bi-chat-dots-fill"></i>
                         <span>{{ config('app.name') }}</span>
                     </div>
                     <div class="text-white-50 small">Connect &bull; Automate &bull; Grow</div>
-                    <div class="text-white-50 sidebar-copyright">&copy; {{ now()->year }}</div>
                 </div>
             </div>
         </div>
@@ -62,6 +63,8 @@
                         data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
                     <i class="bi bi-list fs-5"></i>
                 </button>
+
+                <span class="text-muted small text-uppercase fw-semibold d-none d-sm-inline">@yield('title', 'Dashboard')</span>
 
                 <div class="ms-auto dropdown">
                     <button class="btn btn-light dropdown-toggle d-flex align-items-center gap-2" type="button"
@@ -98,6 +101,8 @@
 
                 @yield('content')
             </main>
+
+            @include('partials.footer')
         </div>
     </div>
 @else
@@ -114,7 +119,7 @@
         </div>
     </nav>
 
-    <main class="container py-5">
+    <main class="container py-5 flex-grow-1">
         @if (session('status'))
             <div class="alert alert-success">{{ session('status') }}</div>
         @endif
@@ -124,6 +129,8 @@
 
         @yield('content')
     </main>
+
+    @include('partials.footer')
 @endauth
 </body>
 </html>
