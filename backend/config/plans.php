@@ -15,6 +15,7 @@ return [
 
     'free' => [
         'name' => 'Free',
+        'description' => 'Try the full API before you commit to anything.',
         'price' => 0,
         'instances' => 1,
         'messages_per_month' => 50,
@@ -22,6 +23,7 @@ return [
 
     'starter' => [
         'name' => 'Starter',
+        'description' => 'For a single WhatsApp number handling regular traffic.',
         'price' => 749,
         'instances' => 1,
         'messages_per_month' => 1000,
@@ -30,14 +32,17 @@ return [
 
     'growth' => [
         'name' => 'Growth',
+        'description' => 'For teams running multiple numbers and steady campaigns.',
         'price' => 1499,
         'instances' => 3,
         'messages_per_month' => 5000,
         'cashfree_plan_id' => 'growth_monthly',
+        'popular' => true,
     ],
 
     'business' => [
         'name' => 'Business',
+        'description' => 'For high-volume senders across many numbers.',
         'price' => 2999,
         'instances' => 10,
         'messages_per_month' => 50000,

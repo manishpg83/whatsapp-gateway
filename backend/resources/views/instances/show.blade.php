@@ -6,17 +6,25 @@
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3 mb-0">{{ $instance->name }}</h1>
-            <a href="{{ route('instances.index') }}" class="btn btn-sm btn-outline-secondary">Back to instances</a>
+            <div class="d-flex align-items-center gap-2">
+                <span class="bg-wa-light text-primary rounded-3 d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;">
+                    <i class="bi bi-hdd-stack"></i>
+                </span>
+                <h1 class="h3 mb-0">{{ $instance->name }}</h1>
+            </div>
+            <a href="{{ route('instances.index') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back to instances
+            </a>
         </div>
 
         <div class="card shadow-sm mb-4">
             <div class="card-body text-center py-5" id="instance-status" data-instance-status="{{ $instance->status }}">
 
                 @if ($instance->status === 'connected')
-                    <div class="text-success mb-3">
-                        <div class="display-6">✓ Connected</div>
+                    <div class="bg-wa-light text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3 fs-1" style="width: 88px; height: 88px;">
+                        <i class="bi bi-check-circle-fill"></i>
                     </div>
+                    <div class="fs-4 fw-semibold text-primary mb-1">Connected</div>
                     <p class="text-muted">{{ $instance->phone_number }}</p>
 
                     <form method="POST" action="{{ route('instances.destroy', $instance) }}" class="mt-3">
@@ -25,26 +33,30 @@
                         <button type="submit" class="btn btn-outline-danger">Disconnect</button>
                     </form>
                 @elseif (in_array($instance->status, ['disconnected', 'logged_out']))
-                    <div class="text-muted mb-3">
-                        <div class="display-6">Not connected</div>
-                        @if ($instance->last_disconnect_reason)
-                            <p class="small mt-2">{{ $instance->last_disconnect_reason }}</p>
-                        @endif
+                    <div class="bg-light text-muted rounded-circle d-inline-flex align-items-center justify-content-center mb-3 fs-1" style="width: 88px; height: 88px;">
+                        <i class="bi bi-x-circle"></i>
                     </div>
+                    <div class="fs-4 fw-semibold text-muted mb-1">Not connected</div>
+                    @if ($instance->last_disconnect_reason)
+                        <p class="small text-muted mb-3">{{ $instance->last_disconnect_reason }}</p>
+                    @endif
 
-                    <form method="POST" action="{{ route('instances.reconnect', $instance) }}">
+                    <form method="POST" action="{{ route('instances.reconnect', $instance) }}" class="mt-3">
                         @csrf
                         <button type="submit" class="btn btn-primary">Reconnect</button>
                     </form>
                 @else
                     {{-- connecting / qr_pending --}}
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3 fs-1" style="width: 64px; height: 64px; background-color: var(--wa-info-light); color: var(--wa-info);">
+                        <i class="bi bi-qr-code"></i>
+                    </div>
                     <p class="text-muted mb-3">Scan this QR code with WhatsApp on your phone:<br>
                         <small>Settings &rarr; Linked Devices &rarr; Link a Device</small>
                     </p>
 
                     <div id="qr-holder">
                         @if ($instance->qr_code)
-                            <img src="{{ $instance->qr_code }}" alt="WhatsApp QR code" id="qr-image" class="img-fluid" style="max-width: 280px;">
+                            <img src="{{ $instance->qr_code }}" alt="WhatsApp QR code" id="qr-image" class="img-fluid rounded-3 border" style="max-width: 280px;">
                         @else
                             <p class="text-muted">Waiting for QR code&hellip;</p>
                         @endif
@@ -57,10 +69,16 @@
         @if ($instance->status === 'connected')
             {{-- Send a test message --}}
             <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white fw-semibold">Send a test message</div>
+                <div class="card-body d-flex align-items-center gap-3 border-bottom">
+                    <div class="rounded-circle p-2 fs-4 lh-1" style="background-color: var(--wa-info-light); color: var(--wa-info);">
+                        <i class="bi bi-send"></i>
+                    </div>
+                    <div>
+                        <div class="fw-semibold">Send a test message</div>
+                        <div class="text-muted small">This is exactly what the public API does — a quick way to try sending without curl/Postman.</div>
+                    </div>
+                </div>
                 <div class="card-body">
-                    <p class="text-muted small">This is exactly what the public API does — a quick way to try sending without curl/Postman.</p>
-
                     <form method="POST" action="{{ route('instances.send-test-message', $instance) }}" class="row g-2 align-items-end">
                         @csrf
                         <div class="col-md-4">
@@ -80,7 +98,7 @@
                             @enderror
                         </div>
                         <div class="col-auto">
-                            <button type="submit" class="btn btn-sm btn-primary">Send</button>
+                            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-send me-1"></i>Send</button>
                         </div>
                     </form>
                 </div>
@@ -88,14 +106,24 @@
         @endif
 
         {{-- API credentials --}}
-        <div class="card shadow-sm">
-            <div class="card-header bg-white fw-semibold">API credentials</div>
+        <div class="card shadow-sm mb-4">
+            <div class="card-body d-flex align-items-center gap-3 border-bottom">
+                <div class="rounded-circle p-2 fs-4 lh-1" style="background-color: var(--wa-purple-light); color: var(--wa-purple);">
+                    <i class="bi bi-key"></i>
+                </div>
+                <div>
+                    <div class="fw-semibold">API credentials</div>
+                    <div class="text-muted small">Use these to authenticate your API requests.</div>
+                </div>
+            </div>
             <div class="card-body">
 
                 <label for="instance-id-value" class="form-label small mb-0">instance_id</label>
                 <div class="input-group mb-3">
                     <input type="text" class="form-control font-monospace" value="{{ $instance->instance_id }}" id="instance-id-value" readonly>
-                    <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('instance-id-value').value)">Copy</button>
+                    <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('instance-id-value').value)">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
                 </div>
 
                 @if (session('new_token'))
@@ -103,7 +131,9 @@
                         <strong>Copy this token now — you won't be able to see it again:</strong>
                         <div class="input-group mt-2">
                             <input type="text" class="form-control font-monospace" value="{{ session('new_token') }}" id="new-token-value" readonly>
-                            <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('new-token-value').value)">Copy</button>
+                            <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('new-token-value').value)">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
                         </div>
                     </div>
                 @endif
@@ -158,7 +188,7 @@
                             @enderror
                         </div>
                         <div class="col-auto">
-                            <button type="submit" class="btn btn-sm btn-primary">Generate token</button>
+                            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg me-1"></i>Generate token</button>
                         </div>
                     </form>
                 @else
@@ -170,10 +200,16 @@
 
         {{-- Webhook --}}
         <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white fw-semibold">Webhook</div>
+            <div class="card-body d-flex align-items-center gap-3 border-bottom">
+                <div class="rounded-circle p-2 fs-4 lh-1" style="background-color: var(--wa-info-light); color: var(--wa-info);">
+                    <i class="bi bi-link-45deg"></i>
+                </div>
+                <div>
+                    <div class="fw-semibold">Webhook</div>
+                    <div class="text-muted small">When someone messages this WhatsApp number, we'll forward it here as JSON, signed with the secret below.</div>
+                </div>
+            </div>
             <div class="card-body">
-                <p class="text-muted small">When someone messages this WhatsApp number, we'll forward it here as JSON, signed with the secret below.</p>
-
                 <form method="POST" action="{{ route('instances.webhook.update', $instance) }}" class="row g-2 align-items-end mb-3">
                     @csrf
                     <div class="col-md-8">
@@ -206,7 +242,12 @@
 
         {{-- Recent messages --}}
         <div class="card shadow-sm">
-            <div class="card-header bg-white fw-semibold">Recent messages</div>
+            <div class="card-body d-flex align-items-center gap-3 border-bottom">
+                <div class="bg-wa-light text-primary rounded-circle p-2 fs-4 lh-1">
+                    <i class="bi bi-chat-left-text"></i>
+                </div>
+                <div class="fw-semibold">Recent messages</div>
+            </div>
             <div class="card-body">
                 @if ($messages->isEmpty())
                     <p class="text-muted mb-0">No messages yet.</p>
@@ -281,7 +322,7 @@
 
         if (data.qr_code) {
             const holder = document.getElementById('qr-holder');
-            holder.innerHTML = '<img src="' + data.qr_code + '" alt="WhatsApp QR code" id="qr-image" class="img-fluid" style="max-width: 280px;">';
+            holder.innerHTML = '<img src="' + data.qr_code + '" alt="WhatsApp QR code" id="qr-image" class="img-fluid rounded-3 border" style="max-width: 280px;">';
         }
     }, 2500);
 })();

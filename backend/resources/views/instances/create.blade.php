@@ -8,6 +8,15 @@
         <h1 class="h3 mb-4">New instance</h1>
 
         <div class="card shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 border-bottom">
+                <div class="bg-wa-light text-primary rounded-circle p-2 fs-4 lh-1">
+                    <i class="bi bi-hdd-stack"></i>
+                </div>
+                <div>
+                    <div class="fw-semibold">Connect a WhatsApp number</div>
+                    <div class="text-muted small">You'll scan a QR code with your phone next.</div>
+                </div>
+            </div>
             <div class="card-body">
                 <form method="POST" action="{{ route('instances.store') }}">
                     @csrf
@@ -23,7 +32,9 @@
                         <div class="form-text">Just a label for you — pick anything that helps you tell your instances apart.</div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary">Create &amp; show QR code</button>
+                    <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-qr-code"></i> Create &amp; show QR code
+                    </button>
                     <a href="{{ route('instances.index') }}" class="btn btn-link">Cancel</a>
                 </form>
             </div>
