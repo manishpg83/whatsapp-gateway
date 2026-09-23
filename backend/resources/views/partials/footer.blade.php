@@ -1,7 +1,7 @@
 {{-- Shared footer — included on both the guest chrome and the logged-in
      content column (layouts/app.blade.php). Keep them in sync by editing
      only this file, never inlining a second copy. --}}
-<footer class="site-footer text-light-emphasis py-4">
+<footer class="site-footer text-white-50 py-4">
     <div class="container">
         <div class="row gy-4">
             <div class="col-md-6">

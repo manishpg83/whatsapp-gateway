@@ -35,4 +35,19 @@ class ApiDocsTest extends TestCase
             ->assertOk()
             ->assertSee('/api/v1/messages/send');
     }
+
+    public function test_docs_page_includes_code_samples_in_every_language(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->get('/docs')
+            ->assertOk()
+            ->assertSee('curl')
+            ->assertSee('JavaScript')
+            ->assertSee('PHP')
+            ->assertSee('Python')
+            ->assertSee('.NET (C#)', escape: false)
+            ->assertSee('Java')
+            ->assertSee('import requests', escape: false)
+            ->assertSee('HttpClient client = HttpClient.newHttpClient();', escape: false);
+    }
 }

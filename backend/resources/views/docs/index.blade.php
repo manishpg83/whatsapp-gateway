@@ -169,6 +169,15 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-php" type="button" role="tab">PHP</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-python" type="button" role="tab">Python</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-dotnet" type="button" role="tab">.NET (C#)</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-java" type="button" role="tab">Java</button>
+            </li>
         </ul>
         <div class="tab-content border border-top-0 rounded-bottom p-3">
             <div class="tab-pane fade show active" id="tab-curl" role="tabpanel">
@@ -213,6 +222,65 @@ console.log(data);</code></pre>
 ]));
 
 $data = json_decode($response, true);</code></pre>
+            </div>
+            <div class="tab-pane fade" id="tab-python" role="tabpanel">
+<pre class="bg-light rounded p-3 mb-0"><code>import requests
+
+response = requests.post(
+    "{{ url('/api/v1/messages/send') }}",
+    headers={"Authorization": "Bearer YOUR_ACCESS_TOKEN"},
+    json={
+        "instance_id": "YOUR_INSTANCE_ID",
+        "to": "919876543210",
+        "message": "Hello from my WhatsApp Gateway!",
+    },
+)
+
+data = response.json()
+print(data)</code></pre>
+                <p class="text-muted small mb-0 mt-2"><i class="bi bi-info-circle me-1"></i>Needs the <code>requests</code> package (<code>pip install requests</code>).</p>
+            </div>
+            <div class="tab-pane fade" id="tab-dotnet" role="tabpanel">
+<pre class="bg-light rounded p-3 mb-0"><code>using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+
+using var client = new HttpClient();
+client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "YOUR_ACCESS_TOKEN");
+
+var payload = new
+{
+    instance_id = "YOUR_INSTANCE_ID",
+    to = "919876543210",
+    message = "Hello from my WhatsApp Gateway!"
+};
+
+var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+var response = await client.PostAsync("{{ url('/api/v1/messages/send') }}", content);
+var data = await response.Content.ReadAsStringAsync();
+
+Console.WriteLine(data);</code></pre>
+                <p class="text-muted small mb-0 mt-2"><i class="bi bi-info-circle me-1"></i>Uses only the .NET base class library (<code>System.Text.Json</code>) — no extra NuGet package needed.</p>
+            </div>
+            <div class="tab-pane fade" id="tab-java" role="tabpanel">
+<pre class="bg-light rounded p-3 mb-0"><code>HttpClient client = HttpClient.newHttpClient();
+
+String body = "{"
+    + "\"instance_id\":\"YOUR_INSTANCE_ID\","
+    + "\"to\":\"919876543210\","
+    + "\"message\":\"Hello from my WhatsApp Gateway!\""
+    + "}";
+
+HttpRequest request = HttpRequest.newBuilder()
+    .uri(URI.create("{{ url('/api/v1/messages/send') }}"))
+    .header("Authorization", "Bearer YOUR_ACCESS_TOKEN")
+    .header("Content-Type", "application/json")
+    .POST(HttpRequest.BodyPublishers.ofString(body))
+    .build();
+
+HttpResponse&lt;String&gt; response = client.send(request, HttpResponse.BodyHandlers.ofString());
+System.out.println(response.body());</code></pre>
+                <p class="text-muted small mb-0 mt-2"><i class="bi bi-info-circle me-1"></i>Uses <code>java.net.http.HttpClient</code>, built into the JDK since Java 11 — no extra dependency.</p>
             </div>
         </div>
     </div>
