@@ -5,6 +5,11 @@
 @section('content')
 <div class="row justify-content-center">
     <div class="col-md-6 col-lg-5">
+        <div class="text-center mb-4">
+            <span class="rounded-circle d-inline-flex align-items-center justify-content-center fs-3" style="width: 64px; height: 64px; background-color: var(--wa-info-light); color: var(--wa-info);">
+                <i class="bi bi-key"></i>
+            </span>
+        </div>
         <div class="card shadow-sm">
             <div class="card-body p-4">
                 <h1 class="h4 mb-4">Choose a new password</h1>
@@ -38,7 +43,7 @@
                                class="form-control" required autocomplete="new-password">
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100">Reset password</button>
+                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-check-lg me-1"></i>Reset password</button>
                 </form>
             </div>
         </div>

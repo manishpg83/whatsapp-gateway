@@ -10,28 +10,43 @@
 
 {{-- Getting started --}}
 <div class="card shadow-sm mb-4">
-    <div class="card-header bg-white fw-semibold">Getting started</div>
-    <div class="card-body">
-        <ol class="mb-0">
-            <li class="mb-2">
+    <div class="card-body d-flex align-items-center gap-3 border-bottom">
+        <div class="bg-wa-light text-primary rounded-circle p-2 fs-4 lh-1">
+            <i class="bi bi-rocket-takeoff"></i>
+        </div>
+        <div class="fw-semibold">Getting started</div>
+    </div>
+    <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex align-items-start gap-3 py-3">
+            <span class="step-number step-number-1">1</span>
+            <span>
                 <a href="{{ route('instances.create') }}">Create an instance</a> and scan its QR code with
                 WhatsApp on your phone until its status shows <span class="badge text-bg-success">Connected</span>.
-            </li>
-            <li class="mb-2">
+            </span>
+        </li>
+        <li class="list-group-item d-flex align-items-start gap-3 py-3">
+            <span class="step-number step-number-2">2</span>
+            <span>
                 Open the connected instance's page and generate an <strong>API credential</strong>. You'll be
                 shown an <code>instance_id</code> and an <code>access_token</code> — the token is shown
                 <strong>once</strong>, so copy it somewhere safe immediately.
-            </li>
-            <li class="mb-0">
-                Call the API below with that <code>instance_id</code> and <code>access_token</code>.
-            </li>
-        </ol>
-    </div>
+            </span>
+        </li>
+        <li class="list-group-item d-flex align-items-start gap-3 py-3">
+            <span class="step-number step-number-3">3</span>
+            <span>Call the API below with that <code>instance_id</code> and <code>access_token</code>.</span>
+        </li>
+    </ul>
 </div>
 
 {{-- Authentication --}}
 <div class="card shadow-sm mb-4">
-    <div class="card-header bg-white fw-semibold">Authentication</div>
+    <div class="card-body d-flex align-items-center gap-3 border-bottom">
+        <div class="rounded-circle p-2 fs-4 lh-1" style="background-color: var(--wa-info-light); color: var(--wa-info);">
+            <i class="bi bi-shield-lock"></i>
+        </div>
+        <div class="fw-semibold">Authentication</div>
+    </div>
     <div class="card-body">
         <p>Send your access token as a Bearer token in the <code>Authorization</code> header:</p>
         <pre class="bg-light border rounded p-3 mb-2"><code>Authorization: Bearer YOUR_ACCESS_TOKEN</code></pre>
@@ -45,7 +60,12 @@
 
 {{-- Endpoint reference --}}
 <div class="card shadow-sm mb-4">
-    <div class="card-header bg-white fw-semibold">Send a text message</div>
+    <div class="card-body d-flex align-items-center gap-3 border-bottom">
+        <div class="rounded-circle p-2 fs-4 lh-1" style="background-color: var(--wa-purple-light); color: var(--wa-purple);">
+            <i class="bi bi-code-slash"></i>
+        </div>
+        <div class="fw-semibold">Send a text message</div>
+    </div>
     <div class="card-body">
         <p><span class="badge text-bg-primary">POST</span> <code>/api/v1/messages/send</code></p>
 
@@ -125,14 +145,19 @@
         </div>
 
         <p class="text-muted small mb-0">
-            Rate limit: 30 requests per minute per access token.
+            <i class="bi bi-speedometer2 me-1"></i>Rate limit: 30 requests per minute per access token.
         </p>
     </div>
 </div>
 
 {{-- Code samples --}}
 <div class="card shadow-sm">
-    <div class="card-header bg-white fw-semibold">Code samples</div>
+    <div class="card-body d-flex align-items-center gap-3 border-bottom">
+        <div class="bg-wa-light text-primary rounded-circle p-2 fs-4 lh-1">
+            <i class="bi bi-terminal"></i>
+        </div>
+        <div class="fw-semibold">Code samples</div>
+    </div>
     <div class="card-body">
         <ul class="nav nav-tabs" role="tablist">
             <li class="nav-item" role="presentation">

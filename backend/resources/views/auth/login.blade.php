@@ -5,6 +5,11 @@
 @section('content')
 <div class="row justify-content-center">
     <div class="col-md-6 col-lg-5">
+        <div class="text-center mb-4">
+            <span class="bg-wa-light text-primary rounded-circle d-inline-flex align-items-center justify-content-center fs-3" style="width: 64px; height: 64px;">
+                <i class="bi bi-chat-dots-fill"></i>
+            </span>
+        </div>
         <div class="card shadow-sm">
             <div class="card-body p-4">
                 <h1 class="h4 mb-4">Log in</h1>
@@ -33,7 +38,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100">Log in</button>
+                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-box-arrow-in-right me-1"></i>Log in</button>
                 </form>
 
                 <p class="text-center text-muted mt-3 mb-0">
