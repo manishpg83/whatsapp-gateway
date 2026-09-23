@@ -2,18 +2,21 @@
 
 > Living checklist. Read this together with `CLAUDE.md` at the start of every session.
 > Update it at the end of every milestone (tick the box, add notes, set "Next step").
-> Last updated: 2026-09-22
+> Last updated: 2026-09-23
 
 ## Where we are
 
-**All 8 roadmap milestones (M0-M8) are done and live-verified. M4-M8 all committed by the owner. Post-roadmap work, beyond `CLAUDE.md`'s original scope, per the owner's direction:**
-1. **Hardening fixes + "Send a test message" button** — coded, tested, NOT yet live-verified or committed.
-2. **Password reset** — coded, fully tested, NOT yet live-verified or committed.
-3. **Billing (Cashfree)** — built, confirmed working against the real sandbox API (real plans, a real subscription + checkout completed live), including a real local PHP CA-bundle fix along the way. Checkout works; automatic webhook status confirmation is **deliberately deferred** (needs a public URL — ngrok or real deployment — the owner chose to move on rather than set that up now). NOT yet committed.
-4. **Queues + webhook retries** — webhook deliveries (M8, incoming-message → customer webhook) now go through a queued, retried job instead of one synchronous best-effort attempt. Message *sending* deliberately stays synchronous (queuing it would break the public API's immediate-response contract — flagged, not done without a separate explicit decision). NOT yet committed.
-5. **Change password + delete account** — coded and tested. 2FA / audit logs / admin visibility explicitly deferred as their own future milestone(s), owner's choice. NOT yet committed.
+**All 8 roadmap milestones (M0-M8) are done and live-verified, and all committed by the owner.** Post-roadmap work, beyond `CLAUDE.md`'s original scope, per the owner's direction — **all of the below is now committed** (verified against `git log`: `76a0592` solve bugs of connecting again, `4dc7111` forgot password, `bd3e5d1` cashfree account and billing module phase 1, `0a7eb33` account module, `0b69621` change token size from 64 to 32 characters):
+1. **Hardening fixes + "Send a test message" button** — coded, tested, committed.
+2. **Password reset** — coded, fully tested, committed.
+3. **Billing (Cashfree)** — built, confirmed working against the real sandbox API (real plans, a real subscription + checkout completed live), including a real local PHP CA-bundle fix along the way. Checkout works; automatic webhook status confirmation is **deliberately deferred** (needs a public URL — ngrok or real deployment — the owner chose to move on rather than set that up now). Committed.
+4. **Queues + webhook retries** — webhook deliveries (M8, incoming-message → customer webhook) now go through a queued, retried job instead of one synchronous best-effort attempt. Message *sending* deliberately stays synchronous (queuing it would break the public API's immediate-response contract — flagged, not done without a separate explicit decision). Committed.
+5. **Change password + delete account** — coded and tested. 2FA / audit logs / admin visibility explicitly deferred as their own future milestone(s), owner's choice. Committed.
+6. **Token size tweak** — `ApiToken::generateFor()` changed from `Str::random(64)` to `Str::random(32)` (`0b69621`), not otherwise documented below since it's a one-line change.
 
-**Next up after live-verifying all of the above: an API Docs page** (owner's stated next step).
+**Working tree is clean; `main` is up to date with `origin/main`.** Whether the live-verification checklist further down (queued webhooks actually delivering, boot-reconnect, plan limits, etc.) was clicked through by the owner before these commits is not confirmed by git alone — treat those items as still open unless/until confirmed.
+
+**Next up: an API Docs page** (owner's stated next step).
 
 ## Milestones
 
@@ -131,18 +134,18 @@
   - New `App\Services\MessageSender` — the actual "create a pending row, call the worker, mark sent/failed" logic, extracted so `Api\MessageController` (public API) and this new button share one implementation instead of drifting apart. `Api\MessageController::send()` refactored onto it (all 9 `MessageTest.php` tests still pass unchanged — confirms it's behavior-preserving, not just a rename)
   - `InstanceController::sendTestMessage()` (`POST /instances/{instance}/send-test-message`, `throttle:messages` same as the API), form added to `instances/show.blade.php`, visible only when connected
   - Tests: `InstanceTest.php` (+4: sends and marks `sent`, worker failure marks `failed` + flashes an error, 422 when not connected, 404 for another user's instance)
-- All of the above: 86 backend tests passing (was 78), 21 worker tests passing (was 18), Pint clean, `npm run typecheck` clean. **Not yet committed. Not yet live-verified** — see Next step.
+- All of the above: 86 backend tests passing (was 78), 21 worker tests passing (was 18), Pint clean, `npm run typecheck` clean. **Committed** (`76a0592`). **Not yet confirmed live-verified** — see Next step.
 
 ## Post-roadmap features (owner-directed — production-readiness gaps identified when asked "is it finished?")
 
-- [x] **Password reset** *(code done, fully tested, NOT yet live-verified or committed)*
+- [x] **Password reset** *(code done, fully tested, committed `4dc7111`; not yet confirmed live-verified)*
   - Standard Laravel password-broker flow (`Illuminate\Support\Facades\Password`) — the `password_reset_tokens` table has existed since M1's default migrations, unused until now. `User` already supports it via `CanResetPassword` (bundled in the base `Authenticatable` class), no model changes needed.
   - New `Auth\PasswordResetController`: `create`/`store` (request a link — always the same generic "if that email exists…" message and redirect regardless of whether it does, matching login's existing anti-enumeration approach, CLAUDE.md §10 — deliberately overrides Laravel's default per-status message, which would otherwise leak whether an email is registered), `edit`/`update` (the emailed link → set new password)
   - Routes named `password.request`/`password.email`/`password.reset`/`password.update` — `password.reset` specifically is required verbatim, it's hard-coded into Laravel's default `ResetPassword` notification's link-building
   - Views: `auth/forgot-password.blade.php`, `auth/reset-password.blade.php`; "Forgot password?" link added to `auth/login.blade.php`
   - **`MAIL_MAILER=log` in `.env`** (unchanged since M1) — the reset email isn't actually sent anywhere yet, it's written to `storage/logs/laravel.log`. Fine for now; needs a real mail driver (or at least Mailtrap/similar) before this is usable by an actual user, not just in tests.
   - Tests: `PasswordResetTest.php` (7): page renders, guest-only, real-email sends a notification, unknown-email shows the identical message and sends nothing, full reset-then-login-with-new-password round trip (old password stops working, new one works), invalid token rejected without touching the password hash
-- [x] **Billing (Cashfree)** *(code done, verified against the real sandbox API, NOT yet tested through an actual browser checkout or committed)*
+- [x] **Billing (Cashfree)** *(code done, verified against the real sandbox API, committed `bd3e5d1`; browser checkout confirmed live, see below — automatic webhook confirmation still unverified)*
   - **Pivot from the original Stripe/Cashier proposal**: `PROJECT_BRIEF.md` (which had never actually been read until the owner pointed it out — everything up to now was built from `CLAUDE.md` alone) had real Cashfree sandbox credentials at the bottom of the file. Laravel Cashier doesn't support Cashfree, so this is a hand-built integration against Cashfree's own REST API — plain `Http` calls, no SDK package needed.
   - **Credentials moved** out of `PROJECT_BRIEF.md` (committed, plaintext) into `backend/.env` (git-ignored): `CASHFREE_API_KEY`, `CASHFREE_API_SECRET`, `CASHFREE_ENV=sandbox`. `config/services.php` gained a `cashfree` block.
   - **Pricing** — free tier + 3 paid plans, owner explicitly delegated the exact numbers ("according to you"). Benchmarked against comparable *unofficial* WhatsApp gateways (Wassenger, UltraMsg, Whapi.cloud — not the official Meta Business API, wrong comparison class) and undercut them: Free (₹0, 1 instance, 50 msg/mo), Starter (₹749/mo, 1 instance, 1,000 msg/mo), Growth (₹1,499/mo, 3 instances, 5,000 msg/mo), Business (₹2,999/mo, 10 instances, 50,000 msg/mo). Priced in INR, not the originally-proposed USD — Cashfree's default currency, and consistent with India-focused competitor pricing (AiSensy/Interakt/DoubleTick land in the same ₹1,000-3,000/mo band). All in `config/plans.php`, a plain array — changing a price is a deploy, not a live edit.
@@ -176,9 +179,18 @@
 - [x] Clicking your own name in the navbar now opens `/account` (no separate nav link added — kept the nav uncluttered).
 - Tests: `AccountTest.php` (8): page renders/guest-blocked, password change works + requires the right current password, account deletion actually removes the user and cascades to their instances/tokens/messages, requires the right password (independently of the password-change form, per the named bag), blocked with an active paid subscription, and proceeds even if the worker is unreachable (best-effort, not a hard dependency).
 
+## API Docs page (owner-directed, filled the M3-era "API Docs — soon" navbar placeholder)
+
+- [x] `App\Http\Controllers\ApiDocsController` (single-action) + `GET /docs` route (named `docs.index`, inside the `auth` group)
+- [x] `resources/views/docs/index.blade.php` — static Blade page: getting-started steps (create instance → connect → generate token), auth (`Authorization: Bearer`), the one endpoint's request fields / response table (pulled directly from `Api\MessageController`'s actual status codes, not re-invented), a 30/min rate-limit note, and code samples in curl / JavaScript (`fetch`) / PHP switched via Bootstrap nav-tabs (`data-bs-toggle="tab"` — no new JS package, `import 'bootstrap'` in `app.js` already includes the Tab plugin)
+- [x] Navbar's disabled "API Docs — soon" placeholder ([app.blade.php](backend/resources/views/layouts/app.blade.php)) replaced with a real active link
+- [x] `tests/Feature/ApiDocsTest.php` (2 tests: guest redirected, logged-in user sees the endpoint documented)
+- [x] Live-smoke-tested: `npm run build`, then a real `php artisan serve` on port 8001 with a throwaway `@example.invalid` user (created and deleted via `tinker`, per this file's own "Things to remember" convention) — confirmed guest → 302, logged-in → 200 with the nav link, tabs, and endpoint table all present in the actual rendered HTML.
+- No new packages.
+
 ## Test status
 
-`php artisan test` (from `backend/`): **126 passed, 465 assertions**. `vendor/bin/pint --test`: clean.
+`php artisan test` (from `backend/`): **128 passed, 471 assertions**. `vendor/bin/pint --test`: clean.
 
 `npm test` (from `whatsapp-worker/`, Vitest): **21 passed**. `npm run typecheck`: clean.
 
@@ -229,9 +241,9 @@
 
 ## Next step
 
-**Owner's stated plan, in order: live-verify + commit everything below, then build an API Docs page.**
+**Status as of 2026-09-23: everything through the account-settings/billing/queues work is committed** (`git log` confirms `76a0592` → `0b69621`, working tree clean). Owner chose to move straight to the **API Docs page** rather than working through the live-verification checklist first — that page is now built (see section above), coded/tested/live-smoke-tested, **not yet committed** (the owner makes all commits, per `CLAUDE.md`'s workflow rule).
 
-Still to live-verify (nothing below has been clicked through in a browser yet, except billing checkout which IS confirmed):
+Live-verification of the items below is still **unconfirmed** (not shown by git either way) — worth circling back to if anything in that area misbehaves:
 
 1. **Queued webhook delivery**: needs `php artisan queue:work` running as its own process, or queued `DeliverWebhook` jobs just sit in the `jobs` table forever, never actually delivered. Verify by setting a webhook URL, receiving a message, and confirming delivery still happens (just asynchronously now).
 2. **Change password / delete account**: `/account`, both forms.
@@ -239,7 +251,7 @@ Still to live-verify (nothing below has been clicked through in a browser yet, e
 4. **Stale-credentials fix**: click Reconnect on an instance whose status is `logged_out`/`disconnected` — confirm a genuinely fresh QR appears and scanning it reaches Connected again.
 5. **Boot-reconnect fix**: once connected, restart the worker — confirm the instance goes back to "Connected" **on its own**.
 6. **"Send a test message" button** and **password reset** (see `backend/storage/logs/laravel.log` for the reset link — `MAIL_MAILER=log`, nothing is actually emailed yet).
-7. Commit once everything checks out — M4 through M8 are already committed; everything since is not.
-8. Two small housekeeping items, still unresolved: a stray unused `backend/CLAUDE.md` (Aug 25, Laravel installer default) the owner may want deleted; billing has no self-serve downgrade/cancellation yet (upgrade-only); Cashfree's webhook confirmation is unverified (needs ngrok or real deployment).
 
-**Then: API Docs page** (owner's explicit next step, filling the "API Docs — soon" navbar placeholder that's been sitting there since M3). At the start of that session: read `CLAUDE.md` §11 (mentions an "API docs/basic usage page" as one of the original UI pages), inspect what's already been explained informally in chat (the register→connect→token→send flow), and turn that into an actual page — present the plan (what it covers, code examples in which languages) before building, same as every other milestone. 2FA / audit logs / admin visibility across tenants remain explicitly deferred beyond that, owner's choice.
+Open housekeeping items, still unresolved: a stray unused `backend/CLAUDE.md` (Aug 25, Laravel installer default) the owner may want deleted; billing has no self-serve downgrade/cancellation yet (upgrade-only); Cashfree's webhook confirmation is unverified (needs ngrok or real deployment).
+
+**Now: API Docs page** (owner's explicit next step, filling the "API Docs — soon" navbar placeholder that's been sitting there since M3). Read `CLAUDE.md` §11 (mentions an "API docs/basic usage page" as one of the original UI pages), inspect what's already been explained informally in chat (the register→connect→token→send flow), and turn that into an actual page — present the plan (what it covers, code examples in which languages) before building, same as every other milestone. 2FA / audit logs / admin visibility across tenants remain explicitly deferred beyond that, owner's choice.
