@@ -62,7 +62,10 @@ class LoginController extends Controller
         RateLimiter::clear($throttleKey);
         $request->session()->regenerate(); // new session id after login (prevents session fixation)
 
-        return redirect()->intended(route('dashboard'));
+        // Admins land on the admin panel (/admin), everyone else on /dashboard.
+        $home = Auth::user()->is_admin ? route('admin.dashboard') : route('dashboard');
+
+        return redirect()->intended($home);
     }
 
     // Log out: end the session and rotate the CSRF token.

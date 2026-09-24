@@ -38,4 +38,18 @@ class HomeTest extends TestCase
             ->get('/')
             ->assertRedirect(route('dashboard'));
     }
+
+    public function test_logged_in_admin_is_redirected_to_the_admin_panel(): void
+    {
+        $this->actingAs(User::factory()->create(['is_admin' => true]))
+            ->get('/')
+            ->assertRedirect(route('admin.dashboard'));
+    }
+
+    public function test_admin_can_still_open_the_user_dashboard_by_url(): void
+    {
+        $this->actingAs(User::factory()->create(['is_admin' => true]))
+            ->get('/dashboard')
+            ->assertOk();
+    }
 }

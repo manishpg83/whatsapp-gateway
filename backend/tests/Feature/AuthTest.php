@@ -123,6 +123,16 @@ class AuthTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    public function test_admin_is_redirected_to_the_admin_panel_after_login(): void
+    {
+        $admin = User::factory()->create(['password' => 'secret-pass-123', 'is_admin' => true]);
+
+        $this->post('/login', ['email' => $admin->email, 'password' => 'secret-pass-123'])
+            ->assertRedirect(route('admin.dashboard'));
+
+        $this->assertAuthenticatedAs($admin);
+    }
+
     public function test_remember_me_checkbox_issues_a_persistent_remember_token(): void
     {
         $user = User::factory()->create(['password' => 'secret-pass-123', 'remember_token' => null]);
@@ -214,5 +224,13 @@ class AuthTest extends TestCase
 
         $this->get('/login')->assertRedirect(route('dashboard'));
         $this->get('/register')->assertRedirect(route('dashboard'));
+    }
+
+    public function test_logged_in_admin_is_redirected_away_from_login_to_the_admin_panel(): void
+    {
+        $this->actingAs(User::factory()->create(['is_admin' => true]));
+
+        $this->get('/login')->assertRedirect(route('admin.dashboard'));
+        $this->get('/register')->assertRedirect(route('admin.dashboard'));
     }
 }

@@ -19,7 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Where to send visitors who are not logged in / already logged in.
         $middleware->redirectGuestsTo(fn () => route('login'));
-        $middleware->redirectUsersTo(fn () => route('dashboard'));
+        // Admins go to the admin panel, everyone else to /dashboard.
+        $middleware->redirectUsersTo(fn (Request $request) => $request->user()?->is_admin
+            ? route('admin.dashboard')
+            : route('dashboard'));
 
         // Trust reverse proxies (ngrok for now, a real load balancer/host
         // later) to tell us the request was actually HTTPS via

@@ -11,7 +11,8 @@ class HomeController extends Controller
     public function __invoke(): View|RedirectResponse
     {
         if (auth()->check()) {
-            return redirect()->route('dashboard');
+            // Admins go to the admin panel, everyone else to /dashboard.
+            return redirect()->route(auth()->user()->is_admin ? 'admin.dashboard' : 'dashboard');
         }
 
         return view('home', ['plans' => Plan::orderBy('price')->get()->keyBy('slug')]);
