@@ -55,7 +55,8 @@
                 </form>
 
                 <p class="text-center text-muted small mt-3 mb-1">
-                    By creating an account, you agree to our <a href="{{ route('terms') }}">Terms of Service</a>.
+                    By creating an account, you agree to our <a href="{{ route('terms') }}">Terms of Service</a>
+                    and <a href="{{ route('privacy') }}">Privacy Policy</a>.
                 </p>
                 <p class="text-center text-muted mb-0">
                     Already registered? <a href="{{ route('login') }}">Log in</a>

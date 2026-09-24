@@ -21,6 +21,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InstanceController;
 use App\Http\Controllers\InternalSessionsController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\PrivacyController;
 use App\Http\Controllers\TermsController;
 use App\Http\Controllers\WorkerWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -32,6 +33,7 @@ Route::get('/', HomeController::class)->name('home');
 // Public — no auth required either way, so it can be linked from the
 // register page before an account exists, and still read afterward.
 Route::get('/terms', TermsController::class)->name('terms');
+Route::get('/privacy', PrivacyController::class)->name('privacy');
 
 // Only for visitors who are NOT logged in.
 Route::middleware('guest')->group(function () {

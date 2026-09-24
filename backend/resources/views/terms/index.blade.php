@@ -87,6 +87,7 @@
                     responsible for how that endpoint stores and handles the data we send it.
                     Deleting your account deletes your instances, API tokens, and message history
                     from our systems, other than what we're legally required to retain.
+                    See our <a href="{{ route('privacy') }}">Privacy Policy</a> for details.
                 </p>
 
                 <h2 class="h5 mt-4">6. Service availability</h2>
