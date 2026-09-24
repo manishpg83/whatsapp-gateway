@@ -16,6 +16,7 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\CashfreeWebhookController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InstanceController;
@@ -34,6 +35,10 @@ Route::get('/', HomeController::class)->name('home');
 // register page before an account exists, and still read afterward.
 Route::get('/terms', TermsController::class)->name('terms');
 Route::get('/privacy', PrivacyController::class)->name('privacy');
+
+// Public — guests and logged-in users can both reach support.
+Route::get('/contact', [ContactController::class, 'create'])->name('contact');
+Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:contact')->name('contact.send');
 
 // Only for visitors who are NOT logged in.
 Route::middleware('guest')->group(function () {

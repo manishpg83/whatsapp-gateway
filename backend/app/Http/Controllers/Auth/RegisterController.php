@@ -29,7 +29,12 @@ class RegisterController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::min(8)],
+            'terms' => ['accepted'],
+        ], [
+            'terms.accepted' => 'Please confirm you are 18 or older and agree to the Terms of Service and Privacy Policy.',
         ]);
+
+        unset($data['terms']); // not a users column
 
         // The User model hashes the password automatically (see casts()).
         $user = User::create($data);

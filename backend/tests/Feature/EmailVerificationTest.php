@@ -43,6 +43,7 @@ class EmailVerificationTest extends TestCase
             'email' => 'jane@example.com',
             'password' => 'secret-pass-123',
             'password_confirmation' => 'secret-pass-123',
+            'terms' => '1',
         ])->assertRedirect(route('verification.notice'));
 
         $user = User::where('email', 'jane@example.com')->sole();

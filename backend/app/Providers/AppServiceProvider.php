@@ -43,6 +43,12 @@ class AppServiceProvider extends ServiceProvider
 
         // "Send test webhook" makes our server call an owner-supplied URL
         // on demand, so keep it to a handful per minute per user.
+        // The public contact form sends a real email each time, so keep
+        // it to a few per 10 minutes per visitor (IP) to stop spam floods.
+        RateLimiter::for('contact', function (Request $request) {
+            return Limit::perMinutes(10, 5)->by($request->ip());
+        });
+
         RateLimiter::for('webhook-test', function (Request $request) {
             return Limit::perMinute(5)->by($request->user()?->id ?: $request->ip());
         });

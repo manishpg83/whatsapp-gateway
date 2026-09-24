@@ -338,6 +338,7 @@
                                 <div>
                                     <div class="fw-semibold">BriskBrain Technologies — Privacy &amp; Grievances</div>
                                     <a href="mailto:briskbraintechnologies@gmail.com">briskbraintechnologies@gmail.com</a>
+                                    <div class="small">or use our <a href="{{ route('contact', ['topic' => 'privacy']) }}">contact form</a> (topic: Privacy / data request)</div>
                                 </div>
                             </div>
                         </section>

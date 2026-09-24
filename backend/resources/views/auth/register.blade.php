@@ -51,14 +51,23 @@
                                class="form-control" required autocomplete="new-password">
                     </div>
 
+                    <div class="form-check mb-3">
+                        <input type="checkbox" id="terms" name="terms" value="1" @checked(old('terms'))
+                               class="form-check-input @error('terms') is-invalid @enderror" required>
+                        <label for="terms" class="form-check-label small">
+                            I am at least 18 years old and agree to the
+                            <a href="{{ route('terms') }}" target="_blank">Terms of Service</a> and
+                            <a href="{{ route('privacy') }}" target="_blank">Privacy Policy</a>.
+                        </label>
+                        @error('terms')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
                     <button type="submit" class="btn btn-primary w-100"><i class="bi bi-person-plus me-1"></i>Register</button>
                 </form>
 
-                <p class="text-center text-muted small mt-3 mb-1">
-                    By creating an account, you agree to our <a href="{{ route('terms') }}">Terms of Service</a>
-                    and <a href="{{ route('privacy') }}">Privacy Policy</a>.
-                </p>
-                <p class="text-center text-muted mb-0">
+                <p class="text-center text-muted mt-3 mb-0">
                     Already registered? <a href="{{ route('login') }}">Log in</a>
                 </p>
             </div>

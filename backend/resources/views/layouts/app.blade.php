@@ -128,6 +128,13 @@
                                 <i class="bi bi-gear me-2"></i>Account
                             </a>
                         </li>
+                        @unless (auth()->user()->is_admin)
+                            <li>
+                                <a class="dropdown-item {{ request()->routeIs('contact') ? 'active' : '' }}" href="{{ route('contact') }}">
+                                    <i class="bi bi-headset me-2"></i>Contact support
+                                </a>
+                            </li>
+                        @endunless
                         <li><hr class="dropdown-divider"></li>
                         <li>
                             <form method="POST" action="{{ route('logout') }}">

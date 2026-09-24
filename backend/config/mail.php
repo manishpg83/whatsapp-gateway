@@ -115,4 +115,7 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    // Where messages from the public Contact page (/contact) are sent.
+    'support_address' => env('MAIL_SUPPORT_ADDRESS', 'briskbraintechnologies@gmail.com'),
+
 ];

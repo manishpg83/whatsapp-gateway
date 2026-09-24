@@ -34,7 +34,18 @@ class AuthTest extends TestCase
             'email' => 'test@example.com',
             'password' => 'secret-pass-123',
             'password_confirmation' => 'secret-pass-123',
+            'terms' => '1',
         ], $overrides);
+    }
+
+    public function test_register_requires_the_18_plus_and_terms_checkbox(): void
+    {
+        $data = $this->validRegistration();
+        unset($data['terms']);
+
+        $this->post('/register', $data)->assertSessionHasErrors('terms');
+        $this->assertGuest();
+        $this->assertDatabaseMissing('users', ['email' => 'test@example.com']);
     }
 
     // ---- Register ----------------------------------------------------------

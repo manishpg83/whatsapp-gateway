@@ -48,8 +48,9 @@
                 @endauth
             </div>
             <div class="col-md-3">
-                <div class="text-white small fw-semibold text-uppercase mb-2">Legal</div>
+                <div class="text-white small fw-semibold text-uppercase mb-2">Help &amp; legal</div>
                 <ul class="list-unstyled small mb-0">
+                    <li class="mb-1"><a href="{{ route('contact') }}" class="link-light text-decoration-none">Contact us</a></li>
                     <li class="mb-1"><a href="{{ route('terms') }}" class="link-light text-decoration-none">Terms of Service</a></li>
                     <li><a href="{{ route('privacy') }}" class="link-light text-decoration-none">Privacy Policy</a></li>
                 </ul>

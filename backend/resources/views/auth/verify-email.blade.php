@@ -28,6 +28,7 @@
 
                 <p class="text-center text-muted small mt-3 mb-0">
                     Wrong email address? Log out (top right) and register again.
+                    Still stuck? <a href="{{ route('contact', ['topic' => 'technical']) }}">Contact us</a>.
                 </p>
             </div>
         </div>
