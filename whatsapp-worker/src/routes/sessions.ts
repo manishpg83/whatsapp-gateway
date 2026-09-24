@@ -1,17 +1,33 @@
+import fs from "node:fs/promises";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requireInternalSecret } from "../auth.js";
 import type { Config } from "../config.js";
+import { OUTGOING_TYPES, buildOutgoingContent, resolveMediaPath } from "../whatsapp/outgoingMessage.js";
 import { SessionNotActiveError, sendMessage, startSession, stopSession } from "../whatsapp/sessionManager.js";
 
 const startBodySchema = z.object({
   instance_id: z.string().uuid(),
 });
 
-const sendMessageBodySchema = z.object({
-  to: z.string().regex(/^\d{7,15}$/, "to must be digits only (7-15 of them)"),
-  message: z.string().min(1).max(4096),
-});
+const sendMessageBodySchema = z
+  .object({
+    to: z.string().regex(/^\d{7,15}$/, "to must be digits only (7-15 of them)"),
+    type: z.enum(OUTGOING_TYPES).default("text"),
+    // The text, or the caption for media (may be empty for media).
+    message: z.string().max(4096).default(""),
+    media: z
+      .object({
+        path: z.string().max(255),
+        mime_type: z.string().max(255),
+        file_name: z.string().max(255).nullable().optional(),
+      })
+      .nullable()
+      .optional(),
+  })
+  .refine((body) => (body.type === "text" ? body.message.length > 0 : Boolean(body.media)), {
+    message: "Text messages need a message; media messages need media",
+  });
 
 /**
  * Laravel calls these to start/stop a WhatsApp session for one instance.
@@ -60,8 +76,34 @@ export async function sessionsRoute(app: FastifyInstance, config: Config) {
         return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid body" });
       }
 
+      const { to, type, message, media } = parsed.data;
+      let content;
+
+      if (type === "text" || !media) {
+        content = buildOutgoingContent("text", message, null);
+      } else {
+        const absolutePath = resolveMediaPath(config.MEDIA_STORAGE_PATH, instanceId, media.path);
+
+        if (!absolutePath) {
+          return reply.code(400).send({ error: "Invalid media path" });
+        }
+
+        try {
+          await fs.access(absolutePath);
+        } catch {
+          return reply.code(400).send({ error: "Media file not found" });
+        }
+
+        content = buildOutgoingContent(type, message, {
+          path: media.path,
+          mimeType: media.mime_type,
+          fileName: media.file_name ?? null,
+          absolutePath,
+        });
+      }
+
       try {
-        const messageId = await sendMessage(instanceId, parsed.data.to, parsed.data.message);
+        const messageId = await sendMessage(instanceId, to, content);
         return reply.code(200).send({ message_id: messageId });
       } catch (err) {
         if (err instanceof SessionNotActiveError) {

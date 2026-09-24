@@ -39,15 +39,30 @@ class WorkerClient
     }
 
     /**
-     * Sends a text message synchronously (no queue yet, per CLAUDE.md
-     * §13 M7) and returns WhatsApp's message id. Throws on any failure —
-     * network, worker error, or the instance not actually being connected
-     * in the worker's memory — the caller decides how to record that.
+     * Sends a text or media message synchronously (no queue yet, per
+     * CLAUDE.md §13 M7) and returns WhatsApp's message id. Throws on any
+     * failure — network, worker error, or the instance not actually being
+     * connected in the worker's memory — the caller decides how to record
+     * that. For media, $message is the caption and $media points at a file
+     * MediaFetcher already saved on the shared whatsapp_media disk.
+     *
+     * @param  array{path: string, mime_type: string, file_name: string|null}|null  $media
      */
-    public function sendMessage(string $instanceId, string $to, string $message): string
+    public function sendMessage(string $instanceId, string $to, string $message, string $type = 'text', ?array $media = null): string
     {
         $response = $this->http()
-            ->post("/sessions/{$instanceId}/messages", ['to' => $to, 'message' => $message])
+            // Uploading a big video/document to WhatsApp takes longer than a text.
+            ->timeout($media ? 120 : 5)
+            ->post("/sessions/{$instanceId}/messages", array_filter([
+                'to' => $to,
+                'type' => $type,
+                'message' => $message,
+                'media' => $media ? [
+                    'path' => $media['path'],
+                    'mime_type' => $media['mime_type'],
+                    'file_name' => $media['file_name'],
+                ] : null,
+            ], fn ($value) => $value !== null))
             ->throw();
 
         return $response->json('message_id');

@@ -16,7 +16,7 @@
 </div>
 
 @php
-    $hasFilters = $filters['instance_id'] || $filters['direction'] || $filters['status'];
+    $hasFilters = $filters['instance_id'] || $filters['direction'] || $filters['status'] || $filters['type'];
 @endphp
 
 <form method="GET" action="{{ route('messages.index') }}" class="row g-2 align-items-end mb-3">
@@ -45,6 +45,15 @@
             <option value="">All</option>
             @foreach (['sent' => 'Sent', 'failed' => 'Failed', 'pending' => 'Pending', 'received' => 'Received'] as $value => $label)
                 <option value="{{ $value }}" @selected($filters['status'] === $value)>{{ $label }}</option>
+            @endforeach
+        </select>
+    </div>
+    <div class="col-6 col-sm-4 col-lg-2">
+        <label for="filter-type" class="form-label small text-muted mb-1">Type</label>
+        <select id="filter-type" name="type" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">All</option>
+            @foreach (\App\Models\Message::TYPES as $value => [$label])
+                <option value="{{ $value }}" @selected($filters['type'] === $value)>{{ $label }}</option>
             @endforeach
         </select>
     </div>
@@ -115,7 +124,7 @@
                                 <span class="text-muted small">{{ $isIncoming ? 'From' : 'To' }}</span>
                                 {{ ($isIncoming ? $message->from_number : $message->to_number) ?? '—' }}
                             </td>
-                            <td class="text-truncate" style="max-width: 280px;">{{ $message->body }}</td>
+                            <td>@include('messages._content', ['message' => $message, 'compact' => true])</td>
                             <td><span class="badge rounded-pill text-bg-{{ $statusColor }}">{{ ucfirst($message->status) }}</span></td>
                             <td class="text-nowrap small">{{ $message->created_at->format('Y-m-d H:i:s') }}</td>
                             <td class="text-end">
@@ -129,7 +138,7 @@
                         <tr class="collapse" id="message-{{ $message->id }}">
                             <td colspan="7" class="bg-light-subtle">
                                 <div class="mb-2 small fw-semibold text-uppercase text-muted">Full message</div>
-                                <div class="bg-light rounded p-3 small" style="white-space: pre-wrap;">{{ $message->body }}</div>
+                                <div class="bg-light rounded p-3 small">@include('messages._content', ['message' => $message])</div>
                             </td>
                         </tr>
                     @endforeach

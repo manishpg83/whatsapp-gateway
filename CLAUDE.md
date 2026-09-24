@@ -99,7 +99,7 @@ logging, Zod validation, Vitest for tests.
 | Item | Decision |
 |---|---|
 | Laravel | **13.x** (latest seen: v13.32.0; use constraint `^13.0`). Requires PHP ^8.3. Laravel 12 rejected: bug fixes ended 2026-08-13. **Installed at M1: v13.32.0** (skeleton `laravel/laravel` v13.10.1, PHPUnit 12.5.35). |
-| PHP | 8.4.1 (XAMPP, `C:\xampp\php.exe`, ini: `C:\xampp\php.ini`) |
+| PHP | 8.4.1 (XAMPP, `C:\xampp\php\php.exe`, ini: **`C:\xampp\php\php.ini`** — confirmed with `php --ini`; `C:\xampp\php.ini` is NOT loaded). Upload limits raised 2026-09-24 (with approval) for media uploads: `upload_max_filesize = 100M`, `post_max_size = 110M`; backup at `C:\xampp\php\php.ini.bak-2026-09-24`. |
 | Composer / Laravel installer | 2.8.12 / 5.24.9 |
 | Node.js / npm | v24.11.0 (LTS) / 11.6.1. Baileys needs Node >=20. |
 | Git | 2.51.0 |

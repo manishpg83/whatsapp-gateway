@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\MediaFetchException;
 use App\Models\WhatsappSession;
 use App\Rules\PublicWebhookUrl;
+use App\Services\MediaFetcher;
 use App\Services\MessageSender;
 use App\Services\PlanLimiter;
 use App\Services\WebhookDispatcher;
@@ -11,8 +13,10 @@ use App\Services\WorkerClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Throwable;
 
@@ -131,7 +135,7 @@ class InstanceController extends Controller
      * the exact same MessageSender the public API uses underneath, so
      * this is also a live example of what that API actually does.
      */
-    public function sendTestMessage(Request $request, string $instance, MessageSender $sender, PlanLimiter $limiter): RedirectResponse
+    public function sendTestMessage(Request $request, string $instance, MessageSender $sender, PlanLimiter $limiter, MediaFetcher $fetcher): RedirectResponse
     {
         $whatsappSession = $this->findOwnedInstance($request, $instance);
 
@@ -145,12 +149,35 @@ class InstanceController extends Controller
                 ->with('error', "You've reached your plan's monthly message limit. Upgrade to send more.");
         }
 
+        $isText = ($request->input('type') ?? 'text') === 'text';
+        $upload = $request->file('media');
+        $hasUpload = $upload instanceof UploadedFile;
+
         $data = $request->validate([
             'to' => ['required', 'regex:/^\d{7,15}$/'],
-            'message' => ['required', 'string', 'max:4096'],
+            'type' => ['sometimes', 'in:text,'.implode(',', array_keys(MediaFetcher::RULES))],
+            'message' => [Rule::requiredIf($isText), 'nullable', 'string', 'max:4096'],
+            // A dropped/chosen file wins; the link is only needed without one.
+            'media_url' => [Rule::requiredIf(! $isText && ! $hasUpload), 'nullable', 'url', 'max:2048'],
+        ], [
+            'media_url.required' => 'Drop a file, choose one from your computer, or paste a link to it.',
         ]);
 
-        $message = $sender->send($whatsappSession, $data['to'], $data['message']);
+        $type = $data['type'] ?? 'text';
+        $body = in_array($type, ['audio', 'voice'], true) ? '' : (string) ($data['message'] ?? '');
+        $media = null;
+
+        if (! $isText) {
+            try {
+                $media = $hasUpload
+                    ? $fetcher->fromUpload($whatsappSession, $upload, $type)
+                    : $fetcher->fetch($whatsappSession, $data['media_url'], $type);
+            } catch (MediaFetchException $e) {
+                return redirect()->route('instances.show', $whatsappSession)->withInput()->with('error', $e->getMessage());
+            }
+        }
+
+        $message = $sender->send($whatsappSession, $data['to'], $body, null, $type, $media);
 
         return redirect()->route('instances.show', $whatsappSession)->with(
             $message->status === 'sent' ? 'status' : 'error',

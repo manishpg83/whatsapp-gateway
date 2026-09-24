@@ -71,6 +71,8 @@ class AccountController extends Controller
                     'error' => $e->getMessage(),
                 ]);
             }
+
+            $whatsappSession->deleteMediaFiles();
         }
 
         Auth::logout();

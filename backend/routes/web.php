@@ -22,6 +22,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InstanceController;
 use App\Http\Controllers\InternalSessionsController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\MessageMediaController;
 use App\Http\Controllers\PrivacyController;
 use App\Http\Controllers\TermsController;
 use App\Http\Controllers\WorkerWebhookController;
@@ -97,6 +98,8 @@ Route::middleware(['auth', 'not_suspended', 'verified'])->group(function () {
         ->name('instances.send-test-message');
 
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
+    // A received image / voice note / document — owner only.
+    Route::get('/messages/{message}/media', [MessageMediaController::class, 'show'])->name('messages.media');
 
     Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
     Route::post('/billing/subscribe/{plan}', [BillingController::class, 'subscribe'])->name('billing.subscribe');
@@ -140,6 +143,12 @@ Route::middleware(['auth', 'not_suspended', 'verified', 'admin'])->prefix('admin
     Route::put('/plans/{plan}', [AdminPlanController::class, 'update'])->name('plans.update');
     Route::delete('/plans/{plan}', [AdminPlanController::class, 'destroy'])->name('plans.destroy');
 });
+
+// The 24-hour media download link sent in webhooks, for the customer's
+// own server — no login, protected by the URL signature instead.
+Route::get('/media/{message}', [MessageMediaController::class, 'signed'])
+    ->middleware('signed')
+    ->name('media.signed');
 
 // Called by the Node worker only — authenticated by shared secret, not a
 // browser session. See App\Http\Middleware\VerifyInternalSecret.

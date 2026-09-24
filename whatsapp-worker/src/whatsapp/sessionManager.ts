@@ -1,11 +1,15 @@
 import path from "node:path";
 import fs from "node:fs/promises";
-import makeWASocket, { DisconnectReason, useMultiFileAuthState } from "baileys";
+import makeWASocket, { DisconnectReason, downloadMediaMessage, useMultiFileAuthState } from "baileys";
+import type { AnyMessageContent, WAMessage } from "baileys";
 import QRCode from "qrcode";
 import type { FastifyBaseLogger } from "fastify";
 import type { Config } from "../config.js";
 import { notifyLaravel } from "./callbacks.js";
 import { parseIncomingMessage } from "./incomingMessage.js";
+import type { IncomingMedia } from "./incomingMessage.js";
+import { MediaTooLargeError, mediaFileName, saveMediaStream } from "./media.js";
+import type { MediaResult } from "./media.js";
 
 type Session = {
   socket: ReturnType<typeof makeWASocket>;
@@ -169,12 +173,17 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
       if (!parsed) {
         logger.info(
           { instanceId, remoteJid: msg.key.remoteJid, fromMe: msg.key.fromMe },
-          "Skipped a message.upsert entry (not a forwardable incoming text)"
+          "Skipped a message.upsert entry (not a forwardable incoming message)"
         );
         continue;
       }
 
-      logger.info({ instanceId, from: parsed.from }, "Forwarding incoming message to Laravel");
+      // Download the file first, so Laravel gets told where it is.
+      const mediaResult = parsed.media
+        ? await downloadMedia(msg, parsed.media, parsed.whatsappMessageId, instanceId, socket, config, logger)
+        : null;
+
+      logger.info({ instanceId, from: parsed.from, type: parsed.type }, "Forwarding incoming message to Laravel");
 
       await notifyLaravel(
         config,
@@ -182,14 +191,77 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
           event: "message.received",
           instance_id: instanceId,
           from: parsed.from,
+          type: parsed.type,
           message: parsed.text,
           whatsapp_message_id: parsed.whatsappMessageId,
           timestamp: parsed.timestamp,
+          media:
+            parsed.media && mediaResult
+              ? {
+                  status: mediaResult.status,
+                  path: mediaResult.path,
+                  mime_type: parsed.media.mimeType,
+                  file_name: parsed.media.fileName,
+                  size: mediaResult.size,
+                }
+              : null,
         },
         logger
       );
     }
   });
+}
+
+/**
+ * Downloads one incoming message's media to MEDIA_STORAGE_PATH. Never
+ * throws: a failed or oversized download still forwards the message to
+ * Laravel (with the media marked failed / too_large), so the customer
+ * always sees that *something* arrived.
+ */
+async function downloadMedia(
+  msg: WAMessage,
+  media: IncomingMedia,
+  whatsappMessageId: string,
+  instanceId: string,
+  socket: ReturnType<typeof makeWASocket>,
+  config: Config,
+  logger: FastifyBaseLogger
+): Promise<MediaResult> {
+  const maxBytes = config.MAX_MEDIA_MB * 1024 * 1024;
+
+  // WhatsApp tells us the size up front — skip obvious giants without downloading.
+  if (media.size !== null && media.size > maxBytes) {
+    logger.warn({ instanceId, size: media.size }, "Incoming media too large, not downloaded");
+    return { status: "too_large", path: null, size: media.size };
+  }
+
+  try {
+    const stream = await downloadMediaMessage(
+      msg,
+      "stream",
+      {},
+      // Lets Baileys ask the sender's phone to re-upload expired media.
+      { logger, reuploadRequest: socket.updateMediaMessage }
+    );
+
+    const saved = await saveMediaStream(
+      stream,
+      config.MEDIA_STORAGE_PATH,
+      instanceId,
+      mediaFileName(whatsappMessageId, media),
+      maxBytes
+    );
+
+    return { status: "stored", path: saved.path, size: saved.size };
+  } catch (err) {
+    if (err instanceof MediaTooLargeError) {
+      logger.warn({ instanceId }, "Incoming media grew past the size limit while downloading");
+      return { status: "too_large", path: null, size: media.size };
+    }
+
+    logger.error({ instanceId, err }, "Failed to download incoming media");
+    return { status: "failed", path: null, size: media.size };
+  }
 }
 
 /**
@@ -206,9 +278,10 @@ export class SessionNotActiveError extends Error {
 }
 
 /**
- * Sends a plain text message and returns WhatsApp's own message id.
+ * Sends a text or media message and returns WhatsApp's own message id.
+ * `content` comes from buildOutgoingContent() (outgoingMessage.ts).
  */
-export async function sendMessage(instanceId: string, to: string, text: string): Promise<string> {
+export async function sendMessage(instanceId: string, to: string, content: AnyMessageContent): Promise<string> {
   const session = sessions.get(instanceId);
 
   if (!session) {
@@ -218,7 +291,7 @@ export async function sendMessage(instanceId: string, to: string, text: string):
   // Individual chats only for M7 (no group JIDs) — matches the scope in
   // CLAUDE.md §0.
   const jid = `${to}@s.whatsapp.net`;
-  const result = await session.socket.sendMessage(jid, { text });
+  const result = await session.socket.sendMessage(jid, content);
   const messageId = result?.key?.id;
 
   if (!messageId) {

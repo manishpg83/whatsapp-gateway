@@ -9,4 +9,6 @@ export const testConfig: Config = {
   LARAVEL_CALLBACK_URL: "http://127.0.0.1:8000/internal/worker/events",
   LARAVEL_BASE_URL: "http://127.0.0.1:8000",
   SESSION_STORAGE_PATH: "./tests/tmp-whatsapp-secrets",
+  MEDIA_STORAGE_PATH: "./tests/tmp-whatsapp-media",
+  MAX_MEDIA_MB: 100,
 };

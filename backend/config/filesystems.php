@@ -38,6 +38,19 @@ return [
             'report' => false,
         ],
 
+        // Media received on WhatsApp (images, voice notes, documents, ...).
+        // Written by the Node worker, read by Laravel — both on this machine,
+        // so this MUST be the same folder as MEDIA_STORAGE_PATH in the
+        // worker's .env. Outside the repo and C:\xampp\htdocs on purpose
+        // (CLAUDE.md §4/§9): it's private customer data, only ever served
+        // through MessageMediaController's ownership / signature checks.
+        'whatsapp_media' => [
+            'driver' => 'local',
+            'root' => env('WHATSAPP_MEDIA_PATH', 'C:\\whatsapp-media'),
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

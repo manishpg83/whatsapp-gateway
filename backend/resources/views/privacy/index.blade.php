@@ -148,7 +148,7 @@
                                         </tr>
                                         <tr>
                                             <td><i class="bi bi-chat-left-text me-1 text-primary"></i>Messages</td>
-                                            <td>The text of messages you send or receive through the Service, the sender/recipient phone numbers, delivery status, and timestamps.</td>
+                                            <td>The text of messages you send or receive through the Service, media files you receive (photos, videos, voice notes, documents, stickers), the sender/recipient phone numbers, delivery status, and timestamps. View-once photos and videos are never downloaded.</td>
                                         </tr>
                                         <tr>
                                             <td><i class="bi bi-key me-1 text-primary"></i>API & webhooks</td>

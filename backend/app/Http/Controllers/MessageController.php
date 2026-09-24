@@ -26,6 +26,7 @@ class MessageController extends Controller
             'instance_id' => $request->query('instance_id'),
             'direction' => in_array($request->query('direction'), self::DIRECTIONS, true) ? $request->query('direction') : null,
             'status' => in_array($request->query('status'), self::STATUSES, true) ? $request->query('status') : null,
+            'type' => array_key_exists((string) $request->query('type'), Message::TYPES) ? $request->query('type') : null,
         ];
 
         // Always scoped to $user's own instances (CLAUDE.md §5), so a guessed
@@ -43,6 +44,10 @@ class MessageController extends Controller
 
         if ($filters['status']) {
             $query->where('status', $filters['status']);
+        }
+
+        if ($filters['type']) {
+            $query->where('type', $filters['type']);
         }
 
         return view('messages.index', [

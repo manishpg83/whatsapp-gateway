@@ -7,6 +7,7 @@ use App\Http\Middleware\VerifyInternalSecret;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\PostTooLargeException;
 use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -56,4 +57,17 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // An upload bigger than PHP's post_max_size is rejected before any
+        // controller runs. Answer with a clear message instead of a bare
+        // "413" page: JSON for the API, back-to-the-form for the dashboard.
+        $exceptions->render(function (PostTooLargeException $e, Request $request) {
+            $message = 'The file is too large to upload (this server accepts up to '.ini_get('post_max_size').' per request).';
+
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json(['success' => false, 'error' => $message], 413);
+            }
+
+            return back()->with('error', $message);
+        });
     })->create();

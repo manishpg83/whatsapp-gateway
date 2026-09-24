@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 #[Fillable([
@@ -90,6 +91,17 @@ class WhatsappSession extends Model
     {
         return in_array($this->status, self::WAITING_STATUSES, true)
             && $this->updated_at->lt(now()->subMinutes(self::STUCK_AFTER_MINUTES));
+    }
+
+    /**
+     * Deletes every received media file for this instance from disk. The
+     * database rows go away by cascade when a user is deleted, but files
+     * don't — so account deletion (self-service and admin) calls this
+     * first, keeping the Privacy Policy's "deletion removes your data" true.
+     */
+    public function deleteMediaFiles(): void
+    {
+        Storage::disk('whatsapp_media')->deleteDirectory($this->instance_id);
     }
 
     /**

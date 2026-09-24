@@ -84,7 +84,7 @@
                     <tr>
                         <td><span class="badge text-bg-primary">POST</span></td>
                         <td><a href="#endpoint-send" class="text-decoration-none"><code>/api/v1/messages/send</code></a></td>
-                        <td>Send a text message</td>
+                        <td>Send a text, image, video, audio, voice note or document</td>
                         <td class="text-nowrap small">30 / min</td>
                     </tr>
                     <tr>
@@ -101,7 +101,7 @@
 
     {{-- 1. Send a text message --}}
     <div class="card-body border-bottom" id="endpoint-send">
-        <h5 class="h6 fw-semibold mb-2">Send a text message</h5>
+        <h5 class="h6 fw-semibold mb-2">Send a message (text or media)</h5>
         <p class="mb-0"><span class="badge text-bg-primary">POST</span> <code>/api/v1/messages/send</code></p>
 
         <h6 class="mt-3">Request body</h6>
@@ -126,13 +126,71 @@
                         <td>Recipient's phone number, digits only with country code (e.g. <code>919876543210</code>), 7-15 digits.</td>
                     </tr>
                     <tr>
+                        <td><code>type</code> <span class="badge text-bg-light border">optional</span></td>
+                        <td>string</td>
+                        <td>
+                            <code>text</code> (default), <code>image</code>, <code>video</code>, <code>audio</code>,
+                            <code>voice</code> or <code>document</code>. Leave it out to send plain text.
+                        </td>
+                    </tr>
+                    <tr>
                         <td><code>message</code></td>
                         <td>string</td>
-                        <td>Plain text message, up to 4096 characters.</td>
+                        <td>
+                            The text, up to 4096 characters. <strong>Required for text.</strong>
+                            For <code>image</code>, <code>video</code> and <code>document</code> it's an optional caption;
+                            it's ignored for <code>audio</code> and <code>voice</code>.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>media_url</code> <span class="badge text-bg-light border">media only</span></td>
+                        <td>string (URL)</td>
+                        <td>
+                            A public <code>http(s)</code> link to the file. We download it, check it, and send it.
+                            <strong>Every type except text needs either <code>media_url</code> or <code>media</code></strong> (not both).
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>media</code> <span class="badge text-bg-light border">media only</span></td>
+                        <td>file</td>
+                        <td>
+                            Upload the file directly instead of giving a link — send the request as
+                            <code>multipart/form-data</code> (see the example below). Max upload on this server:
+                            <strong>{{ ini_get('upload_max_filesize') }}</strong>.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>file_name</code> <span class="badge text-bg-light border">optional</span></td>
+                        <td>string</td>
+                        <td>For <code>document</code>: the name the recipient sees, e.g. <code>Invoice-42.pdf</code>. Defaults to the name in the URL.</td>
                     </tr>
                 </tbody>
             </table>
         </div>
+
+        <h6 class="mt-3">Media rules</h6>
+        <div class="table-responsive">
+            <table class="table table-sm small">
+                <thead>
+                    <tr>
+                        <th><code>type</code></th>
+                        <th>Accepted files</th>
+                        <th>Max size</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>image</code></td><td>JPG, PNG, WebP</td><td>5 MB</td></tr>
+                    <tr><td><code>video</code></td><td>MP4, 3GP</td><td>16 MB</td></tr>
+                    <tr><td><code>audio</code></td><td>MP3, OGG, M4A, AAC, AMR — sent as a music/audio file</td><td>16 MB</td></tr>
+                    <tr><td><code>voice</code></td><td>OGG (Opus) only — shows as a playable voice note</td><td>16 MB</td></tr>
+                    <tr><td><code>document</code></td><td>Any file (PDF, Word, Excel, ZIP, …)</td><td>100 MB</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="small text-muted">
+            The file type is checked from the file's actual content, not its name. The link must be publicly reachable
+            (no login) and respond within 30 seconds.
+        </p>
 
         <h6 class="mt-3">Responses</h6>
         <div class="table-responsive">
@@ -171,6 +229,14 @@
                         <td>Your <a href="{{ route('billing.index') }}">plan's</a> monthly message quota is used up.</td>
                     </tr>
                     <tr>
+                        <td><span class="badge text-bg-warning text-dark">422</span></td>
+                        <td><code>{"success": false, "error": "The file at media_url is too large (max 5 MB for this type)."}</code></td>
+                        <td>
+                            <code>media_url</code> couldn't be used: not reachable, not public, too large, empty, or the wrong
+                            file type for <code>type</code>. The <code>error</code> says which.
+                        </td>
+                    </tr>
+                    <tr>
                         <td><span class="badge text-bg-secondary">502</span></td>
                         <td><code>{"success": false, "error": "Could not send message"}</code></td>
                         <td>The message could not be delivered (e.g. invalid number).</td>
@@ -183,6 +249,29 @@
             <i class="bi bi-speedometer2 me-1"></i>Rate limit: 30 requests per minute per access token.
             Code samples in 6 languages are <a href="#code-samples">below</a>.
         </p>
+
+        <h6 class="mt-3">Example: send a PDF with a caption</h6>
+<pre class="bg-light rounded p-3 mb-0"><code>curl -X POST {{ url('/api/v1/messages/send') }} \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "instance_id": "YOUR_INSTANCE_ID",
+    "to": "919876543210",
+    "type": "document",
+    "media_url": "https://example.com/files/invoice-42.pdf",
+    "file_name": "Invoice-42.pdf",
+    "message": "Here is your invoice"
+  }'</code></pre>
+
+        <h6 class="mt-3">Example: upload a photo from your computer</h6>
+<pre class="bg-light rounded p-3 mb-0"><code>curl -X POST {{ url('/api/v1/messages/send') }} \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Accept: application/json" \
+  -F "instance_id=YOUR_INSTANCE_ID" \
+  -F "to=919876543210" \
+  -F "type=image" \
+  -F "message=Here is the photo" \
+  -F "media=@/path/to/photo.jpg"</code></pre>
     </div>
 
     {{-- 2. Check message status --}}
@@ -247,6 +336,7 @@
     "message_id": "3EB0A1B2C3D4E5F6",
     "instance_id": "YOUR_INSTANCE_ID",
     "direction": "outgoing",
+    "type": "text",
     "to": "919876543210",
     "status": "sent",
     "created_at": "2026-09-24T10:15:03+00:00",

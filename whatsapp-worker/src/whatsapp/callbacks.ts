@@ -1,4 +1,6 @@
 import type { Config } from "../config.js";
+import type { IncomingType } from "./incomingMessage.js";
+import type { MediaResult } from "./media.js";
 
 export type WorkerEvent =
   | { event: "qr.updated"; instance_id: string; qr_code: string }
@@ -13,9 +15,17 @@ export type WorkerEvent =
       event: "message.received";
       instance_id: string;
       from: string;
-      message: string;
+      type: IncomingType;
+      message: string; // text, caption or summary — may be ""
       whatsapp_message_id: string;
       timestamp: string;
+      media: {
+        status: MediaResult["status"];
+        path: string | null; // relative to the shared media folder
+        mime_type: string;
+        file_name: string | null;
+        size: number | null;
+      } | null;
     };
 
 type EventLogger = {

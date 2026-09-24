@@ -130,6 +130,64 @@ describe("POST /sessions/:instanceId/messages", () => {
     await app.close();
   });
 
+  it("rejects a media message with no media", async () => {
+    const app = await buildApp(testConfig);
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/sessions/${randomUUID()}/messages`,
+      headers: { "x-internal-secret": testConfig.INTERNAL_API_SECRET },
+      payload: { to: "919999999999", type: "image", message: "caption" },
+    });
+
+    expect(response.statusCode).toBe(400);
+
+    await app.close();
+  });
+
+  it("rejects a media path outside the instance's own folder", async () => {
+    const app = await buildApp(testConfig);
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/sessions/${randomUUID()}/messages`,
+      headers: { "x-internal-secret": testConfig.INTERNAL_API_SECRET },
+      payload: {
+        to: "919999999999",
+        type: "image",
+        message: "",
+        media: { path: "../../.env", mime_type: "image/jpeg" },
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({ error: "Invalid media path" });
+
+    await app.close();
+  });
+
+  it("rejects a media file that doesn't exist", async () => {
+    const app = await buildApp(testConfig);
+    const instanceId = randomUUID();
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/sessions/${instanceId}/messages`,
+      headers: { "x-internal-secret": testConfig.INTERNAL_API_SECRET },
+      payload: {
+        to: "919999999999",
+        type: "document",
+        message: "",
+        media: { path: `${instanceId}/out-missing.pdf`, mime_type: "application/pdf" },
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({ error: "Media file not found" });
+
+    await app.close();
+  });
+
   it("returns 409 when the instance has no active session", async () => {
     const app = await buildApp(testConfig);
 

@@ -155,6 +155,8 @@ class UserController extends Controller
                     'error' => $e->getMessage(),
                 ]);
             }
+
+            $whatsappSession->deleteMediaFiles();
         }
 
         $name = $user->name;

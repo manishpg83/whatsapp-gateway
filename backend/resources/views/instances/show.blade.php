@@ -84,7 +84,7 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ route('instances.send-test-message', $instance) }}" class="row g-2 align-items-end">
+                    <form method="POST" action="{{ route('instances.send-test-message', $instance) }}" class="row g-2 align-items-end" enctype="multipart/form-data">
                         @csrf
                         <div class="col-md-4">
                             <label for="test-message-to" class="form-label small mb-0">To (digits only, country code first)</label>
@@ -94,13 +94,41 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-                        <div class="col-md-6">
-                            <label for="test-message-body" class="form-label small mb-0">Message</label>
+                        <div class="col-md-3">
+                            <label for="test-message-type" class="form-label small mb-0">Type</label>
+                            <select id="test-message-type" name="type" class="form-select form-select-sm">
+                                @foreach (['text' => 'Text', 'image' => 'Image', 'video' => 'Video', 'audio' => 'Audio file', 'voice' => 'Voice note (.ogg)', 'document' => 'Document'] as $value => $label)
+                                    <option value="{{ $value }}" @selected(old('type', 'text') === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label for="test-message-body" class="form-label small mb-0">Message <span class="text-muted">(caption for media)</span></label>
                             <input type="text" class="form-control form-control-sm @error('message') is-invalid @enderror"
-                                   id="test-message-body" name="message" placeholder="Hello from the dashboard" value="{{ old('message') }}" required>
+                                   id="test-message-body" name="message" placeholder="Hello from the dashboard" value="{{ old('message') }}">
                             @error('message')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
+                        </div>
+                        {{-- Media: drag & drop / choose a file, or paste a link. Hidden for Text. --}}
+                        <div class="col-12" data-media-fields @if (old('type', 'text') === 'text') hidden @endif>
+                            <label for="test-message-file" class="media-dropzone d-flex flex-column align-items-center justify-content-center text-center rounded border border-2 border-dashed p-3 mb-2 w-100"
+                                   style="border-style: dashed !important; cursor: pointer;" data-dropzone>
+                                <i class="bi bi-cloud-arrow-up fs-3 text-primary"></i>
+                                <span class="small" data-dropzone-text>
+                                    <strong>Drag &amp; drop a file here</strong> or <span class="text-primary text-decoration-underline">choose one from your computer</span>
+                                </span>
+                                <span class="small text-muted">Max {{ ini_get('upload_max_filesize') }} per upload on this server</span>
+                                <input type="file" id="test-message-file" name="media" class="d-none">
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">or link</span>
+                                <input type="url" class="form-control @error('media_url') is-invalid @enderror"
+                                       id="test-message-media-url" name="media_url" placeholder="https://example.com/photo.jpg" value="{{ old('media_url') }}">
+                                @error('media_url')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
                         </div>
                         <div class="col-auto">
                             <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-send me-1"></i>Send</button>
@@ -252,6 +280,37 @@
                         <span class="text-muted small ms-2">Sends a signed <code>webhook.test</code> event to your URL right now.</span>
                     </form>
                 @endif
+
+                <details class="mt-3 small">
+                    <summary class="text-primary" style="cursor: pointer;">What does an incoming-message webhook look like?</summary>
+                    <p class="mt-2 mb-1">
+                        <code>type</code> is one of: <code>text</code>, <code>image</code>, <code>video</code>, <code>voice</code>,
+                        <code>audio</code>, <code>document</code>, <code>sticker</code>, <code>location</code>, <code>contact</code>,
+                        <code>unsupported</code>. For media, <code>message</code> is the caption (may be empty) and
+                        <code>media.url</code> is a download link valid for <strong>24 hours</strong> — save the file on your side if you need it later.
+                        <code>media</code> is <code>null</code> for text, location and contact messages.
+                    </p>
+<pre class="bg-light rounded p-3 mb-0"><code>{
+  "event": "message.received",
+  "instance_id": "{{ $instance->instance_id }}",
+  "from": "919876543210",
+  "type": "image",
+  "message": "Here is the photo",
+  "message_id": "3EB0A1B2C3D4E5F6",
+  "timestamp": "2026-09-24T10:15:03.000Z",
+  "media": {
+    "status": "stored",
+    "mime_type": "image/jpeg",
+    "file_name": null,
+    "size": 184223,
+    "url": "{{ url('/media/123') }}?expires=...&amp;signature=..."
+  }
+}</code></pre>
+                    <p class="text-muted mt-2 mb-0">
+                        <code>media.status</code> is <code>stored</code>, <code>too_large</code> (over 100 MB, not downloaded) or <code>failed</code>
+                        — <code>url</code> is only set when it's <code>stored</code>.
+                    </p>
+                </details>
             </div>
 
             {{-- Delivery log --}}
@@ -346,7 +405,7 @@
                                         @endif
                                     </td>
                                     <td>{{ $message->direction === 'incoming' ? $message->from_number : $message->to_number }}</td>
-                                    <td>{{ \Illuminate\Support\Str::limit($message->body, 60) }}</td>
+                                    <td>@include('messages._content', ['message' => $message, 'compact' => true])</td>
                                     <td>
                                         <span class="badge text-bg-{{ $message->status === 'failed' ? 'danger' : 'light text-dark' }}">{{ $message->status }}</span>
                                     </td>
@@ -360,6 +419,68 @@
         </div>
     </div>
 </div>
+
+<script>
+// "Send a test message": show the media box for media types, and handle
+// drag & drop / file choice (pre-selecting the Type from the file).
+(function () {
+    const typeSelect = document.getElementById('test-message-type');
+    const mediaFields = document.querySelector('[data-media-fields]');
+    const dropzone = document.querySelector('[data-dropzone]');
+    const fileInput = document.getElementById('test-message-file');
+
+    if (!typeSelect || !mediaFields || !dropzone || !fileInput) {
+        return; // the form only exists while the instance is connected
+    }
+
+    const dropText = dropzone.querySelector('[data-dropzone-text]');
+    const originalText = dropText.innerHTML;
+
+    typeSelect.addEventListener('change', () => {
+        mediaFields.hidden = typeSelect.value === 'text';
+    });
+
+    function typeForFile(file) {
+        if (file.type.startsWith('image/')) return 'image';
+        if (file.type.startsWith('video/')) return 'video';
+        if (file.type.startsWith('audio/')) return file.type === 'audio/ogg' ? 'voice' : 'audio';
+        return 'document';
+    }
+
+    function showChosenFile() {
+        const file = fileInput.files[0];
+
+        if (!file) {
+            dropText.innerHTML = originalText;
+            return;
+        }
+
+        const sizeMb = (file.size / 1024 / 1024).toFixed(1);
+        dropText.textContent = `✓ ${file.name} (${sizeMb} MB) — click to change`;
+        typeSelect.value = typeForFile(file);
+        mediaFields.hidden = false;
+    }
+
+    fileInput.addEventListener('change', showChosenFile);
+
+    ['dragenter', 'dragover'].forEach((name) => dropzone.addEventListener(name, (event) => {
+        event.preventDefault();
+        dropzone.classList.add('bg-wa-light', 'border-primary');
+    }));
+
+    ['dragleave', 'drop'].forEach((name) => dropzone.addEventListener(name, (event) => {
+        event.preventDefault();
+        dropzone.classList.remove('bg-wa-light', 'border-primary');
+    }));
+
+    dropzone.addEventListener('drop', (event) => {
+        if (event.dataTransfer.files.length) {
+            fileInput.files = event.dataTransfer.files;
+            showChosenFile();
+        }
+    });
+})();
+</script>
 
 <script>
 (function () {

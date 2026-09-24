@@ -22,6 +22,13 @@ const envSchema = z.object({
   // outside the repo and outside C:\xampp\htdocs (see CLAUDE.md §4/§9) —
   // Apache serves htdocs, so anything under it could become web-reachable.
   SESSION_STORAGE_PATH: z.string().default("C:\\whatsapp-secrets"),
+  // Received media (images, voice notes, documents, ...) is saved here, one
+  // sub-folder per instance_id. Same rule: outside the repo and htdocs.
+  // Laravel reads the same folder (WHATSAPP_MEDIA_PATH in backend/.env), so
+  // both must point to the same place — they run on the same machine.
+  MEDIA_STORAGE_PATH: z.string().default("C:\\whatsapp-media"),
+  // Bigger incoming files are not downloaded (recorded as "too large").
+  MAX_MEDIA_MB: z.coerce.number().positive().default(100),
 });
 
 export type Config = z.infer<typeof envSchema>;
