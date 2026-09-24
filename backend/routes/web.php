@@ -112,6 +112,7 @@ Route::middleware(['auth', 'not_suspended', 'verified'])->group(function () {
     Route::get('/api-logs', [ApiLogController::class, 'index'])->name('api-logs.index');
 
     Route::get('/account', [AccountController::class, 'edit'])->name('account.edit');
+    Route::put('/account/profile', [AccountController::class, 'updateProfile'])->name('account.profile.update');
     Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password.update');
     Route::delete('/account', [AccountController::class, 'destroy'])->name('account.destroy');
 });

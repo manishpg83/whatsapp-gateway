@@ -26,6 +26,13 @@ export type WorkerEvent =
         file_name: string | null;
         size: number | null;
       } | null;
+    }
+  | {
+      // A message we sent was delivered (✓✓) or read (blue ✓✓).
+      event: "message.status";
+      instance_id: string;
+      whatsapp_message_id: string;
+      status: "delivered" | "read";
     };
 
 type EventLogger = {

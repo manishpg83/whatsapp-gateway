@@ -394,6 +394,18 @@
                                 <code>media.status</code> is <code>stored</code>, <code>too_large</code> (over 100 MB, not downloaded) or <code>failed</code>
                                 — <code>url</code> is only set when it's <code>stored</code>.
                             </p>
+                            <p class="mt-3 mb-1">
+                                You also get a <code>message.status</code> event when a message you sent is
+                                <code>delivered</code> (✓✓) or <code>read</code> (blue ✓✓):
+                            </p>
+<pre class="bg-light rounded p-3 mb-0"><code>{
+  "event": "message.status",
+  "instance_id": "{{ $instance->instance_id }}",
+  "message_id": "3EB0A1B2C3D4E5F6",
+  "status": "read",
+  "to": "919876543210",
+  "timestamp": "2026-09-24T10:17:41+00:00"
+}</code></pre>
                         </details>
 
                         {{-- Delivery log --}}
@@ -484,12 +496,6 @@
                             @foreach ($messages as $message)
                                 @php
                                     $incoming = $message->direction === 'incoming';
-                                    $statusColor = match ($message->status) {
-                                        'sent' => 'success',
-                                        'received' => 'primary',
-                                        'failed' => 'danger',
-                                        default => 'secondary',
-                                    };
                                 @endphp
                                 <tr>
                                     <td class="ps-4">
@@ -499,11 +505,7 @@
                                     </td>
                                     <td class="text-nowrap fw-semibold">{{ $incoming ? $message->from_number : $message->to_number }}</td>
                                     <td>@include('messages._content', ['message' => $message, 'compact' => true])</td>
-                                    <td>
-                                        <span class="badge rounded-pill bg-{{ $statusColor }}-subtle text-{{ $statusColor }}-emphasis border border-{{ $statusColor }}-subtle">
-                                            {{ ucfirst($message->status) }}
-                                        </span>
-                                    </td>
+                                    <td><x-message-status :message="$message" /></td>
                                     <td class="pe-4 text-end text-nowrap small text-muted" title="{{ $message->created_at->format('Y-m-d H:i:s') }}">
                                         {{ $message->created_at->diffForHumans() }}
                                     </td>

@@ -27,6 +27,29 @@ document.addEventListener('click', async (event) => {
     showCopyResult(button, 'Copied!', 'btn-success');
 });
 
+// Password "eye" buttons: <button data-password-toggle="#password">
+// (resources/views/components/password-input.blade.php). Switches the
+// field between hidden and visible text and swaps the icon.
+document.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-password-toggle]');
+    if (!button) {
+        return;
+    }
+
+    const input = document.querySelector(button.dataset.passwordToggle);
+    if (!input) {
+        return;
+    }
+
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+
+    const label = show ? 'Hide password' : 'Show password';
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    button.querySelector('i').className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
+});
+
 function showCopyResult(button, text, colorClass) {
     if (button.dataset.copyOriginal === undefined) {
         button.dataset.copyOriginal = button.innerHTML;

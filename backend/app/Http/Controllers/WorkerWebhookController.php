@@ -25,6 +25,7 @@ class WorkerWebhookController extends Controller
             'qr.updated' => $this->handleQrUpdated($request),
             'connection.updated' => $this->handleConnectionUpdated($request),
             'message.received' => $this->handleMessageReceived($request),
+            'message.status' => $this->handleMessageStatus($request),
             default => response('Unknown event', 422),
         };
     }
@@ -137,6 +138,54 @@ class WorkerWebhookController extends Controller
                 // A 24-hour download link (no login needed) — only when the file was stored.
                 'url' => $message->media_status === 'stored' && $mediaPath !== null ? $message->temporaryMediaUrl() : null,
             ],
+        ]);
+
+        return response()->noContent();
+    }
+
+    /**
+     * A message we sent was delivered (✓✓) or read (blue ✓✓). Only ever moves
+     * a message forward — sent → delivered → read — so a late "delivered"
+     * arriving after "read" changes nothing, and failed messages stay failed.
+     *
+     * An unknown whatsapp_message_id is ignored, not an error: receipts also
+     * arrive for messages the owner typed on their phone, which never went
+     * through us.
+     */
+    protected function handleMessageStatus(Request $request): Response
+    {
+        $data = $request->validate([
+            'instance_id' => ['required', 'uuid'],
+            'whatsapp_message_id' => ['required', 'string'],
+            'status' => ['required', 'in:delivered,read'],
+        ]);
+
+        $session = $this->findByInstanceId($data['instance_id']);
+
+        $message = $session->messages()
+            ->where('direction', 'outgoing')
+            ->where('whatsapp_message_id', $data['whatsapp_message_id'])
+            ->first();
+
+        $order = ['pending' => 0, 'sent' => 1, 'delivered' => 2, 'read' => 3];
+
+        if (! $message || ! isset($order[$message->status]) || $order[$data['status']] <= $order[$message->status]) {
+            return response()->noContent();
+        }
+
+        $message->update([
+            'status' => $data['status'],
+            'delivered_at' => $message->delivered_at ?? now(), // "read" implies it was delivered
+            'read_at' => $data['status'] === 'read' ? now() : null,
+        ]);
+
+        $this->webhookDispatcher->dispatch($session, [
+            'event' => 'message.status',
+            'instance_id' => $session->instance_id,
+            'message_id' => $message->whatsapp_message_id,
+            'status' => $message->status,
+            'to' => $message->to_number,
+            'timestamp' => now()->toIso8601String(),
         ]);
 
         return response()->noContent();

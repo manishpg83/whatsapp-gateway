@@ -28,11 +28,7 @@
 
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
-                        <input type="password" id="password" name="password"
-                               class="form-control @error('password') is-invalid @enderror" required autocomplete="current-password">
-                        @error('password')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                        <x-password-input id="password" name="password" autocomplete="current-password" />
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center mb-3">

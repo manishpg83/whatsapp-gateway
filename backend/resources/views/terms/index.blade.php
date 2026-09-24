@@ -64,7 +64,50 @@
                     violating this section, with or without notice.
                 </p>
 
-                <h2 class="h5 mt-4">4. Subscriptions, billing, and cancellation</h2>
+                <h2 class="h5 mt-4" id="bulk-messaging">4. Bulk messaging and blocked numbers — your responsibility</h2>
+                <div class="alert alert-danger">
+                    <strong>If WhatsApp blocks or bans your number, that is not our responsibility.</strong>
+                    You alone decide what you send, to whom, and how often. Sending bulk or
+                    promotional messages, messaging people who haven't asked to hear from you, or
+                    sending too many messages too quickly can get your WhatsApp number restricted
+                    or permanently banned by WhatsApp — and we have no way to prevent or undo that.
+                </div>
+                <p>By using the Service, you understand and agree that:</p>
+                <ul>
+                    <li>
+                        <strong>You are solely responsible for every message sent</strong> from your
+                        connected number, whether sent through the dashboard, the API, or any tool or
+                        integration you connect to it.
+                    </li>
+                    <li>
+                        <strong>We are not liable</strong> for any restriction, suspension, or
+                        permanent ban of your WhatsApp number or account by WhatsApp or Meta, or for
+                        any loss that follows from it — including lost contacts, chats, customers,
+                        sales, or business.
+                    </li>
+                    <li>
+                        <strong>No refunds are given</strong> because a number was restricted or
+                        banned. Your subscription remains active, and you may connect a different
+                        number to your instance.
+                    </li>
+                    <li>
+                        <strong>You must only message people who have agreed to hear from you</strong>
+                        (for example, your own customers who gave you their number), and you must
+                        honour anyone who asks you to stop.
+                    </li>
+                    <li>
+                        The Service does not offer — and will not build — any feature designed to
+                        avoid WhatsApp's limits or detection. Sending responsibly is the only way to
+                        protect your number.
+                    </li>
+                </ul>
+                <p class="small text-muted">
+                    Good practice: send only messages people expect, keep volumes steady rather than
+                    in sudden bursts, avoid identical messages to many recipients, and use a number
+                    you can afford to lose while you test.
+                </p>
+
+                <h2 class="h5 mt-4">5. Subscriptions, billing, and cancellation</h2>
                 <p>
                     Some features require a paid plan, billed monthly in advance through our
                     payment processor, Cashfree. By subscribing, you authorize us to charge your
@@ -77,7 +120,7 @@
                     reasonable notice before a price change applies to your existing subscription.
                 </p>
 
-                <h2 class="h5 mt-4">5. Your content and data</h2>
+                <h2 class="h5 mt-4">6. Your content and data</h2>
                 <p>
                     You keep ownership of the messages and data you send or receive through the
                     Service. We process that content — including message text and phone numbers
@@ -90,7 +133,7 @@
                     See our <a href="{{ route('privacy') }}">Privacy Policy</a> for details.
                 </p>
 
-                <h2 class="h5 mt-4">6. Service availability</h2>
+                <h2 class="h5 mt-4">7. Service availability</h2>
                 <p>
                     The Service is provided on an "as is" and "as available" basis. Because it
                     depends on an unofficial connection to WhatsApp's own infrastructure, we
@@ -99,7 +142,7 @@
                     modify, suspend, or discontinue any part of the Service at any time.
                 </p>
 
-                <h2 class="h5 mt-4">7. Termination</h2>
+                <h2 class="h5 mt-4">8. Termination</h2>
                 <p>
                     You may stop using the Service and delete your account at any time from your
                     Account page. We may suspend or terminate your access if you violate these
@@ -107,7 +150,7 @@
                     we'll try to give you reasonable notice where practical.
                 </p>
 
-                <h2 class="h5 mt-4">8. Disclaimers and limitation of liability</h2>
+                <h2 class="h5 mt-4">9. Disclaimers and limitation of liability</h2>
                 <p>
                     To the fullest extent permitted by law, we disclaim all warranties, express
                     or implied, regarding the Service, including any warranty that it will be
@@ -120,20 +163,20 @@
                     months before the claim arose.
                 </p>
 
-                <h2 class="h5 mt-4">9. Changes to these Terms</h2>
+                <h2 class="h5 mt-4">10. Changes to these Terms</h2>
                 <p>
                     We may update these Terms from time to time. If we make a material change,
                     we'll update the date at the top of this page. Continuing to use the Service
                     after a change means you accept the updated Terms.
                 </p>
 
-                <h2 class="h5 mt-4">10. Governing law</h2>
+                <h2 class="h5 mt-4">11. Governing law</h2>
                 <p>
                     These Terms are governed by the laws of India, without regard to its
                     conflict-of-law principles.
                 </p>
 
-                <h2 class="h5 mt-4">11. Contact</h2>
+                <h2 class="h5 mt-4">12. Contact</h2>
                 <p class="mb-0">
                     Questions about these Terms? Contact us at
                     <a href="mailto:briskbraintechnologies@gmail.com">briskbraintechnologies@gmail.com</a>.

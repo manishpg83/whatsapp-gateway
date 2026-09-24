@@ -43,7 +43,7 @@
         <label for="filter-status" class="form-label small text-muted mb-1">Status</label>
         <select id="filter-status" name="status" class="form-select form-select-sm" onchange="this.form.submit()">
             <option value="">All</option>
-            @foreach (['sent' => 'Sent', 'failed' => 'Failed', 'pending' => 'Pending', 'received' => 'Received'] as $value => $label)
+            @foreach (['sent' => 'Sent', 'delivered' => 'Delivered', 'read' => 'Read', 'failed' => 'Failed', 'pending' => 'Pending', 'received' => 'Received'] as $value => $label)
                 <option value="{{ $value }}" @selected($filters['status'] === $value)>{{ $label }}</option>
             @endforeach
         </select>
@@ -102,12 +102,6 @@
                     @foreach ($messages as $message)
                         @php
                             $isIncoming = $message->direction === 'incoming';
-                            $statusColor = match ($message->status) {
-                                'sent' => 'success',
-                                'received' => 'primary',
-                                'failed' => 'danger',
-                                default => 'secondary',
-                            };
                         @endphp
                         <tr>
                             <td class="text-nowrap">
@@ -125,7 +119,7 @@
                                 {{ ($isIncoming ? $message->from_number : $message->to_number) ?? '—' }}
                             </td>
                             <td>@include('messages._content', ['message' => $message, 'compact' => true])</td>
-                            <td><span class="badge rounded-pill text-bg-{{ $statusColor }}">{{ ucfirst($message->status) }}</span></td>
+                            <td><x-message-status :message="$message" /></td>
                             <td class="text-nowrap small">{{ $message->created_at->format('Y-m-d H:i:s') }}</td>
                             <td class="text-end">
                                 <button type="button" class="btn btn-sm btn-outline-secondary"

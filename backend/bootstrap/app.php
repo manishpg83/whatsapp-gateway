@@ -3,11 +3,13 @@
 use App\Http\Middleware\AuthenticateApiToken;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsNotSuspended;
+use App\Http\Middleware\LogRejectedApiRequests;
 use App\Http\Middleware\VerifyInternalSecret;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\PostTooLargeException;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -38,9 +40,17 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'internal.secret' => VerifyInternalSecret::class,
             'api.token' => AuthenticateApiToken::class,
+            'api.log' => LogRejectedApiRequests::class,
             'admin' => EnsureUserIsAdmin::class,
             'not_suspended' => EnsureUserIsNotSuspended::class,
         ]);
+
+        // Laravel re-orders some middleware by a built-in priority list, which
+        // would move the rate limiter (throttle) in FRONT of these two — then a
+        // 429 would be sent before we know whose token it was, and it could
+        // never be shown under API Logs → "Rejected requests". Keep ours first.
+        $middleware->prependToPriorityList(ThrottleRequests::class, LogRejectedApiRequests::class);
+        $middleware->prependToPriorityList(ThrottleRequests::class, AuthenticateApiToken::class);
 
         // The worker and Cashfree both call these routes directly (no
         // browser session, no CSRF token) — authenticated by the shared

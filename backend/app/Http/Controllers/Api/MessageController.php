@@ -89,6 +89,10 @@ class MessageController extends Controller
 
         $message = $sender->send($whatsappSession, $data['to'], $body, $apiToken, $type, $media);
 
+        // Tells LogRejectedApiRequests this call is already on API Logs as
+        // a message row (even if the worker then failed to send it).
+        $request->attributes->set('api_message_created', true);
+
         if ($message->status === 'failed') {
             return response()->json(['success' => false, 'error' => 'Could not send message'], 502);
         }
@@ -126,6 +130,8 @@ class MessageController extends Controller
                 'type' => $message->type,
                 'to' => $message->to_number,
                 'status' => $message->status,
+                'delivered_at' => $message->delivered_at?->toIso8601String(),
+                'read_at' => $message->read_at?->toIso8601String(),
                 'created_at' => $message->created_at->toIso8601String(),
                 'updated_at' => $message->updated_at->toIso8601String(),
             ],

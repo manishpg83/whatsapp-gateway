@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Notifications\EmailChanged;
 use App\Services\WorkerClient;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 use Throwable;
@@ -16,6 +20,56 @@ class AccountController extends Controller
     public function edit(Request $request): View
     {
         return view('account.edit', ['user' => $request->user()]);
+    }
+
+    /**
+     * Updates the name and/or email. Changing the EMAIL is treated as
+     * sensitive, because it's what you log in and reset your password with:
+     * - it needs the current password (a stolen logged-in session alone
+     *   can't take the account over);
+     * - the new address must be verified again — the user goes straight to
+     *   "Check your email" and can't use the app until they click the link;
+     * - the OLD address gets a "your email was changed" notice.
+     * Changing only the name needs none of that.
+     */
+    public function updateProfile(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        // Emails are stored lower-case (same as registration).
+        $request->merge(['email' => strtolower(trim((string) $request->input('email')))]);
+        $emailChanged = $request->input('email') !== $user->email;
+
+        $data = $request->validateWithBag('profile', [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'current_password' => [Rule::requiredIf($emailChanged), 'nullable', 'current_password'],
+        ], [
+            'current_password.required' => 'Enter your current password to change your email address.',
+        ]);
+
+        if (! $emailChanged) {
+            $user->update(['name' => $data['name']]);
+
+            return redirect()->route('account.edit')->with('status', 'Profile updated.');
+        }
+
+        $oldEmail = $user->email;
+
+        $user->forceFill([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'email_verified_at' => null,
+        ])->save();
+
+        // A reset link sent to the old address shouldn't stay usable.
+        DB::table('password_reset_tokens')->where('email', $oldEmail)->delete();
+
+        $user->sendEmailVerificationNotification();
+        Notification::route('mail', $oldEmail)->notify(new EmailChanged($data['email']));
+
+        return redirect()->route('verification.notice')
+            ->with('status', 'Your email address was changed. Please verify the new address to keep using your account.');
     }
 
     public function updatePassword(Request $request): RedirectResponse

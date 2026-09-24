@@ -18,7 +18,7 @@ class DashboardController extends Controller
         // "counts only" question the instance page and admin panel already
         // answer per-instance, just summed for a single at-a-glance number.
         $messagesForUser = Message::whereHas('whatsappSession', fn ($query) => $query->where('user_id', $user->id));
-        $sentCount = (clone $messagesForUser)->where('direction', 'outgoing')->where('status', 'sent')->count();
+        $sentCount = (clone $messagesForUser)->where('direction', 'outgoing')->whereIn('status', Message::SENT_STATUSES)->count();
         $receivedCount = (clone $messagesForUser)->where('direction', 'incoming')->count();
 
         return view('dashboard', [

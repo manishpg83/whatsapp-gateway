@@ -16,7 +16,7 @@ class MessageController extends Controller
     // Allowed filter values — anything else in the query string is ignored.
     private const DIRECTIONS = ['outgoing', 'incoming'];
 
-    private const STATUSES = ['sent', 'failed', 'pending', 'received'];
+    private const STATUSES = ['sent', 'delivered', 'read', 'failed', 'pending', 'received'];
 
     public function index(Request $request): View
     {

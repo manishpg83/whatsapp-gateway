@@ -37,18 +37,13 @@
 
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
-                        <input type="password" id="password" name="password"
-                               class="form-control @error('password') is-invalid @enderror" required autocomplete="new-password">
+                        <x-password-input id="password" name="password" autocomplete="new-password" />
                         <div class="form-text">At least 8 characters.</div>
-                        @error('password')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
                     </div>
 
                     <div class="mb-3">
                         <label for="password_confirmation" class="form-label">Confirm password</label>
-                        <input type="password" id="password_confirmation" name="password_confirmation"
-                               class="form-control" required autocomplete="new-password">
+                        <x-password-input id="password_confirmation" name="password_confirmation" autocomplete="new-password" />
                     </div>
 
                     <div class="form-check mb-3">

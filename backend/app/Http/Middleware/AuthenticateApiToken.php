@@ -28,11 +28,16 @@ class AuthenticateApiToken
             return response()->json(['success' => false, 'error' => 'Missing bearer token'], 401);
         }
 
-        $token = ApiToken::whereNull('revoked_at')
-            ->where('token_hash', hash('sha256', $plainText))
-            ->first();
+        $token = ApiToken::where('token_hash', hash('sha256', $plainText))->first();
 
-        if (! $token) {
+        if (! $token || $token->revoked_at) {
+            // A revoked token still tells us whose instance was targeted,
+            // so LogRejectedApiRequests can show the owner "someone is
+            // still using your revoked token". It grants nothing.
+            if ($token) {
+                $request->attributes->set('revoked_api_token', $token);
+            }
+
             return response()->json(['success' => false, 'error' => 'Invalid or revoked token'], 401);
         }
 

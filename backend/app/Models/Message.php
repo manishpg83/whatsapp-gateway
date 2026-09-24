@@ -24,6 +24,8 @@ use Illuminate\Support\Facades\URL;
     'media_file_name',
     'media_size',
     'status',
+    'delivered_at',
+    'read_at',
     'whatsapp_message_id',
     'error',
 ])]
@@ -31,6 +33,19 @@ class Message extends Model
 {
     /** @use HasFactory<MessageFactory> */
     use HasFactory;
+
+    // An outgoing message that reached WhatsApp — later receipts only move
+    // it along this list (sent → delivered → read), it's still "sent".
+    // Use this, not just 'sent', whenever counting sent messages.
+    public const SENT_STATUSES = ['sent', 'delivered', 'read'];
+
+    protected function casts(): array
+    {
+        return [
+            'delivered_at' => 'datetime',
+            'read_at' => 'datetime',
+        ];
+    }
 
     // type => [label, Bootstrap icon]
     public const TYPES = [
@@ -69,6 +84,24 @@ class Message extends Model
     public function apiToken(): BelongsTo
     {
         return $this->belongsTo(ApiToken::class);
+    }
+
+    /**
+     * How the status is shown everywhere: [Bootstrap colour, label, icon].
+     *
+     * @return array{0: string, 1: string, 2: string}
+     */
+    public function statusBadge(): array
+    {
+        return match ($this->status) {
+            'pending' => ['secondary', 'Pending', 'bi-clock'],
+            'sent' => ['success', 'Sent', 'bi-check'],
+            'delivered' => ['success', 'Delivered', 'bi-check-all'],
+            'read' => ['info', 'Read', 'bi-check-all'],
+            'failed' => ['danger', 'Failed', 'bi-x'],
+            'received' => ['primary', 'Received', 'bi-arrow-down-left'],
+            default => ['secondary', ucfirst((string) $this->status), 'bi-dot'],
+        };
     }
 
     public function typeLabel(): string
@@ -189,7 +222,7 @@ class Message extends Model
     public function apiResponseExample(): array
     {
         return match ($this->status) {
-            'sent' => ['status' => 200, 'body' => ['success' => true, 'message_id' => $this->whatsapp_message_id]],
+            'sent', 'delivered', 'read' => ['status' => 200, 'body' => ['success' => true, 'message_id' => $this->whatsapp_message_id]],
             'failed' => ['status' => 502, 'body' => ['success' => false, 'error' => 'Could not send message']],
             default => ['status' => 0, 'body' => ['success' => null, 'note' => 'still pending']],
         };

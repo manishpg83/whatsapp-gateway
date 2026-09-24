@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdminAuditLog;
+use App\Models\Message;
 use App\Models\Plan;
 use App\Models\User;
 use App\Services\AdminAudit;
@@ -45,7 +46,7 @@ class UserController extends Controller
         $instances = $user->whatsappSessions()
             ->withCount([
                 'messages as messages_sent_count' => fn ($query) => $query
-                    ->where('direction', 'outgoing')->where('status', 'sent')
+                    ->where('direction', 'outgoing')->whereIn('status', Message::SENT_STATUSES)
                     ->where('created_at', '>=', $startOfMonth),
                 'messages as messages_failed_count' => fn ($query) => $query
                     ->where('direction', 'outgoing')->where('status', 'failed')

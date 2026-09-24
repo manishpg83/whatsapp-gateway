@@ -16,6 +16,9 @@
 
     @if ($instances->count() > 1)
         <form method="GET" action="{{ route('api-logs.index') }}">
+            @if ($tab === 'rejected')
+                <input type="hidden" name="tab" value="rejected">
+            @endif
             <select name="instance_id" class="form-select form-select-sm" onchange="this.form.submit()">
                 <option value="">All instances</option>
                 @foreach ($instances as $instance)
@@ -28,7 +31,28 @@
     @endif
 </div>
 
-@if ($logs->isEmpty())
+{{-- Tabs --}}
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {{ $tab === 'calls' ? 'active' : '' }}"
+           href="{{ route('api-logs.index', array_filter(['instance_id' => $selectedInstanceId])) }}">
+            <i class="bi bi-send me-1"></i>API calls
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {{ $tab === 'rejected' ? 'active' : '' }}"
+           href="{{ route('api-logs.index', array_filter(['tab' => 'rejected', 'instance_id' => $selectedInstanceId])) }}">
+            <i class="bi bi-slash-circle me-1"></i>Rejected requests
+            @if ($rejectedCount > 0)
+                <span class="badge rounded-pill text-bg-danger ms-1">{{ $rejectedCount }}</span>
+            @endif
+        </a>
+    </li>
+</ul>
+
+@if ($tab === 'rejected')
+    @include('api-logs._rejected')
+@elseif ($logs->isEmpty())
     <div class="card shadow-sm">
         <div class="card-body text-center py-5">
             <div class="bg-wa-light text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3 fs-3" style="width: 64px; height: 64px;">
@@ -61,11 +85,6 @@
                     @foreach ($logs as $log)
                         @php
                             $response = $log->apiResponseExample();
-                            $statusColor = match (true) {
-                                $log->status === 'sent' => 'success',
-                                $log->status === 'failed' => 'danger',
-                                default => 'secondary',
-                            };
                         @endphp
                         <tr>
                             <td class="text-nowrap">{{ $log->whatsappSession->phone_number ?? '—' }}</td>
@@ -74,7 +93,7 @@
                             <td class="text-nowrap">{{ $log->to_number }}</td>
                             <td class="text-nowrap small">{{ $log->created_at->format('Y-m-d H:i:s') }}</td>
                             <td class="text-truncate" style="max-width: 260px;">{{ $log->body }}</td>
-                            <td><span class="badge rounded-pill text-bg-{{ $statusColor }}">{{ ucfirst($log->status) }}</span></td>
+                            <td><x-message-status :message="$log" /></td>
                             <td class="text-end">
                                 <button type="button" class="btn btn-sm btn-outline-secondary"
                                         data-bs-toggle="collapse" data-bs-target="#log-{{ $log->id }}"

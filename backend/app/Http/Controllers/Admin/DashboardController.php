@@ -49,7 +49,7 @@ class DashboardController extends Controller
             'paidUsers' => Subscription::where('plan', '!=', 'free')->count(),
             'totalInstances' => WhatsappSession::count(),
             'connectedInstances' => WhatsappSession::where('status', 'connected')->count(),
-            'sentCount' => (clone $thisMonth)->where('direction', 'outgoing')->where('status', 'sent')->count(),
+            'sentCount' => (clone $thisMonth)->where('direction', 'outgoing')->whereIn('status', Message::SENT_STATUSES)->count(),
             'failedCount' => (clone $thisMonth)->where('direction', 'outgoing')->where('status', 'failed')->count(),
             'receivedCount' => (clone $thisMonth)->where('direction', 'incoming')->count(),
             'planBreakdown' => $planBreakdown,

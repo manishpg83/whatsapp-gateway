@@ -58,6 +58,49 @@
     </div>
 </div>
 
+{{-- Responsible use — shown before the endpoints on purpose. --}}
+<div class="card shadow-sm mb-4 border-warning">
+    <div class="card-body d-flex align-items-center gap-3 border-bottom">
+        <div class="rounded-circle p-2 fs-4 lh-1 bg-warning-subtle text-warning-emphasis">
+            <i class="bi bi-shield-exclamation"></i>
+        </div>
+        <div>
+            <div class="fw-semibold">Protect your WhatsApp number</div>
+            <div class="text-muted small">WhatsApp can restrict or ban a number that looks like it's spamming — and we can't undo that.</div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="small fw-semibold text-success mb-2"><i class="bi bi-check-circle me-1"></i>Do</div>
+                <ul class="small mb-0 ps-3">
+                    <li>Only message people who <strong>gave you their number</strong> and expect to hear from you.</li>
+                    <li>Send messages people actually want: order updates, OTPs, appointment reminders, replies.</li>
+                    <li>Keep sending volumes <strong>steady</strong> — build up gradually on a new number.</li>
+                    <li>Personalise messages (name, order number) instead of sending one identical text to everyone.</li>
+                    <li>Stop immediately when someone asks you to, and make it easy to ask.</li>
+                    <li>Test with a number you can afford to lose.</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <div class="small fw-semibold text-danger mb-2"><i class="bi bi-x-circle me-1"></i>Don't</div>
+                <ul class="small mb-0 ps-3">
+                    <li>Send bulk promotional or marketing blasts to bought or scraped lists.</li>
+                    <li>Send hundreds of messages in a sudden burst from a fresh number.</li>
+                    <li>Message people who never contacted you or opted in.</li>
+                    <li>Send the exact same message and link to large numbers of people.</li>
+                    <li>Keep messaging numbers that don't reply or have blocked you.</li>
+                </ul>
+            </div>
+        </div>
+        <p class="small text-muted mb-0 mt-3">
+            You are responsible for everything sent from your number — see
+            <a href="{{ route('terms') }}#bulk-messaging">section 4 of our Terms</a>.
+            This service does not offer, and will not build, anything designed to get around WhatsApp's limits.
+        </p>
+    </div>
+</div>
+
 {{-- Endpoint reference: every endpoint uses the same layout —
      method + path, description, request, responses, rate limit. --}}
 <div class="card shadow-sm mb-4">
@@ -324,9 +367,16 @@
                 <h6 class="mt-3"><code>status</code> values</h6>
                 <ul class="small mb-0">
                     <li><code>pending</code> &mdash; being sent right now.</li>
-                    <li><code>sent</code> &mdash; handed over to WhatsApp successfully.</li>
+                    <li><code>sent</code> &mdash; handed over to WhatsApp successfully (✓).</li>
+                    <li><code>delivered</code> &mdash; reached the recipient's phone (✓✓). <code>delivered_at</code> is set.</li>
+                    <li><code>read</code> &mdash; the recipient opened it (blue ✓✓). <code>read_at</code> is set.</li>
                     <li><code>failed</code> &mdash; could not be sent.</li>
                 </ul>
+                <p class="small text-muted mb-0">
+                    <code>read</code> only appears if the recipient has read receipts turned on in WhatsApp.
+                    Want updates pushed to you instead of polling? Set a webhook on your instance — you'll get a
+                    <code>message.status</code> event each time a message is delivered or read.
+                </p>
             </div>
             <div class="col-lg-6">
                 <h6>Example response</h6>
@@ -338,7 +388,9 @@
     "direction": "outgoing",
     "type": "text",
     "to": "919876543210",
-    "status": "sent",
+    "status": "read",
+    "delivered_at": "2026-09-24T10:15:05+00:00",
+    "read_at": "2026-09-24T10:17:41+00:00",
     "created_at": "2026-09-24T10:15:03+00:00",
     "updated_at": "2026-09-24T10:15:04+00:00"
   }
@@ -410,20 +462,41 @@ const data = await response.json();
 console.log(data);</code></pre>
             </div>
             <div class="tab-pane fade" id="tab-php" role="tabpanel">
-<pre class="bg-light rounded p-3 mb-0"><code>$response = file_get_contents("{{ url('/api/v1/messages/send') }}", false, stream_context_create([
-    'http' => [
-        'method' => 'POST',
-        'header' => "Authorization: Bearer YOUR_ACCESS_TOKEN\r\n" .
-                     "Content-Type: application/json\r\n",
-        'content' => json_encode([
-            'instance_id' => 'YOUR_INSTANCE_ID',
-            'to' => '919876543210',
-            'message' => 'Hello from my WhatsApp Gateway!',
-        ]),
-    ],
-]));
+<pre class="bg-light rounded p-3 mb-0"><code>$curl = curl_init();
 
-$data = json_decode($response, true);</code></pre>
+curl_setopt_array($curl, [
+    CURLOPT_URL => '{{ url('/api/v1/messages/send') }}',
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => json_encode([
+        'instance_id' => 'YOUR_INSTANCE_ID',
+        'to' => '919876543210',
+        'message' => 'Hello from my WhatsApp Gateway!',
+    ]),
+    CURLOPT_HTTPHEADER => [
+        'Content-Type: application/json',
+        'Accept: application/json',
+        'Authorization: Bearer YOUR_ACCESS_TOKEN',
+    ],
+]);
+
+$response = curl_exec($curl);
+
+if ($response === false) {
+    // Couldn't reach the API at all (DNS, timeout, SSL, ...).
+    echo 'Connection error: ' . curl_error($curl);
+} else {
+    $status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    $data = json_decode($response, true);
+
+    if ($status === 200 &amp;&amp; ! empty($data['success'])) {
+        echo 'Sent! Message ID: ' . $data['message_id'];
+    } else {
+        echo "Failed (HTTP $status): " . ($data['error'] ?? $response);
+    }
+}</code></pre>
+                <p class="text-muted small mb-0 mt-2"><i class="bi bi-info-circle me-1"></i>Uses PHP's built-in <code>curl</code> extension (enabled on almost every host) — no Composer package needed.</p>
             </div>
             <div class="tab-pane fade" id="tab-python" role="tabpanel">
 <pre class="bg-light rounded p-3 mb-0"><code>import requests

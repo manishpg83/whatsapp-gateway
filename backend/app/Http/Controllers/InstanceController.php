@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\MediaFetchException;
+use App\Models\Message;
 use App\Models\WhatsappSession;
 use App\Rules\PublicWebhookUrl;
 use App\Services\MediaFetcher;
@@ -76,7 +77,7 @@ class InstanceController extends Controller
             'messages' => $whatsappSession->messages()->latest()->latest('id')
                 ->paginate(10, pageName: 'messages_page')
                 ->fragment('recent-messages'),
-            'sentCount' => $whatsappSession->messages()->where('direction', 'outgoing')->where('status', 'sent')->count(),
+            'sentCount' => $whatsappSession->messages()->where('direction', 'outgoing')->whereIn('status', Message::SENT_STATUSES)->count(),
             'failedCount' => $whatsappSession->messages()->where('direction', 'outgoing')->where('status', 'failed')->count(),
             'receivedCount' => $whatsappSession->messages()->where('direction', 'incoming')->count(),
             'webhookDeliveries' => $whatsappSession->webhookDeliveries()->latest()->latest('id')->take(20)->get(),

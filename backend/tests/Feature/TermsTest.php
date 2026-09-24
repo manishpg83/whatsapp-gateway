@@ -39,6 +39,23 @@ class TermsTest extends TestCase
             ->assertSee('Terms of Service');
     }
 
+    public function test_terms_say_blocked_numbers_are_the_users_responsibility(): void
+    {
+        $this->get('/terms')
+            ->assertOk()
+            ->assertSee('Bulk messaging and blocked numbers')
+            ->assertSee('If WhatsApp blocks or bans your number, that is not our responsibility.');
+    }
+
+    public function test_password_fields_have_a_show_hide_button(): void
+    {
+        $this->get('/login')->assertSee('data-password-toggle="#password"', escape: false);
+
+        $this->get('/register')
+            ->assertSee('data-password-toggle="#password"', escape: false)
+            ->assertSee('data-password-toggle="#password_confirmation"', escape: false);
+    }
+
     public function test_register_page_links_to_the_terms_page(): void
     {
         $this->get('/register')->assertSee(route('terms'), escape: false);

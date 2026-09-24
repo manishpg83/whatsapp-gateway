@@ -9,6 +9,7 @@ import { notifyLaravel } from "./callbacks.js";
 import { parseIncomingMessage } from "./incomingMessage.js";
 import type { IncomingMedia } from "./incomingMessage.js";
 import { MediaTooLargeError, mediaFileName, saveMediaStream } from "./media.js";
+import { parseStatusUpdate } from "./statusUpdate.js";
 import type { MediaResult } from "./media.js";
 
 type Session = {
@@ -151,6 +152,28 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
           instance_id: instanceId,
           status: loggedOut ? "logged_out" : "disconnected",
           last_disconnect_reason: lastDisconnect?.error?.message ?? null,
+        },
+        logger
+      );
+    }
+  });
+
+  // Delivery / read receipts for messages we sent.
+  socket.ev.on("messages.update", async (updates) => {
+    for (const update of updates) {
+      const parsed = parseStatusUpdate(update);
+
+      if (!parsed) {
+        continue;
+      }
+
+      await notifyLaravel(
+        config,
+        {
+          event: "message.status",
+          instance_id: instanceId,
+          whatsapp_message_id: parsed.whatsappMessageId,
+          status: parsed.status,
         },
         logger
       );
