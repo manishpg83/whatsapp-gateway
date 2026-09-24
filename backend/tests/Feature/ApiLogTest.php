@@ -232,4 +232,35 @@ class ApiLogTest extends TestCase
             ->assertOk()
             ->assertSee('Old integration');
     }
+
+    public function test_shows_twenty_api_calls_per_page(): void
+    {
+        $user = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($user)->connected()->create();
+        ['token' => $token] = ApiToken::generateFor($instance, 'x');
+
+        foreach (range(1, 25) as $i) {
+            // A factory, so created_at can be set (it isn't mass-assignable).
+            Message::factory()->for($instance, 'whatsappSession')->create([
+                'api_token_id' => $token->id,
+                'direction' => 'outgoing',
+                'to_number' => '919999999999',
+                'body' => sprintf('Logged call %02d', $i),
+                'status' => 'sent',
+                'created_at' => now()->subMinutes(100 - $i), // #25 is the newest
+            ]);
+        }
+
+        $this->actingAs($user)->get(route('api-logs.index'))
+            ->assertOk()
+            ->assertSee('Logged call 25')
+            ->assertSee('Logged call 06')
+            ->assertDontSee('Logged call 05')
+            ->assertSeeInOrder(['Showing', '1', 'to', '20', 'of', '25', 'results']);
+
+        $this->actingAs($user)->get(route('api-logs.index', ['page' => 2]))
+            ->assertOk()
+            ->assertSee('Logged call 05')
+            ->assertDontSee('Logged call 06');
+    }
 }

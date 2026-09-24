@@ -71,7 +71,11 @@ class InstanceController extends Controller
 
         return view('instances.show', [
             'instance' => $whatsappSession,
-            'messages' => $whatsappSession->messages()->latest()->take(20)->get(),
+            // 10 per page; its own page name + #recent-messages so paging
+            // jumps straight back to that card instead of the top of the page.
+            'messages' => $whatsappSession->messages()->latest()->latest('id')
+                ->paginate(10, pageName: 'messages_page')
+                ->fragment('recent-messages'),
             'sentCount' => $whatsappSession->messages()->where('direction', 'outgoing')->where('status', 'sent')->count(),
             'failedCount' => $whatsappSession->messages()->where('direction', 'outgoing')->where('status', 'failed')->count(),
             'receivedCount' => $whatsappSession->messages()->where('direction', 'incoming')->count(),

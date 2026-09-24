@@ -159,6 +159,33 @@ class MessagePageTest extends TestCase
             ->assertDontSee('connection reset by peer', escape: false);
     }
 
+    public function test_shows_twenty_messages_per_page(): void
+    {
+        $user = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($user)->connected()->create();
+
+        foreach (range(1, 25) as $i) {
+            Message::factory()->for($instance, 'whatsappSession')->create([
+                'body' => sprintf('Paged message %02d', $i),
+                'created_at' => now()->subMinutes(100 - $i), // #25 is the newest
+            ]);
+        }
+
+        $this->actingAs($user)->get(route('messages.index'))
+            ->assertOk()
+            ->assertSee('Paged message 25')
+            ->assertSee('Paged message 06')
+            ->assertDontSee('Paged message 05')
+            ->assertSeeInOrder(['Showing', '1', 'to', '20', 'of', '25', 'results'])
+            ->assertSee('page=2', escape: false);
+
+        $this->actingAs($user)->get(route('messages.index', ['page' => 2]))
+            ->assertOk()
+            ->assertSee('Paged message 05')
+            ->assertSee('Paged message 01')
+            ->assertDontSee('Paged message 06');
+    }
+
     public function test_regular_user_sees_the_messages_link_in_the_sidebar(): void
     {
         $this->actingAs(User::factory()->create())

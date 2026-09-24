@@ -256,3 +256,150 @@ a:hover {
     background-color: var(--wa-purple-light);
     color: var(--wa-purple);
 }
+
+/* ---- Instance page (instances/show.blade.php) ---- */
+
+/* Big status banner: green gradient when connected. */
+.instance-hero {
+    background: linear-gradient(120deg, #ffffff 0%, var(--wa-primary-light) 100%);
+    border: 1px solid #cdeedd;
+}
+
+.instance-hero-icon {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background-color: #fff;
+    box-shadow: 0 0 0 10px rgba(11, 132, 87, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.instance-hero-icon .inner {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: var(--wa-primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+}
+
+/* Small stat chips (sent / received / failed). */
+.stat-chip {
+    background-color: #fff;
+    border: 1px solid #e5eee9;
+    border-radius: 0.6rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+/* Section header icon circle, e.g. in front of "Send a test message". */
+.section-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+}
+
+/* Drag & drop box for media. */
+.media-dropzone {
+    border: 2px dashed #cfdad4;
+    border-radius: 0.75rem;
+    background-color: #fbfdfc;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.media-dropzone:hover,
+.media-dropzone.is-dragging {
+    border-color: var(--wa-primary);
+    background-color: var(--wa-primary-light);
+}
+
+/* Preview of the chosen file (image / video / audio / document). */
+.media-preview {
+    border: 1px solid #e5eee9;
+    border-radius: 0.75rem;
+    background-color: #fff;
+}
+
+.media-preview img,
+.media-preview video {
+    max-height: 220px;
+    max-width: 100%;
+    border-radius: 0.5rem;
+    object-fit: contain;
+    background-color: #f5f7f6;
+}
+
+/* Fixed-size tile in front of a media message (messages/_content.blade.php):
+   a photo thumbnail, or a coloured icon tile for video / audio / files. */
+.media-tile {
+    width: 44px;
+    height: 44px;
+    border-radius: 0.6rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    font-size: 1.2rem;
+    text-decoration: none;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.media-tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.media-tile-sm {
+    width: 30px;
+    height: 30px;
+    font-size: 0.95rem;
+}
+
+.media-tile-video { background-color: #1f2937; color: #fff; }
+.media-tile-audio { background-color: var(--wa-purple-light); color: var(--wa-purple); }
+.media-tile-pdf { background-color: #fde8e8; color: #c0392b; }
+.media-tile-doc { background-color: var(--wa-info-light); color: var(--wa-info); }
+.media-tile-location { background-color: #fff4e0; color: #d97706; }
+.media-tile-other { background-color: #f1f3f5; color: #6c757d; }
+
+.media-tile-ext {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+/* Direction bubble in the Recent messages table. */
+.direction-bubble {
+    width: 34px;
+    height: 34px;
+    border-radius: 0.6rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.direction-bubble.out {
+    background-color: var(--wa-primary-light);
+    color: var(--wa-primary);
+}
+
+.direction-bubble.in {
+    background-color: var(--wa-info-light);
+    color: var(--wa-info);
+}

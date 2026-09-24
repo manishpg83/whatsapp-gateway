@@ -32,7 +32,9 @@ class ApiLogController extends Controller
         }
 
         return view('api-logs.index', [
-            'logs' => $query->latest()->paginate(20)->withQueryString(),
+            // latest('id') breaks ties between calls in the same second, so
+            // paging never shows a row twice or skips one.
+            'logs' => $query->latest()->latest('id')->paginate(20)->withQueryString(),
             'instances' => $user->whatsappSessions()->orderBy('name')->get(),
             'selectedInstanceId' => $selectedInstanceId,
         ]);
