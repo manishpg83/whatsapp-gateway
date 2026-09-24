@@ -69,6 +69,7 @@
                 <div class="text-muted small" title="Active paid subscriptions × each plan's current price. Someone who subscribed before a price change may pay a different amount.">
                     From active paid plans <i class="bi bi-info-circle"></i>
                 </div>
+                <a href="{{ route('admin.revenue.index') }}" class="small">View revenue &rarr;</a>
             </div>
         </div>
     </div>

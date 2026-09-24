@@ -24,6 +24,7 @@
                             <li class="mb-1"><a href="{{ route('admin.dashboard') }}" class="link-light text-decoration-none">Dashboard</a></li>
                             <li class="mb-1"><a href="{{ route('admin.users.index') }}" class="link-light text-decoration-none">Users</a></li>
                             <li class="mb-1"><a href="{{ route('admin.instances.index') }}" class="link-light text-decoration-none">Instances</a></li>
+                            <li class="mb-1"><a href="{{ route('admin.revenue.index') }}" class="link-light text-decoration-none">Revenue</a></li>
                             <li><a href="{{ route('admin.plans.index') }}" class="link-light text-decoration-none">Billing</a></li>
                         </ul>
                     @else

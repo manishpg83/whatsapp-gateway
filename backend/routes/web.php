@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\InstanceController as AdminInstanceController;
 use App\Http\Controllers\Admin\PlanController as AdminPlanController;
+use App\Http\Controllers\Admin\RevenueController as AdminRevenueController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\ApiDocsController;
 use App\Http\Controllers\ApiLogController;
@@ -118,6 +119,8 @@ Route::middleware(['auth', 'not_suspended', 'verified', 'admin'])->prefix('admin
     Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
 
     Route::get('/instances', [AdminInstanceController::class, 'index'])->name('instances.index');
+
+    Route::get('/revenue', [AdminRevenueController::class, 'index'])->name('revenue.index');
 
     Route::get('/plans', [AdminPlanController::class, 'index'])->name('plans.index');
     Route::get('/plans/create', [AdminPlanController::class, 'create'])->name('plans.create');
