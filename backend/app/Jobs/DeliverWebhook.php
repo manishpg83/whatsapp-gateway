@@ -2,10 +2,11 @@
 
 namespace App\Jobs;
 
+use App\Models\WebhookDelivery;
 use App\Models\WhatsappSession;
+use App\Services\WebhookDispatcher;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -13,13 +14,13 @@ use Throwable;
  * Forwards an event to the owner's own webhook URL (CLAUDE.md §8/§13 M8),
  * queued so a slow/dead receiver never holds up the request that
  * triggered it (storing the incoming message), and retried with backoff
- * instead of the previous single-attempt-then-give-up behaviour.
+ * instead of the previous single-attempt-then-give-up behaviour. Each
+ * attempt is recorded on its WebhookDelivery row (see WebhookDispatcher).
  *
- * Known limitation, documented rather than solved here: webhook_url is
- * whatever URL the owner typed in, so this makes a server-side request to
- * an address we don't control (classic SSRF surface). Acceptable for this
- * MVP's threat model (a single beginner-run instance); revisit with an
- * allowlist/egress check before this is ever multi-tenant-at-scale.
+ * Webhook URLs are owner-typed, so this is a server-side request to an
+ * address we don't control (SSRF surface). Mitigated in production by
+ * App\Rules\PublicWebhookUrl (no localhost/private addresses, re-checked
+ * before every attempt) and by never following redirects.
  */
 class DeliverWebhook implements ShouldQueue
 {
@@ -30,6 +31,7 @@ class DeliverWebhook implements ShouldQueue
     public function __construct(
         public int $whatsappSessionId,
         public array $payload,
+        public ?int $webhookDeliveryId = null,
     ) {}
 
     /**
@@ -46,25 +48,18 @@ class DeliverWebhook implements ShouldQueue
     public function handle(): void
     {
         $session = WhatsappSession::find($this->whatsappSessionId);
+        $delivery = $this->delivery();
 
         // The instance (or its webhook) may have been removed/cleared in
         // the time between this job being queued and actually running —
-        // nothing to deliver to, not a failure.
+        // nothing to deliver to, not a failure worth retrying.
         if (! $session || ! $session->webhook_url || ! $session->webhook_secret) {
+            $delivery?->update(['status' => 'failed', 'error' => 'Webhook URL was removed before delivery']);
+
             return;
         }
 
-        $body = json_encode($this->payload);
-        $signature = hash_hmac('sha256', $body, $session->webhook_secret);
-
-        Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'X-Webhook-Signature' => "sha256={$signature}",
-        ])
-            ->withBody($body, 'application/json')
-            ->timeout(5)
-            ->post($session->webhook_url)
-            ->throw();
+        app(WebhookDispatcher::class)->attempt($session, $this->payload, $delivery);
     }
 
     /**
@@ -72,9 +67,16 @@ class DeliverWebhook implements ShouldQueue
      */
     public function failed(Throwable $exception): void
     {
+        $this->delivery()?->update(['status' => 'failed']);
+
         Log::warning('Webhook delivery failed after all retries', [
             'whatsapp_session_id' => $this->whatsappSessionId,
             'error' => $exception->getMessage(),
         ]);
+    }
+
+    private function delivery(): ?WebhookDelivery
+    {
+        return $this->webhookDeliveryId ? WebhookDelivery::find($this->webhookDeliveryId) : null;
     }
 }

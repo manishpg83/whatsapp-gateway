@@ -5,7 +5,7 @@
 @section('content')
 <div class="mb-4">
     <h1 class="h3 mb-1">API Docs</h1>
-    <p class="text-muted mb-0">How to connect an instance and send WhatsApp messages through the API.</p>
+    <p class="text-muted mb-0">How to connect an instance, send WhatsApp messages and check their status through the API.</p>
 </div>
 
 {{-- Getting started --}}
@@ -58,16 +58,51 @@
     </div>
 </div>
 
-{{-- Endpoint reference --}}
+{{-- Endpoint reference: every endpoint uses the same layout —
+     method + path, description, request, responses, rate limit. --}}
 <div class="card shadow-sm mb-4">
     <div class="card-body d-flex align-items-center gap-3 border-bottom">
         <div class="rounded-circle p-2 fs-4 lh-1" style="background-color: var(--wa-purple-light); color: var(--wa-purple);">
             <i class="bi bi-code-slash"></i>
         </div>
-        <div class="fw-semibold">Send a text message</div>
+        <div class="fw-semibold">Endpoints</div>
     </div>
-    <div class="card-body">
-        <p><span class="badge text-bg-primary">POST</span> <code>/api/v1/messages/send</code></p>
+
+    {{-- Overview --}}
+    <div class="card-body border-bottom">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Method</th>
+                        <th>Path</th>
+                        <th>What it does</th>
+                        <th class="text-nowrap">Rate limit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge text-bg-primary">POST</span></td>
+                        <td><a href="#endpoint-send" class="text-decoration-none"><code>/api/v1/messages/send</code></a></td>
+                        <td>Send a text message</td>
+                        <td class="text-nowrap small">30 / min</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge text-bg-success">GET</span></td>
+                        <td><a href="#endpoint-status" class="text-decoration-none"><code>/api/v1/messages/{message_id}</code></a></td>
+                        <td>Check a sent message's status</td>
+                        <td class="text-nowrap small">60 / min</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="text-muted small mb-0 mt-2">Rate limits are per access token and counted separately for each endpoint.</p>
+    </div>
+
+    {{-- 1. Send a text message --}}
+    <div class="card-body border-bottom" id="endpoint-send">
+        <h5 class="h6 fw-semibold mb-2">Send a text message</h5>
+        <p class="mb-0"><span class="badge text-bg-primary">POST</span> <code>/api/v1/messages/send</code></p>
 
         <h6 class="mt-3">Request body</h6>
         <div class="table-responsive">
@@ -146,17 +181,94 @@
 
         <p class="text-muted small mb-0">
             <i class="bi bi-speedometer2 me-1"></i>Rate limit: 30 requests per minute per access token.
+            Code samples in 6 languages are <a href="#code-samples">below</a>.
+        </p>
+    </div>
+
+    {{-- 2. Check message status --}}
+    <div class="card-body" id="endpoint-status">
+        <h5 class="h6 fw-semibold mb-2">Check message status</h5>
+        <p class="mb-0"><span class="badge text-bg-success">GET</span> <code>/api/v1/messages/{message_id}</code></p>
+
+        <h6 class="mt-3">Request</h6>
+        <p class="mb-0">
+            No body. Put the <code>message_id</code> returned by <code>POST /api/v1/messages/send</code> in the URL
+            and use the same access token. A token can only look up messages sent from its own instance.
+        </p>
+
+        <h6 class="mt-3">Responses</h6>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Body</th>
+                        <th>Meaning</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge text-bg-success">200</span></td>
+                        <td><code>{"success": true, "message": {...}}</code></td>
+                        <td>Message found (full example below).</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge text-bg-danger">401</span></td>
+                        <td>&mdash;</td>
+                        <td>Missing, unknown, or revoked access token.</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge text-bg-warning text-dark">404</span></td>
+                        <td><code>{"success": false, "error": "Message not found"}</code></td>
+                        <td>No message with this ID was sent from this token's instance.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <h6>Example request</h6>
+<pre class="bg-light rounded p-3 mb-0"><code>curl {{ url('/api/v1/messages/MESSAGE_ID') }} \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"</code></pre>
+
+                <h6 class="mt-3"><code>status</code> values</h6>
+                <ul class="small mb-0">
+                    <li><code>pending</code> &mdash; being sent right now.</li>
+                    <li><code>sent</code> &mdash; handed over to WhatsApp successfully.</li>
+                    <li><code>failed</code> &mdash; could not be sent.</li>
+                </ul>
+            </div>
+            <div class="col-lg-6">
+                <h6>Example response</h6>
+<pre class="bg-light rounded p-3 mb-0"><code>{
+  "success": true,
+  "message": {
+    "message_id": "3EB0A1B2C3D4E5F6",
+    "instance_id": "YOUR_INSTANCE_ID",
+    "direction": "outgoing",
+    "to": "919876543210",
+    "status": "sent",
+    "created_at": "2026-09-24T10:15:03+00:00",
+    "updated_at": "2026-09-24T10:15:04+00:00"
+  }
+}</code></pre>
+            </div>
+        </div>
+
+        <p class="text-muted small mb-0 mt-3">
+            <i class="bi bi-speedometer2 me-1"></i>Rate limit: 60 requests per minute per access token.
         </p>
     </div>
 </div>
 
-{{-- Code samples --}}
-<div class="card shadow-sm">
+{{-- Code samples (for the send endpoint) --}}
+<div class="card shadow-sm" id="code-samples">
     <div class="card-body d-flex align-items-center gap-3 border-bottom">
         <div class="bg-wa-light text-primary rounded-circle p-2 fs-4 lh-1">
             <i class="bi bi-terminal"></i>
         </div>
-        <div class="fw-semibold">Code samples</div>
+        <div class="fw-semibold">Code samples: send a text message</div>
     </div>
     <div class="card-body">
         <ul class="nav nav-tabs" role="tablist">

@@ -63,6 +63,9 @@ Route::middleware(['auth', 'not_suspended'])->group(function () {
     Route::delete('/instances/{instance}/tokens/{token}', [ApiTokenController::class, 'destroy'])->name('instances.tokens.destroy');
 
     Route::post('/instances/{instance}/webhook', [InstanceController::class, 'updateWebhook'])->name('instances.webhook.update');
+    Route::post('/instances/{instance}/webhook/test', [InstanceController::class, 'testWebhook'])
+        ->middleware('throttle:webhook-test')
+        ->name('instances.webhook.test');
 
     Route::post('/instances/{instance}/send-test-message', [InstanceController::class, 'sendTestMessage'])
         ->middleware('throttle:messages')

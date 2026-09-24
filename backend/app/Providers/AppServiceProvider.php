@@ -33,5 +33,18 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('messages', function (Request $request) {
             return Limit::perMinute(30)->by($request->bearerToken() ?? $request->ip());
         });
+
+        // Checking a message's status (GET /api/v1/messages/{id}) is
+        // read-only and callers may poll it, so it gets a separate, higher
+        // limit that never uses up the send limit above.
+        RateLimiter::for('message-status', function (Request $request) {
+            return Limit::perMinute(60)->by($request->bearerToken() ?? $request->ip());
+        });
+
+        // "Send test webhook" makes our server call an owner-supplied URL
+        // on demand, so keep it to a handful per minute per user.
+        RateLimiter::for('webhook-test', function (Request $request) {
+            return Limit::perMinute(5)->by($request->user()?->id ?: $request->ip());
+        });
     }
 }

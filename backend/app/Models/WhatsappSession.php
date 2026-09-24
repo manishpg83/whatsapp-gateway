@@ -75,4 +75,12 @@ class WhatsappSession extends Model
     {
         return $this->hasMany(Message::class);
     }
+
+    /**
+     * @return HasMany<WebhookDelivery, $this>
+     */
+    public function webhookDeliveries(): HasMany
+    {
+        return $this->hasMany(WebhookDelivery::class);
+    }
 }

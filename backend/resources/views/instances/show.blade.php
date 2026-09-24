@@ -242,6 +242,65 @@
                         Each request carries an <code>X-Webhook-Signature: sha256=&lt;hmac&gt;</code> header — HMAC-SHA256 of the raw JSON body using this secret.
                     </p>
                 @endif
+
+                @if ($instance->webhook_url)
+                    <form method="POST" action="{{ route('instances.webhook.test', $instance) }}" class="mt-3">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-send me-1"></i>Send test webhook
+                        </button>
+                        <span class="text-muted small ms-2">Sends a signed <code>webhook.test</code> event to your URL right now.</span>
+                    </form>
+                @endif
+            </div>
+
+            {{-- Delivery log --}}
+            <div class="card-body border-top">
+                <div class="fw-semibold small text-uppercase text-muted mb-2">Recent deliveries</div>
+                @if ($webhookDeliveries->isEmpty())
+                    <p class="text-muted small mb-0">No webhooks sent yet.</p>
+                @else
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date/Time</th>
+                                    <th>Event</th>
+                                    <th>Status</th>
+                                    <th>HTTP</th>
+                                    <th>Attempts</th>
+                                    <th>Error</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($webhookDeliveries as $delivery)
+                                    @php
+                                        $label = $delivery->statusLabel();
+                                        $color = match ($label) {
+                                            'Delivered' => 'success',
+                                            'Failed' => 'danger',
+                                            'Retrying' => 'warning',
+                                            default => 'secondary',
+                                        };
+                                    @endphp
+                                    <tr>
+                                        <td class="text-nowrap small">{{ $delivery->created_at->format('Y-m-d H:i:s') }}</td>
+                                        <td><code class="small">{{ $delivery->event }}</code></td>
+                                        <td><span class="badge rounded-pill text-bg-{{ $color }}">{{ $label }}</span></td>
+                                        <td class="small">{{ $delivery->response_status ?? '—' }}</td>
+                                        <td class="small">{{ $delivery->attempts }}</td>
+                                        <td class="small text-muted text-truncate" style="max-width: 260px;" title="{{ $delivery->error }}">{{ $delivery->error ?? '—' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @if ($webhookDeliveries->contains(fn ($d) => $d->statusLabel() === 'Queued'))
+                        <p class="text-muted small mb-0 mt-2">
+                            <i class="bi bi-info-circle me-1"></i>"Queued" webhooks are waiting to be sent — refresh in a few seconds.
+                        </p>
+                    @endif
+                @endif
             </div>
         </div>
 

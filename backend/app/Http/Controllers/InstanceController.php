@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\WhatsappSession;
+use App\Rules\PublicWebhookUrl;
 use App\Services\MessageSender;
 use App\Services\PlanLimiter;
+use App\Services\WebhookDispatcher;
 use App\Services\WorkerClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -69,6 +71,7 @@ class InstanceController extends Controller
             'sentCount' => $whatsappSession->messages()->where('direction', 'outgoing')->where('status', 'sent')->count(),
             'failedCount' => $whatsappSession->messages()->where('direction', 'outgoing')->where('status', 'failed')->count(),
             'receivedCount' => $whatsappSession->messages()->where('direction', 'incoming')->count(),
+            'webhookDeliveries' => $whatsappSession->webhookDeliveries()->latest()->latest('id')->take(20)->get(),
         ]);
     }
 
@@ -83,7 +86,7 @@ class InstanceController extends Controller
         $whatsappSession = $this->findOwnedInstance($request, $instance);
 
         $data = $request->validate([
-            'webhook_url' => ['nullable', 'url', 'max:2048'],
+            'webhook_url' => ['nullable', 'url', 'max:2048', new PublicWebhookUrl],
         ]);
 
         $webhookUrl = $data['webhook_url'] ?? null;
@@ -97,6 +100,29 @@ class InstanceController extends Controller
 
         return redirect()->route('instances.show', $whatsappSession)
             ->with('status', $webhookUrl ? 'Webhook saved.' : 'Webhook cleared.');
+    }
+
+    /**
+     * The "Send test webhook" button — one immediate signed request (no
+     * queue), so the owner finds out right away whether their receiver
+     * works. Recorded in the delivery log like any other delivery.
+     */
+    public function testWebhook(Request $request, string $instance, WebhookDispatcher $dispatcher): RedirectResponse
+    {
+        $whatsappSession = $this->findOwnedInstance($request, $instance);
+
+        if (! $whatsappSession->webhook_url || ! $whatsappSession->webhook_secret) {
+            return redirect()->route('instances.show', $whatsappSession)
+                ->with('error', 'Save a webhook URL first.');
+        }
+
+        $delivery = $dispatcher->sendTest($whatsappSession);
+
+        return $delivery->status === 'success'
+            ? redirect()->route('instances.show', $whatsappSession)
+                ->with('status', "Test webhook delivered — your server replied HTTP {$delivery->response_status}.")
+            : redirect()->route('instances.show', $whatsappSession)
+                ->with('error', "Test webhook failed: {$delivery->error}");
     }
 
     /**

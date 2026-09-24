@@ -7,3 +7,8 @@ use Illuminate\Support\Facades\Route;
 // never a browser session — see App\Http\Middleware\AuthenticateApiToken.
 Route::post('/v1/messages/send', [MessageController::class, 'send'])
     ->middleware(['api.token', 'throttle:messages']);
+
+// Status of a message sent above, by the message_id it returned. Its own
+// rate limit so polling for status never eats into the send budget.
+Route::get('/v1/messages/{messageId}', [MessageController::class, 'show'])
+    ->middleware(['api.token', 'throttle:message-status']);
