@@ -126,7 +126,7 @@
                 <label for="instance-id-value" class="form-label small mb-0">instance_id</label>
                 <div class="input-group mb-3">
                     <input type="text" class="form-control font-monospace" value="{{ $instance->instance_id }}" id="instance-id-value" readonly>
-                    <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('instance-id-value').value)">
+                    <button class="btn btn-outline-secondary" type="button" data-copy-target="#instance-id-value" title="Copy instance ID">
                         <i class="bi bi-clipboard"></i>
                     </button>
                 </div>
@@ -136,7 +136,7 @@
                         <strong>Copy this token now — you won't be able to see it again:</strong>
                         <div class="input-group mt-2">
                             <input type="text" class="form-control font-monospace" value="{{ session('new_token') }}" id="new-token-value" readonly>
-                            <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('new-token-value').value)">
+                            <button class="btn btn-outline-secondary" type="button" data-copy-target="#new-token-value" title="Copy access token">
                                 <i class="bi bi-clipboard"></i>
                             </button>
                         </div>

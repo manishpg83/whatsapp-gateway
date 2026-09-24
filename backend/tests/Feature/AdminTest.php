@@ -376,4 +376,82 @@ class AdminTest extends TestCase
 
         $this->assertNotNull($otherAdmin->fresh());
     }
+
+    // --- Business numbers on the admin dashboard ----------------------
+
+    private function userOnPlan(string $plan, string $status): User
+    {
+        $user = User::factory()->create();
+        $user->subscription->update(['plan' => $plan, 'status' => $status]);
+
+        return $user;
+    }
+
+    public function test_monthly_revenue_counts_only_active_paid_subscriptions(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]); // free
+        $this->userOnPlan('growth', 'active');     // ₹1,499 — counted
+        $this->userOnPlan('starter', 'active');    // ₹749 — counted
+        $this->userOnPlan('starter', 'active');    // ₹749 — counted
+        $this->userOnPlan('business', 'pending');  // not paid yet — not counted
+        $this->userOnPlan('growth', 'cancelled');  // not counted
+        $this->userOnPlan('growth', 'past_due');   // not counted
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertViewHas('mrr', 1499 + 749 + 749)
+            ->assertViewHas('payingCustomers', 3)
+            ->assertViewHas('pendingPayments', 1)
+            ->assertSee('₹2,997');
+    }
+
+    public function test_revenue_per_plan_is_shown_in_the_plan_table(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $this->userOnPlan('starter', 'active');
+        $this->userOnPlan('starter', 'active');
+        $this->userOnPlan('starter', 'pending');
+
+        $response = $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk();
+        $plan = $response->viewData('planBreakdown')->firstWhere('slug', 'starter');
+
+        $this->assertSame(3, $plan->subscriptions_count);
+        $this->assertSame(2, $plan->active_subscriptions_count);
+        $this->assertSame(749 * 2, $plan->monthly_revenue);
+    }
+
+    public function test_sign_up_numbers_per_month(): void
+    {
+        $this->travelTo(now()->setDate(2026, 9, 15)->setTime(12, 0));
+
+        $admin = User::factory()->create(['is_admin' => true, 'created_at' => now()]); // Sep
+        User::factory()->create(['created_at' => '2026-09-01 00:00:00']);                // Sep
+        User::factory()->create(['created_at' => '2026-08-31 23:59:59']);                // Aug
+        User::factory()->create(['created_at' => '2026-06-10 10:00:00']);                // Jun
+        User::factory()->create(['created_at' => '2026-02-10 10:00:00']);                // older than 6 months
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertViewHas('signupsThisMonth', 2)
+            ->assertViewHas('signupsLastMonth', 1)
+            ->assertViewHas('signupsByMonth', [
+                'Apr 2026' => 0,
+                'May 2026' => 0,
+                'Jun 2026' => 1,
+                'Jul 2026' => 0,
+                'Aug 2026' => 1,
+                'Sep 2026' => 2,
+            ]);
+    }
+
+    public function test_unverified_sign_ups_are_counted(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        User::factory()->count(2)->unverified()->create();
+        User::factory()->create();
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertViewHas('unverifiedUsers', 2);
+    }
 }
