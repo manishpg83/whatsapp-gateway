@@ -18,7 +18,7 @@
                     <span class="badge text-bg-danger">Suspended</span>
                 @endif
             </h1>
-            <div class="text-muted small">{{ $user->email }}</div>
+            <div class="text-muted small text-break">{{ $user->email }}</div>
         </div>
     </div>
     <a href="{{ route('admin.users.index') }}" class="btn btn-sm btn-outline-secondary">

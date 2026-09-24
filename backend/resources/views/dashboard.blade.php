@@ -87,10 +87,11 @@
                 <div class="rounded-3 p-2 fs-4 lh-1" style="background-color: var(--wa-purple-light); color: var(--wa-purple);">
                     <i class="bi bi-person-circle"></i>
                 </div>
-                <div>
+                {{-- min-width: 0 lets long names/emails shrink and get "…" instead of spilling out of the card. --}}
+                <div style="min-width: 0;">
                     <div class="text-muted small text-uppercase">Account</div>
-                    <div class="fw-semibold">{{ $user->name }}</div>
-                    <div class="text-muted small">{{ $user->email }}</div>
+                    <div class="fw-semibold text-truncate" title="{{ $user->name }}">{{ $user->name }}</div>
+                    <div class="text-muted small text-truncate" title="{{ $user->email }}">{{ $user->email }}</div>
                     <div class="text-muted small">Member since {{ $user->created_at->format('M j, Y') }}</div>
                 </div>
             </div>

@@ -13,9 +13,9 @@
                 <span class="avatar-badge flex-shrink-0" style="width: 48px; height: 48px; font-size: 1.1rem;">
                     {{ mb_strtoupper(mb_substr($user->name, 0, 1)) }}
                 </span>
-                <div>
-                    <div class="fw-semibold">{{ $user->name }}</div>
-                    <div class="text-muted small">{{ $user->email }}</div>
+                <div style="min-width: 0;">
+                    <div class="fw-semibold text-break">{{ $user->name }}</div>
+                    <div class="text-muted small text-break">{{ $user->email }}</div>
                 </div>
             </div>
             <div class="card-body">
