@@ -41,6 +41,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link sidebar-link {{ request()->routeIs('admin.instances.*') ? 'active' : '' }}" href="{{ route('admin.instances.index') }}">
+                                <i class="bi bi-hdd-stack me-2"></i>Instances
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link sidebar-link {{ request()->routeIs('admin.plans.*') ? 'active' : '' }}" href="{{ route('admin.plans.index') }}">
                                 <i class="bi bi-credit-card me-2"></i>Billing
                             </a>

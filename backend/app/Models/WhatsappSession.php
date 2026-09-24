@@ -28,6 +28,10 @@ class WhatsappSession extends Model
     /** @use HasFactory<WhatsappSessionFactory> */
     use HasFactory;
 
+    public const WAITING_STATUSES = ['connecting', 'qr_pending'];
+
+    public const STUCK_AFTER_MINUTES = 10;
+
     /**
      * Use the public UUID (not the internal auto-increment id) in route
      * model binding, so instance URLs can't be enumerated by guessing.
@@ -74,6 +78,18 @@ class WhatsappSession extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class);
+    }
+
+    /**
+     * Waiting to be scanned/connected, but with no update from the worker
+     * for STUCK_AFTER_MINUTES. While the worker is alive it refreshes the
+     * QR (and so updated_at) every ~20 seconds, so this much silence means
+     * it has stopped handling this instance — usually it isn't running.
+     */
+    public function isStuck(): bool
+    {
+        return in_array($this->status, self::WAITING_STATUSES, true)
+            && $this->updated_at->lt(now()->subMinutes(self::STUCK_AFTER_MINUTES));
     }
 
     /**

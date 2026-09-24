@@ -23,7 +23,7 @@
             <div class="card-body">
                 <div class="text-muted small text-uppercase">Instances</div>
                 <div class="display-6 fw-semibold">{{ $totalInstances }}</div>
-                <div class="text-muted small">{{ $connectedInstances }} currently connected</div>
+                <div class="text-muted small">{{ $connectedInstances }} currently connected &middot; <a href="{{ route('admin.instances.index') }}">View all</a></div>
             </div>
         </div>
     </div>
