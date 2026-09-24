@@ -48,7 +48,8 @@ class AuthTest extends TestCase
     {
         $response = $this->post('/register', $this->validRegistration());
 
-        $response->assertRedirect(route('dashboard'));
+        // Logged in, but must verify their email first (see EmailVerificationTest).
+        $response->assertRedirect(route('verification.notice'));
         $this->assertAuthenticated();
 
         $user = User::where('email', 'test@example.com')->firstOrFail();

@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\ApiDocsController;
 use App\Http\Controllers\ApiLogController;
 use App\Http\Controllers\ApiTokenController;
+use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -46,9 +47,23 @@ Route::middleware('guest')->group(function () {
 // Only for logged-in users. `not_suspended` catches a session that was
 // already active when an admin suspended the account (login itself is
 // blocked separately in LoginController).
+// These few work before the email is verified: logging out, and the
+// "check your email" page / link / resend button.
 Route::middleware(['auth', 'not_suspended'])->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
+    Route::get('/email/verify', [EmailVerificationController::class, 'notice'])->name('verification.notice');
+    Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+        ->middleware(['signed', 'throttle:6,1'])
+        ->name('verification.verify');
+    Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])
+        ->middleware('throttle:6,1')
+        ->name('verification.send');
+});
+
+// Everything else needs a verified email (`verified` sends unverified
+// users to the "check your email" page above).
+Route::middleware(['auth', 'not_suspended', 'verified'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('/instances', [InstanceController::class, 'index'])->name('instances.index');
@@ -91,7 +106,7 @@ Route::middleware(['auth', 'not_suspended'])->group(function () {
 // Cross-tenant visibility + management for admin accounts only — see
 // App\Http\Middleware\EnsureUserIsAdmin. There is no in-app way to become
 // an admin; it's granted by directly setting is_admin on a user row.
-Route::middleware(['auth', 'not_suspended', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'not_suspended', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', AdminDashboardController::class)->name('dashboard');
 
     Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,9 +34,12 @@ class RegisterController extends Controller
         // The User model hashes the password automatically (see casts()).
         $user = User::create($data);
 
+        // Laravel listens for this event and emails the verification link.
+        event(new Registered($user));
+
         Auth::login($user);
         $request->session()->regenerate(); // new session id after login (prevents session fixation)
 
-        return redirect()->route('dashboard');
+        return redirect()->route('verification.notice');
     }
 }

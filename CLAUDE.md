@@ -343,3 +343,12 @@ npm test        # vitest
 - ❌ Hand-create app tables in phpMyAdmin instead of migrations.
 - ❌ Install packages silently, refactor unrelated code, or auto-advance milestones.
 - ❌ Build tables/abstractions the current milestone doesn't need.
+
+---
+
+## 16. Email (SMTP)
+
+Outgoing email (verification, password reset) is sent via **Gmail SMTP**
+(`smtp.gmail.com:587`, account `briskbrainteam@gmail.com`, using a Gmail **app password**).
+The real credentials live **only** in `backend/.env` (`MAIL_*` keys) — never put the
+password in this file or anywhere else that Git tracks.

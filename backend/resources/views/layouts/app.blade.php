@@ -7,7 +7,10 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="d-flex flex-column min-vh-100">
-@auth
+{{-- The full app shell is for verified users only. A logged-in user who
+     hasn't verified their email yet can't open any of its pages, so they
+     get the simple top bar below (with just "Log out") instead. --}}
+@if (auth()->check() && auth()->user()->hasVerifiedEmail())
     <div class="d-flex app-shell">
         {{-- Sidebar: a static column at md+, a slide-in offcanvas below it --}}
         <div class="offcanvas-md offcanvas-start sidebar-shell" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
@@ -145,8 +148,15 @@
                 <span>{{ config('app.name') }}</span>
             </a>
             <div class="d-flex align-items-center">
-                <a class="btn btn-outline-light btn-sm me-2" href="{{ route('login') }}">Log in</a>
-                <a class="btn btn-primary btn-sm" href="{{ route('register') }}">Register</a>
+                @auth
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-light btn-sm">Log out</button>
+                    </form>
+                @else
+                    <a class="btn btn-outline-light btn-sm me-2" href="{{ route('login') }}">Log in</a>
+                    <a class="btn btn-primary btn-sm" href="{{ route('register') }}">Register</a>
+                @endauth
             </div>
         </div>
     </nav>
@@ -163,6 +173,6 @@
     </main>
 
     @include('partials.footer')
-@endauth
+@endif
 </body>
 </html>
