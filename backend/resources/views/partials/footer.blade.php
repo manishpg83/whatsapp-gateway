@@ -30,6 +30,7 @@
                         <ul class="list-unstyled small mb-0">
                             <li class="mb-1"><a href="{{ route('dashboard') }}" class="link-light text-decoration-none">Dashboard</a></li>
                             <li class="mb-1"><a href="{{ route('instances.index') }}" class="link-light text-decoration-none">Instances</a></li>
+                            <li class="mb-1"><a href="{{ route('messages.index') }}" class="link-light text-decoration-none">Messages</a></li>
                             <li class="mb-1"><a href="{{ route('billing.index') }}" class="link-light text-decoration-none">Billing</a></li>
                             <li class="mb-1"><a href="{{ route('docs.index') }}" class="link-light text-decoration-none">API Docs</a></li>
                             <li><a href="{{ route('api-logs.index') }}" class="link-light text-decoration-none">API Logs</a></li>

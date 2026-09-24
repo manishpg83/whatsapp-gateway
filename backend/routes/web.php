@@ -16,6 +16,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InstanceController;
 use App\Http\Controllers\InternalSessionsController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\TermsController;
 use App\Http\Controllers\WorkerWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -66,6 +67,8 @@ Route::middleware(['auth', 'not_suspended'])->group(function () {
     Route::post('/instances/{instance}/send-test-message', [InstanceController::class, 'sendTestMessage'])
         ->middleware('throttle:messages')
         ->name('instances.send-test-message');
+
+    Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
 
     Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
     Route::post('/billing/subscribe/{plan}', [BillingController::class, 'subscribe'])->name('billing.subscribe');
