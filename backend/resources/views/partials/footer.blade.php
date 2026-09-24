@@ -25,7 +25,8 @@
                             <li class="mb-1"><a href="{{ route('admin.users.index') }}" class="link-light text-decoration-none">Users</a></li>
                             <li class="mb-1"><a href="{{ route('admin.instances.index') }}" class="link-light text-decoration-none">Instances</a></li>
                             <li class="mb-1"><a href="{{ route('admin.revenue.index') }}" class="link-light text-decoration-none">Revenue</a></li>
-                            <li><a href="{{ route('admin.plans.index') }}" class="link-light text-decoration-none">Billing</a></li>
+                            <li class="mb-1"><a href="{{ route('admin.plans.index') }}" class="link-light text-decoration-none">Billing</a></li>
+                            <li><a href="{{ route('admin.audit-log.index') }}" class="link-light text-decoration-none">Audit log</a></li>
                         </ul>
                     @else
                         <div class="text-white small fw-semibold text-uppercase mb-2">Product</div>

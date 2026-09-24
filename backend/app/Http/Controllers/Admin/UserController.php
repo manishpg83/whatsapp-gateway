@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminAuditLog;
 use App\Models\Plan;
 use App\Models\User;
+use App\Services\AdminAudit;
 use App\Services\WorkerClient;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -58,6 +60,8 @@ class UserController extends Controller
         return view('admin.users.show', [
             'user' => $user,
             'instances' => $instances,
+            'auditLogs' => AdminAuditLog::where('target_type', 'user')->where('target_id', $user->id)
+                ->latest()->latest('id')->take(10)->get(),
             'plans' => Plan::orderBy('price')->get(),
         ]);
     }
@@ -75,7 +79,10 @@ class UserController extends Controller
             'plan' => ['required', 'string', 'exists:plans,slug'],
         ]);
 
+        $oldPlan = $user->subscription()->value('plan');
         $user->subscription()->update(['plan' => $data['plan']]);
+
+        AdminAudit::record($request, 'user.plan_changed', $user, ['plan' => ['from' => $oldPlan, 'to' => $data['plan']]]);
 
         return redirect()->route('admin.users.show', $user)
             ->with('status', "{$user->name}'s plan was changed to ".Plan::where('slug', $data['plan'])->value('name').'.');
@@ -97,14 +104,18 @@ class UserController extends Controller
         $user->is_suspended = true;
         $user->save();
 
+        AdminAudit::record($request, 'user.suspended', $user);
+
         return redirect()->route('admin.users.show', $user)
             ->with('status', "{$user->name}'s account has been suspended.");
     }
 
-    public function unsuspend(User $user): RedirectResponse
+    public function unsuspend(Request $request, User $user): RedirectResponse
     {
         $user->is_suspended = false;
         $user->save();
+
+        AdminAudit::record($request, 'user.unsuspended', $user);
 
         return redirect()->route('admin.users.show', $user)
             ->with('status', "{$user->name}'s account is no longer suspended.");
@@ -147,6 +158,11 @@ class UserController extends Controller
         }
 
         $name = $user->name;
+
+        // Logged before the delete, while the user still exists — the
+        // entry keeps their name/email after the account is gone.
+        AdminAudit::record($request, 'user.deleted', $user, ['plan' => $user->subscription->plan]);
+
         $user->delete();
 
         return redirect()->route('admin.users.index')->with('status', "{$name}'s account has been deleted.");

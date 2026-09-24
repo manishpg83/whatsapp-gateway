@@ -55,6 +55,11 @@
                                 <i class="bi bi-credit-card me-2"></i>Billing
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link sidebar-link {{ request()->routeIs('admin.audit-log.*') ? 'active' : '' }}" href="{{ route('admin.audit-log.index') }}">
+                                <i class="bi bi-journal-text me-2"></i>Audit log
+                            </a>
+                        </li>
                     @else
                         <li class="nav-item">
                             <a class="nav-link sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">

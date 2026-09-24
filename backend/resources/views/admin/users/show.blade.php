@@ -197,4 +197,20 @@
         @endif
     </div>
 </div>
+
+{{-- Audit trail for this account --}}
+<div class="card shadow-sm mt-4">
+    <div class="card-body d-flex align-items-center gap-3 border-bottom">
+        <div class="bg-wa-light text-primary rounded-circle p-2 fs-4 lh-1">
+            <i class="bi bi-journal-text"></i>
+        </div>
+        <div class="fw-semibold">Admin actions on this account</div>
+        <a href="{{ route('admin.audit-log.index', ['search' => $user->email]) }}" class="ms-auto small">View all &rarr;</a>
+    </div>
+    @if ($auditLogs->isEmpty())
+        <div class="card-body text-muted small">No admin actions on this account yet.</div>
+    @else
+        @include('admin.audit-log._table', ['logs' => $auditLogs, 'showTarget' => false])
+    @endif
+</div>
 @endsection

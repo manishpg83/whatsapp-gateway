@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Plan;
+use App\Services\AdminAudit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -36,6 +37,12 @@ class PlanController extends Controller
         $plan->cashfree_plan_id = $price > 0 ? Plan::cashfreePlanId($slug, 1) : null;
         $plan->save();
 
+        AdminAudit::record($request, 'plan.created', $plan, [
+            'price' => $plan->price,
+            'instances' => $plan->instances,
+            'messages_per_month' => $plan->messages_per_month,
+        ]);
+
         return redirect()->route('admin.plans.index')->with('status', "Plan \"{$plan->name}\" created.");
     }
 
@@ -66,17 +73,32 @@ class PlanController extends Controller
                 : null;
         }
 
+        // Only the fields the admin actually changed, as old → new
+        // (not the internal price_version / cashfree_plan_id bookkeeping).
+        $changes = [];
+        foreach (array_keys($data) as $field) {
+            if ($plan->isDirty($field)) {
+                $changes[$field] = ['from' => $plan->getOriginal($field), 'to' => $plan->getAttribute($field)];
+            }
+        }
+
         $plan->save();
+
+        if ($changes) {
+            AdminAudit::record($request, 'plan.updated', $plan, $changes);
+        }
 
         return redirect()->route('admin.plans.index')->with('status', "Plan \"{$plan->name}\" updated.");
     }
 
-    public function destroy(Plan $plan): RedirectResponse
+    public function destroy(Request $request, Plan $plan): RedirectResponse
     {
         if ($plan->subscriptions()->exists()) {
             return redirect()->route('admin.plans.index')
                 ->with('error', "Can't delete \"{$plan->name}\" — at least one user is still subscribed to it.");
         }
+
+        AdminAudit::record($request, 'plan.deleted', $plan, ['price' => $plan->price]);
 
         $plan->delete();
 
