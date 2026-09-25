@@ -6,6 +6,9 @@
 @php
     $isConnected = $instance->status === 'connected';
     $isWaiting = in_array($instance->status, ['connecting', 'qr_pending'], true);
+    // A kept phone number means the device is still linked (Logout clears
+    // it), so Reconnect goes straight back in — no QR steps to show.
+    $isResuming = $instance->status === 'connecting' && $instance->phone_number;
     $lastDelivery = $webhookDeliveries->first();
 @endphp
 
@@ -66,12 +69,19 @@
                                 <div class="hero-phone"><i class="bi bi-whatsapp fs-1"></i></div>
                             </div>
                         </div>
-                        <form method="POST" action="{{ route('instances.destroy', $instance) }}" class="align-self-md-start"
-                              onsubmit="return confirm('Disconnect this WhatsApp number? You will need to scan a QR code again to reconnect.');">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-power me-1"></i>Disconnect</button>
-                        </form>
+                        <div class="d-flex gap-2 align-self-md-start">
+                            <form method="POST" action="{{ route('instances.disconnect', $instance) }}"
+                                  onsubmit="return confirm('Disconnect this WhatsApp number? It stays linked, so Reconnect will not need a QR code.');">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-outline-secondary" title="Go offline but stay linked"><i class="bi bi-pause-circle me-1"></i>Disconnect</button>
+                            </form>
+                            <form method="POST" action="{{ route('instances.destroy', $instance) }}"
+                                  onsubmit="return confirm('Log out this WhatsApp number? The device is unlinked and you will need to scan a new QR code to reconnect.');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Unlink the device completely"><i class="bi bi-box-arrow-right me-1"></i>Logout</button>
+                            </form>
+                        </div>
                     </div>
                 @elseif (! $isWaiting)
                     <div class="d-flex flex-column flex-md-row align-items-md-center gap-4">
@@ -86,10 +96,28 @@
                                 <p class="small text-muted mb-0">Reconnect to get a new QR code and link your phone again.</p>
                             @endif
                         </div>
-                        <form method="POST" action="{{ route('instances.reconnect', $instance) }}">
-                            @csrf
-                            <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-repeat me-1"></i>Reconnect</button>
-                        </form>
+                        <div class="d-flex gap-2">
+                            <form method="POST" action="{{ route('instances.reconnect', $instance) }}">
+                                @csrf
+                                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-repeat me-1"></i>Reconnect</button>
+                            </form>
+                            @if ($instance->status === 'disconnected')
+                                <form method="POST" action="{{ route('instances.destroy', $instance) }}"
+                                      onsubmit="return confirm('Log out this WhatsApp number? The device is unlinked and you will need to scan a new QR code to reconnect.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-outline-danger"><i class="bi bi-box-arrow-right me-1"></i>Logout</button>
+                                </form>
+                            @endif
+                        </div>
+                    </div>
+                @elseif ($isResuming)
+                    <div class="d-flex flex-column flex-md-row align-items-md-center gap-4">
+                        <div class="instance-hero-icon"><span class="inner"><span class="spinner-border spinner-border-sm"></span></span></div>
+                        <div class="flex-grow-1">
+                            <div class="fs-3 fw-semibold mb-1">Reconnecting&hellip;</div>
+                            <p class="small text-muted mb-0">Going back online as {{ $instance->phone_number }}. No QR code needed.</p>
+                        </div>
                     </div>
                 @else
                     {{-- connecting / qr_pending --}}

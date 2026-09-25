@@ -83,6 +83,7 @@ Route::middleware(['auth', 'not_suspended', 'verified'])->group(function () {
     Route::get('/instances/{instance}', [InstanceController::class, 'show'])->name('instances.show');
     Route::get('/instances/{instance}/status', [InstanceController::class, 'status'])->name('instances.status');
     Route::post('/instances/{instance}/reconnect', [InstanceController::class, 'reconnect'])->name('instances.reconnect');
+    Route::post('/instances/{instance}/disconnect', [InstanceController::class, 'disconnect'])->name('instances.disconnect');
     Route::delete('/instances/{instance}', [InstanceController::class, 'destroy'])->name('instances.destroy');
 
     Route::post('/instances/{instance}/tokens', [ApiTokenController::class, 'store'])->name('instances.tokens.store');

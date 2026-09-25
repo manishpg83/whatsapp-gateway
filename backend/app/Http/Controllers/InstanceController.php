@@ -206,6 +206,34 @@ class InstanceController extends Controller
         ]);
     }
 
+    /**
+     * Closes the connection but keeps the device linked, so Reconnect
+     * comes straight back without a QR code.
+     */
+    public function disconnect(Request $request, string $instance, WorkerClient $worker): RedirectResponse
+    {
+        $whatsappSession = $this->findOwnedInstance($request, $instance);
+
+        try {
+            $worker->disconnectSession($whatsappSession->instance_id);
+        } catch (Throwable $e) {
+            Log::error('Worker unreachable while disconnecting a session', [
+                'instance_id' => $whatsappSession->instance_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        $whatsappSession->update([
+            'status' => 'disconnected',
+            'last_disconnect_reason' => 'Disconnected by you. Reconnect to go back online (no QR code needed).',
+        ]);
+
+        return redirect()->route('instances.show', $whatsappSession)->with('status', 'Instance disconnected.');
+    }
+
+    /**
+     * Logs out completely (unlinks the device); Reconnect needs a new QR.
+     */
     public function destroy(Request $request, string $instance, WorkerClient $worker): RedirectResponse
     {
         $whatsappSession = $this->findOwnedInstance($request, $instance);
@@ -219,9 +247,14 @@ class InstanceController extends Controller
             ]);
         }
 
-        $whatsappSession->update(['status' => 'disconnected']);
+        $whatsappSession->update([
+            'status' => 'logged_out',
+            // No longer linked — also stops the page showing "Reconnecting…" instead of the QR.
+            'phone_number' => null,
+            'last_disconnect_reason' => 'Logged out. Reconnect and scan a new QR code to link your phone again.',
+        ]);
 
-        return redirect()->route('instances.index')->with('status', 'Instance disconnected.');
+        return redirect()->route('instances.show', $whatsappSession)->with('status', 'Instance logged out.');
     }
 
     public function reconnect(Request $request, string $instance, WorkerClient $worker): RedirectResponse

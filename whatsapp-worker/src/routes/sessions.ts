@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireInternalSecret } from "../auth.js";
 import type { Config } from "../config.js";
 import { OUTGOING_TYPES, buildOutgoingContent, resolveMediaPath } from "../whatsapp/outgoingMessage.js";
-import { SessionNotActiveError, sendMessage, startSession, stopSession } from "../whatsapp/sessionManager.js";
+import { SessionNotActiveError, disconnectSession, sendMessage, startSession, stopSession } from "../whatsapp/sessionManager.js";
 
 const startBodySchema = z.object({
   instance_id: z.string().uuid(),
@@ -53,6 +53,20 @@ export async function sessionsRoute(app: FastifyInstance, config: Config) {
     }
   );
 
+  // Close the connection but keep the credentials (Reconnect = no QR).
+  app.post(
+    "/sessions/:instanceId/disconnect",
+    { onRequest: requireInternalSecret(config) },
+    async (request, reply) => {
+      const { instanceId } = request.params as { instanceId: string };
+
+      await disconnectSession(instanceId);
+
+      return reply.code(200).send({ disconnected: true });
+    }
+  );
+
+  // Log out completely and delete the credentials (Reconnect = new QR).
   app.delete(
     "/sessions/:instanceId",
     { onRequest: requireInternalSecret(config) },

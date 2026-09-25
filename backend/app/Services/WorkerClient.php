@@ -31,6 +31,15 @@ class WorkerClient
     }
 
     /**
+     * Asks the worker to close the session but keep its credentials, so a
+     * later Reconnect goes straight back in without a QR code.
+     */
+    public function disconnectSession(string $instanceId): void
+    {
+        $this->http()->post("/sessions/{$instanceId}/disconnect")->throw();
+    }
+
+    /**
      * Asks the worker to stop (log out) the session for this instance.
      */
     public function stopSession(string $instanceId): void

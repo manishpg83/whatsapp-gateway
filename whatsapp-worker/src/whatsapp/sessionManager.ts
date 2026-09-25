@@ -116,6 +116,15 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
     }
 
     if (connection === "close") {
+      // Ignore the close of a socket we already let go of on purpose
+      // (disconnectSession/stopSession remove it from the map first). Its
+      // close event fires asynchronously and could otherwise wipe out a
+      // brand-new socket from a quick "Reconnect", or report a status
+      // Laravel has already set itself.
+      if (sessions.get(instanceId)?.socket !== socket) {
+        return;
+      }
+
       sessions.delete(instanceId);
 
       // Baileys wraps the disconnect reason in a Boom error.
@@ -325,10 +334,26 @@ export async function sendMessage(instanceId: string, to: string, content: AnyMe
 }
 
 /**
- * Stops a running session (logs the device out on WhatsApp's side) and
+ * Closes a running session WITHOUT logging out: the device stays in the
+ * phone's "Linked devices" list and the saved credentials are kept, so a
+ * later "Reconnect" goes straight back in with no QR code.
+ */
+export async function disconnectSession(instanceId: string): Promise<void> {
+  const session = sessions.get(instanceId);
+
+  if (!session) {
+    return;
+  }
+
+  sessions.delete(instanceId);
+  await session.socket.end(undefined);
+}
+
+/**
+ * Logs out a session (removes the device from WhatsApp's side) and
  * forgets it. Always clears the saved credentials, whether or not a live
  * socket existed for this instance in this worker process — the intent
- * of "disconnect" is always "this instance is no longer linked", so a
+ * of "log out" is always "this instance is no longer linked", so a
  * later "Reconnect" should start a fresh pairing either way.
  */
 export async function stopSession(instanceId: string, config: Config): Promise<void> {

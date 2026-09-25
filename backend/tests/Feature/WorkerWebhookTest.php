@@ -90,6 +90,7 @@ class WorkerWebhookTest extends TestCase
         $instance->refresh();
         $this->assertSame('logged_out', $instance->status);
         $this->assertSame('Device removed from phone', $instance->last_disconnect_reason);
+        $this->assertNull($instance->phone_number);
     }
 
     public function test_webhook_rejects_a_missing_secret(): void

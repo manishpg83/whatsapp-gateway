@@ -195,6 +195,50 @@ class InstanceTest extends TestCase
             ->assertSee('Reconnect');
     }
 
+    public function test_disconnected_page_offers_both_reconnect_and_logout(): void
+    {
+        $user = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($user)->create(['status' => 'disconnected', 'phone_number' => '919876543210']);
+
+        $this->actingAs($user)->get(route('instances.show', $instance))
+            ->assertOk()
+            ->assertSee(route('instances.reconnect', $instance))
+            ->assertSee(route('instances.destroy', $instance));
+    }
+
+    public function test_logged_out_page_offers_only_reconnect(): void
+    {
+        $user = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($user)->create(['status' => 'logged_out']);
+
+        $this->actingAs($user)->get(route('instances.show', $instance))
+            ->assertOk()
+            ->assertSee(route('instances.reconnect', $instance))
+            ->assertDontSee('Log out this WhatsApp number?');
+    }
+
+    public function test_reconnecting_a_still_linked_instance_shows_no_qr_steps(): void
+    {
+        $user = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($user)->create(['status' => 'connecting', 'phone_number' => '919876543210']);
+
+        $this->actingAs($user)->get(route('instances.show', $instance))
+            ->assertOk()
+            ->assertSee('Reconnecting')
+            ->assertDontSee('Waiting for QR code');
+    }
+
+    public function test_connecting_a_new_instance_shows_qr_steps(): void
+    {
+        $user = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($user)->create(['status' => 'connecting', 'phone_number' => null]);
+
+        $this->actingAs($user)->get(route('instances.show', $instance))
+            ->assertOk()
+            ->assertSee('Waiting for QR code')
+            ->assertDontSee('Reconnecting');
+    }
+
     public function test_user_cannot_view_another_users_instance(): void
     {
         $owner = User::factory()->create();
@@ -223,6 +267,7 @@ class InstanceTest extends TestCase
         $intruder = User::factory()->create();
 
         $this->actingAs($intruder)->delete(route('instances.destroy', $instance))->assertNotFound();
+        $this->actingAs($intruder)->post(route('instances.disconnect', $instance))->assertNotFound();
         $this->assertSame('connected', $instance->fresh()->status);
     }
 
@@ -239,7 +284,24 @@ class InstanceTest extends TestCase
             ]);
     }
 
-    public function test_disconnect_calls_the_worker_and_updates_status(): void
+    public function test_disconnect_keeps_the_session_linked_and_updates_status(): void
+    {
+        Http::fake(['*' => Http::response(['disconnected' => true], 200)]);
+
+        $user = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($user)->connected()->create();
+
+        $this->actingAs($user)->post(route('instances.disconnect', $instance))
+            ->assertRedirect(route('instances.show', $instance));
+
+        $this->assertSame('disconnected', $instance->fresh()->status);
+
+        Http::assertSent(fn ($request) => $request->url() === "http://127.0.0.1:3001/sessions/{$instance->instance_id}/disconnect"
+            && $request->method() === 'POST');
+        Http::assertNotSent(fn ($request) => $request->method() === 'DELETE');
+    }
+
+    public function test_logout_calls_the_worker_and_updates_status(): void
     {
         Http::fake(['*' => Http::response(['stopped' => true], 200)]);
 
@@ -247,9 +309,10 @@ class InstanceTest extends TestCase
         $instance = WhatsappSession::factory()->for($user)->connected()->create();
 
         $this->actingAs($user)->delete(route('instances.destroy', $instance))
-            ->assertRedirect(route('instances.index'));
+            ->assertRedirect(route('instances.show', $instance));
 
-        $this->assertSame('disconnected', $instance->fresh()->status);
+        $this->assertSame('logged_out', $instance->fresh()->status);
+        $this->assertNull($instance->fresh()->phone_number);
 
         Http::assertSent(fn ($request) => $request->url() === "http://127.0.0.1:3001/sessions/{$instance->instance_id}"
             && $request->method() === 'DELETE');

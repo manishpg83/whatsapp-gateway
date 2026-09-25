@@ -62,7 +62,12 @@ class WorkerWebhookController extends Controller
 
         $session->update([
             'status' => $data['status'],
-            'phone_number' => $connected ? ($data['phone_number'] ?? null) : $session->phone_number,
+            // logged_out = unlinked, so forget the number (the next pairing sets it again).
+            'phone_number' => match ($data['status']) {
+                'connected' => $data['phone_number'] ?? null,
+                'logged_out' => null,
+                default => $session->phone_number,
+            },
             'connected_at' => $connected ? now() : $session->connected_at,
             'last_disconnect_reason' => $data['last_disconnect_reason'] ?? null,
             // A QR left over from before this connection/disconnect is stale either way.
