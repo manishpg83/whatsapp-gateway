@@ -1,181 +1,372 @@
-@extends('layouts.app')
+@extends('layouts.landing')
 
 @section('title', 'Home')
 
 @section('content')
-{{-- Hero --}}
-<div class="bg-wa-light rounded-4 p-4 p-md-5 mb-5 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-4">
-    <div>
-        <h1 class="display-6 fw-bold mb-3">WhatsApp messaging for your product, without the Business API paperwork</h1>
-        <p class="text-muted fs-5 mb-4" style="max-width: 40rem;">
-            Connect your own WhatsApp number, scan a QR code, and start sending &amp; receiving
-            messages through a simple REST API &mdash; live in minutes, not weeks of approval.
-        </p>
-        <div class="d-flex gap-2">
-            <a href="{{ route('register') }}" class="btn btn-primary btn-lg d-inline-flex align-items-center gap-2">
-                <i class="bi bi-rocket-takeoff"></i> Create your free account
-            </a>
-            <a href="{{ route('login') }}" class="btn btn-outline-secondary btn-lg">Log in</a>
-        </div>
+@php
+    // Deterministic little "QR code" for the hero's QR card (decorative only).
+    $qrCells = [];
+    for ($y = 0; $y < 17; $y++) {
+        for ($x = 0; $x < 17; $x++) {
+            $inFinder = ($x < 5 && $y < 5) || ($x > 11 && $y < 5) || ($x < 5 && $y > 11);
+            if (! $inFinder && (($x * 7 + $y * 13 + $x * $y) % 5) < 2) {
+                $qrCells[] = [$x, $y];
+            }
+        }
+    }
+@endphp
+
+{{-- ============================ HERO ============================ --}}
+<section class="lp-hero">
+    <div class="lp-hero-bg" aria-hidden="true">
+        <span class="lp-orb lp-orb-1"></span>
+        <span class="lp-orb lp-orb-2"></span>
+        <span class="lp-orb lp-orb-3"></span>
+        <span class="lp-grid-fade"></span>
     </div>
 
-    <div class="hero-illustration position-relative d-none d-md-block flex-shrink-0">
-        <div class="hero-blob hero-blob-1"></div>
-        <div class="hero-blob hero-blob-2"></div>
-        <div class="hero-phone mx-auto">
-            <i class="bi bi-phone fs-1"></i>
-            <span class="hero-phone-badge"><i class="bi bi-whatsapp"></i></span>
-        </div>
-    </div>
-</div>
+    <div class="container position-relative">
+        <div class="row align-items-center gy-5">
+            <div class="col-xl-6">
+                <span class="lp-eyebrow lp-hero-in" style="--d: 0ms;">
+                    <i class="bi bi-lightning-charge-fill"></i> Developer messaging platform
+                </span>
 
-{{-- How it works --}}
-<div class="card shadow-sm mb-5">
-    <div class="card-body d-flex align-items-center gap-3 border-bottom">
-        <div class="bg-wa-light text-primary rounded-circle p-2 fs-4 lh-1">
-            <i class="bi bi-signpost-2"></i>
-        </div>
-        <div>
-            <div class="fw-semibold">How it works</div>
-            <div class="text-muted small">Three steps between signing up and sending your first message.</div>
-        </div>
-    </div>
-    <ul class="list-group list-group-flush">
-        <li class="list-group-item d-flex align-items-center gap-3 py-3">
-            <span class="step-number step-number-1">1</span>
-            <span>
-                <span class="d-block fw-semibold">Create an instance and scan a QR code</span>
-                <span class="d-block text-muted small">Link your own WhatsApp number with the app you already use on your phone.</span>
-            </span>
-        </li>
-        <li class="list-group-item d-flex align-items-center gap-3 py-3">
-            <span class="step-number step-number-2">2</span>
-            <span>
-                <span class="d-block fw-semibold">Generate an API token</span>
-                <span class="d-block text-muted small">A cryptographically random token, shown once, scoped to that instance only.</span>
-            </span>
-        </li>
-        <li class="list-group-item d-flex align-items-center gap-3 py-3">
-            <span class="step-number step-number-3">3</span>
-            <span>
-                <span class="d-block fw-semibold">Send &amp; receive messages through the REST API</span>
-                <span class="d-block text-muted small">Call one endpoint to send; configure a webhook to receive replies.</span>
-            </span>
-        </li>
-    </ul>
-</div>
+                <h1 class="lp-hero-title lp-hero-in" style="--d: 80ms;">
+                    WhatsApp messaging for your product,
+                    <span class="lp-highlight">without the Business API paperwork</span>
+                </h1>
 
-{{-- Features --}}
-<div class="row g-3 mb-5">
-    <div class="col-md-3 col-sm-6">
-        <div class="card stat-card stat-card-green shadow-sm h-100">
-            <div class="card-body">
-                <div class="bg-wa-light text-primary rounded-3 p-2 fs-4 lh-1 d-inline-flex mb-2">
-                    <i class="bi bi-code-slash"></i>
-                </div>
-                <div class="fw-semibold">Simple REST API</div>
-                <div class="text-muted small">One endpoint to send a message, authenticated with a bearer token.</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="card stat-card stat-card-blue shadow-sm h-100">
-            <div class="card-body">
-                <div class="rounded-3 p-2 fs-4 lh-1 d-inline-flex mb-2" style="background-color: var(--wa-info-light); color: var(--wa-info);">
-                    <i class="bi bi-link-45deg"></i>
-                </div>
-                <div class="fw-semibold">Incoming webhooks</div>
-                <div class="text-muted small">Get replies delivered to your own endpoint, signed so you can verify them.</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="card stat-card stat-card-purple shadow-sm h-100">
-            <div class="card-body">
-                <div class="rounded-3 p-2 fs-4 lh-1 d-inline-flex mb-2" style="background-color: var(--wa-purple-light); color: var(--wa-purple);">
-                    <i class="bi bi-hdd-stack"></i>
-                </div>
-                <div class="fw-semibold">Multiple instances</div>
-                <div class="text-muted small">Connect more than one WhatsApp number, each fully independent.</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="card stat-card shadow-sm h-100" style="border-left-color: var(--wa-primary-dark);">
-            <div class="card-body">
-                <div class="bg-wa-light text-primary rounded-3 p-2 fs-4 lh-1 d-inline-flex mb-2">
-                    <i class="bi bi-speedometer2"></i>
-                </div>
-                <div class="fw-semibold">A real dashboard</div>
-                <div class="text-muted small">Manage instances, tokens, and usage without touching a terminal.</div>
-            </div>
-        </div>
-    </div>
-</div>
+                <p class="lp-hero-lead lp-hero-in" style="--d: 160ms;">
+                    Connect your own WhatsApp number, scan a QR code, and start sending &amp; receiving
+                    messages through a simple REST API &mdash; live in minutes, not weeks of approval.
+                </p>
 
-{{-- Pricing --}}
-<div class="mb-3">
-    <h2 class="h4 mb-1">Simple, transparent pricing</h2>
-    <p class="text-muted mb-0">Start free, upgrade whenever you outgrow it.</p>
-</div>
-<div class="row g-3 align-items-stretch mb-5">
-    @foreach ($plans as $key => $plan)
-        @php
-            $isPopular = ! empty($plan['popular']);
-            $tierIcon = match ($key) {
-                'free' => 'bi-gift',
-                'starter' => 'bi-lightning-charge',
-                'growth' => 'bi-graph-up-arrow',
-                default => 'bi-building',
-            };
-        @endphp
-        <div class="col-md-3 col-sm-6">
-            <div class="card shadow-sm h-100 position-relative {{ $isPopular ? 'border-primary border-2' : '' }}">
-                @if ($isPopular)
-                    <div class="badge text-bg-primary rounded-pill position-absolute top-0 start-50 translate-middle">Most popular</div>
-                @endif
-                <div class="card-body d-flex flex-column">
-                    <div class="text-primary fs-4 mb-2"><i class="bi {{ $tierIcon }}"></i></div>
-                    <div class="fw-semibold">{{ $plan['name'] }}</div>
-                    <p class="text-muted small mb-2">{{ $plan['description'] }}</p>
-                    <div class="h4 mb-3">
-                        @if ($plan['price'] > 0)
-                            &#8377;{{ number_format($plan['price']) }}<span class="fs-6 text-muted">/mo</span>
-                        @else
-                            Free
-                        @endif
+                <div class="d-flex flex-column flex-sm-row gap-3 lp-hero-in" style="--d: 240ms;">
+                    <a href="{{ route('register') }}" class="lp-btn lp-btn-primary lp-btn-lg">
+                        <i class="bi bi-rocket-takeoff"></i> Create your free account
+                        <i class="bi bi-arrow-right lp-btn-arrow"></i>
+                    </a>
+                    <a href="{{ route('login') }}" class="lp-btn lp-btn-ghost lp-btn-lg">Log in</a>
+                </div>
+
+                <ul class="lp-trust lp-hero-in" style="--d: 320ms;">
+                    <li><i class="bi bi-check-circle-fill"></i> No credit card required</li>
+                    <li><i class="bi bi-check-circle-fill"></i> Free plan available</li>
+                    <li><i class="bi bi-check-circle-fill"></i> Live in minutes</li>
+                </ul>
+            </div>
+
+            {{-- Hero graphic: phone chat + the pieces of the product around it
+                 (API call, webhook, QR pairing, usage chart). Decorative. --}}
+            <div class="col-xl-6">
+                <div class="lp-stage" aria-hidden="true">
+                    <svg class="lp-stage-lines" viewBox="0 0 560 560" preserveAspectRatio="none">
+                        <path d="M150 150 C 200 170, 210 210, 250 230" />
+                        <path d="M420 190 C 380 200, 370 230, 330 250" />
+                        <path d="M140 430 C 190 420, 210 390, 240 370" />
+                        <path d="M430 420 C 390 410, 370 390, 330 370" />
+                    </svg>
+
+                    {{-- Phone with a live-looking chat --}}
+                    <div class="lp-phone">
+                        <div class="lp-phone-notch"></div>
+                        <div class="lp-chat-head">
+                            <span class="lp-chat-avatar"><i class="bi bi-shop"></i></span>
+                            <span class="lh-sm">
+                                <span class="d-block fw-semibold">Acme Store</span>
+                                <span class="lp-chat-online">online</span>
+                            </span>
+                            <i class="bi bi-three-dots-vertical ms-auto"></i>
+                        </div>
+                        <div class="lp-chat-body">
+                            <div class="lp-bubble lp-bubble-in" style="--d: 700ms;">
+                                Hi! Is my order #4821 shipped?
+                                <span class="lp-bubble-time">10:24</span>
+                            </div>
+                            <div class="lp-bubble lp-bubble-out" style="--d: 1500ms;">
+                                Yes! &#x1F69A; It's on the way and arrives tomorrow.
+                                <span class="lp-bubble-time">10:24 <i class="bi bi-check2-all"></i></span>
+                                <span class="lp-bubble-tag"><i class="bi bi-code-slash"></i> sent via API</span>
+                            </div>
+                            <div class="lp-bubble lp-bubble-in" style="--d: 2400ms;">
+                                Great, thank you &#x1F64F;
+                                <span class="lp-bubble-time">10:25</span>
+                            </div>
+                            <div class="lp-typing" style="--d: 3100ms;"><span></span><span></span><span></span></div>
+                        </div>
+                        <div class="lp-chat-input">
+                            <span>Type a message</span>
+                            <span class="lp-chat-send"><i class="bi bi-send-fill"></i></span>
+                        </div>
                     </div>
-                    <ul class="list-unstyled small mb-3">
-                        <li class="mb-1"><i class="bi bi-check-circle-fill text-primary me-1"></i>{{ $plan['instances'] }} instance{{ $plan['instances'] > 1 ? 's' : '' }}</li>
-                        <li class="mb-1"><i class="bi bi-check-circle-fill text-primary me-1"></i>{{ number_format($plan['messages_per_month']) }} messages/mo</li>
-                        <li class="mb-1"><i class="bi bi-check-circle-fill text-primary me-1"></i>Full REST API access</li>
-                        <li class="mb-1"><i class="bi bi-check-circle-fill text-primary me-1"></i>Webhook delivery</li>
+
+                    {{-- API call --}}
+                    <div class="lp-float lp-float-api" style="--d: 300ms; --f: 7s;">
+                        <div class="lp-code-head">
+                            <span class="lp-method">POST</span>
+                            <span class="lp-path">/api/v1/messages/send</span>
+                            <span class="lp-ok">200</span>
+                        </div>
+<pre class="lp-code"><span class="k">"to"</span>: <span class="s">"919876543210"</span>,
+<span class="k">"message"</span>: <span class="s">"Yes! It's on the way&hellip;"</span></pre>
+                    </div>
+
+                    {{-- Webhook --}}
+                    <div class="lp-float lp-float-webhook" style="--d: 500ms; --f: 8s;">
+                        <span class="lp-float-icon lp-icon-blue"><i class="bi bi-diagram-3"></i></span>
+                        <span class="lh-sm">
+                            <span class="d-block fw-semibold">Webhook delivered</span>
+                            <span class="lp-float-sub">message.received &middot; <span class="text-success fw-semibold">200 OK</span></span>
+                        </span>
+                    </div>
+
+                    {{-- QR pairing --}}
+                    <div class="lp-float lp-float-qr" style="--d: 700ms; --f: 9s;">
+                        <svg class="lp-qr" viewBox="0 0 17 17" shape-rendering="crispEdges">
+                            @foreach ([[0, 0], [12, 0], [0, 12]] as [$fx, $fy])
+                                <rect x="{{ $fx }}" y="{{ $fy }}" width="5" height="5" rx="1" class="lp-qr-ring" />
+                                <rect x="{{ $fx + 1.5 }}" y="{{ $fy + 1.5 }}" width="2" height="2" rx=".4" />
+                            @endforeach
+                            @foreach ($qrCells as [$x, $y])
+                                <rect x="{{ $x }}" y="{{ $y }}" width="1" height="1" />
+                            @endforeach
+                        </svg>
+                        <span class="lh-sm">
+                            <span class="d-block fw-semibold">Scan to connect</span>
+                            <span class="lp-float-sub text-success"><i class="bi bi-check-circle-fill"></i> Connected</span>
+                        </span>
+                    </div>
+
+                    {{-- Usage chart --}}
+                    <div class="lp-float lp-float-chart" style="--d: 900ms; --f: 7.5s;">
+                        <div class="d-flex justify-content-between align-items-baseline mb-2">
+                            <span class="lp-float-sub">Messages this week</span>
+                            <span class="fw-bold" data-count-to="1284">1,284</span>
+                        </div>
+                        <div class="lp-bars">
+                            @foreach ([40, 62, 48, 78, 58, 92, 72] as $i => $h)
+                                <span style="--h: {{ $h }}%; --i: {{ $i }};"></span>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div class="lp-float lp-float-wa" style="--d: 200ms; --f: 6s;"><i class="bi bi-whatsapp"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ======================== HOW IT WORKS ======================== --}}
+<section class="lp-section" id="how-it-works">
+    <div class="container">
+        <div class="lp-section-head" data-reveal>
+            <span class="lp-eyebrow"><i class="bi bi-signpost-2"></i> How it works</span>
+            <h2 class="lp-h2">From sign-up to your first message in four steps</h2>
+            <p class="lp-sub">No approval process, no new phone number: just the WhatsApp you already use.</p>
+        </div>
+
+        <div class="lp-steps" data-animate>
+            <div class="lp-steps-line" aria-hidden="true"><span></span></div>
+
+            @foreach ([
+                ['bi-qr-code-scan', 'Create an instance and scan a QR code', 'Link your own WhatsApp number with the app you already use on your phone.'],
+                ['bi-key', 'Generate an API token', 'A cryptographically random token, shown once, scoped to that instance only.'],
+                ['bi-send', 'Send messages through the REST API', 'Call one endpoint to send text, images, video, voice notes or documents.'],
+                ['bi-diagram-3', 'Receive replies & manage', 'Configure a webhook to receive replies, and manage everything from the dashboard.'],
+            ] as $i => [$icon, $title, $text])
+                <div class="lp-step" data-reveal style="--i: {{ $i }};">
+                    <div class="lp-step-top">
+                        <span class="lp-step-num">{{ sprintf('%02d', $i + 1) }}</span>
+                        <span class="lp-step-icon"><i class="bi {{ $icon }}"></i></span>
+                    </div>
+                    <h3 class="lp-step-title">{{ $title }}</h3>
+                    <p class="lp-step-text">{{ $text }}</p>
+                </div>
+            @endforeach
+        </div>
+    </div>
+</section>
+
+{{-- ========================== FEATURES ========================== --}}
+<section class="lp-section lp-section-ice" id="features">
+    <div class="container">
+        <div class="lp-section-head" data-reveal>
+            <span class="lp-eyebrow"><i class="bi bi-stars"></i> Features</span>
+            <h2 class="lp-h2">Everything you need to put <span class="lp-highlight">WhatsApp in your product</span></h2>
+            <p class="lp-sub">Built for developers and businesses who want a simple, reliable messaging API.</p>
+        </div>
+
+        <div class="row g-4">
+            @foreach ([
+                ['bi-code-slash', 'green', 'Simple REST API', 'One endpoint to send a message, authenticated with a bearer token.'],
+                ['bi-link-45deg', 'blue', 'Incoming webhooks', 'Get replies delivered to your own endpoint, signed so you can verify them.'],
+                ['bi-hdd-stack', 'purple', 'Multiple instances', 'Connect more than one WhatsApp number, each fully independent.'],
+                ['bi-speedometer2', 'teal', 'A real dashboard', 'Manage instances, tokens, and usage without touching a terminal.'],
+            ] as $i => [$icon, $tone, $title, $text])
+                <div class="col-sm-6 col-lg-3">
+                    <div class="lp-feature" data-reveal style="--i: {{ $i }};">
+                        <span class="lp-feature-icon lp-tone-{{ $tone }}"><i class="bi {{ $icon }}"></i></span>
+                        <h3 class="lp-feature-title">{{ $title }}</h3>
+                        <p class="lp-feature-text">{{ $text }}</p>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+
+        {{-- Showcase: the dashboard on a laptop --}}
+        <div class="lp-showcase">
+            <div class="row align-items-center gy-5">
+                <div class="col-lg-5" data-reveal>
+                    <span class="lp-eyebrow"><i class="bi bi-window-sidebar"></i> The dashboard</span>
+                    <h2 class="lp-h2">See every number, message and webhook in one place</h2>
+                    <ul class="lp-checklist">
+                        <li><i class="bi bi-qr-code"></i><span><strong>Connect with a QR code.</strong> Disconnect and reconnect without scanning again.</span></li>
+                        <li><i class="bi bi-shield-lock"></i><span><strong>Tokens shown once.</strong> Stored hashed and revocable any time.</span></li>
+                        <li><i class="bi bi-check2-all"></i><span><strong>Delivery &amp; read status</strong> for every message you send.</span></li>
+                        <li><i class="bi bi-activity"></i><span><strong>Connection history</strong> and an email if a number goes offline.</span></li>
                     </ul>
-                    <div class="mt-auto">
-                        <a href="{{ route('register') }}" class="btn btn-outline-primary btn-sm w-100">Get started</a>
+                </div>
+
+                <div class="col-lg-7" data-reveal style="--i: 1;">
+                    <div class="lp-laptop" aria-hidden="true">
+                        <div class="lp-laptop-screen">
+                            <div class="lp-app">
+                                <div class="lp-app-side">
+                                    <span class="lp-app-logo"><i class="bi bi-whatsapp"></i></span>
+                                    <span class="active"><i class="bi bi-house-door"></i></span>
+                                    <span><i class="bi bi-hdd-stack"></i></span>
+                                    <span><i class="bi bi-chat-left-text"></i></span>
+                                    <span><i class="bi bi-code-slash"></i></span>
+                                </div>
+                                <div class="lp-app-main">
+                                    <div class="lp-app-stats">
+                                        <div><span>Instances</span><strong data-count-to="3">3</strong></div>
+                                        <div><span>Sent</span><strong data-count-to="1284">1,284</strong></div>
+                                        <div><span>Received</span><strong data-count-to="467">467</strong></div>
+                                    </div>
+                                    <div class="lp-app-chart">
+                                        <svg viewBox="0 0 300 70" preserveAspectRatio="none">
+                                            <defs>
+                                                <linearGradient id="lpArea" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="0" stop-color="#10b981" stop-opacity=".28" />
+                                                    <stop offset="1" stop-color="#10b981" stop-opacity="0" />
+                                                </linearGradient>
+                                            </defs>
+                                            <path class="lp-area" d="M0 55 L40 48 L80 52 L120 34 L160 40 L200 22 L240 28 L300 10 L300 70 L0 70 Z" fill="url(#lpArea)" />
+                                            <path class="lp-line" d="M0 55 L40 48 L80 52 L120 34 L160 40 L200 22 L240 28 L300 10" />
+                                        </svg>
+                                    </div>
+                                    <div class="lp-app-rows">
+                                        <div><span class="lp-dot ok"></span>Sales <em>Connected</em></div>
+                                        <div><span class="lp-dot ok"></span>Support <em>Connected</em></div>
+                                        <div><span class="lp-dot warn"></span>Marketing <em class="warn">Reconnecting&hellip;</em></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lp-laptop-base"></div>
+                        <div class="lp-float lp-laptop-badge" style="--f: 7s;">
+                            <span class="lp-float-icon lp-icon-green"><i class="bi bi-check2-all"></i></span>
+                            <span class="lh-sm"><span class="d-block fw-semibold">Message read</span><span class="lp-float-sub">just now</span></span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    @endforeach
-</div>
-
-{{-- Unofficial-integration disclosure --}}
-<div class="alert alert-secondary d-flex align-items-start gap-2 mb-5">
-    <i class="bi bi-info-circle mt-1"></i>
-    <div class="small">
-        This is an unofficial WhatsApp Web-style integration, not affiliated with or endorsed by
-        WhatsApp/Meta &mdash; not the official WhatsApp Business Cloud API. See our
-        <a href="{{ route('terms') }}">Terms of Service</a> for details.
     </div>
-</div>
+</section>
 
-{{-- Final CTA --}}
-<div class="bg-wa-light rounded-4 p-4 p-md-5 text-center mb-3">
-    <h2 class="h4 mb-2">Ready to connect your WhatsApp number?</h2>
-    <p class="text-muted mb-4">No credit card required to get started on the free plan.</p>
-    <a href="{{ route('register') }}" class="btn btn-primary btn-lg d-inline-flex align-items-center gap-2">
-        <i class="bi bi-rocket-takeoff"></i> Create your free account
-    </a>
-</div>
+{{-- ========================== PRICING =========================== --}}
+<section class="lp-section" id="pricing">
+    <div class="container">
+        <div class="lp-section-head" data-reveal>
+            <span class="lp-eyebrow"><i class="bi bi-tag"></i> Pricing</span>
+            <h2 class="lp-h2">Simple, transparent pricing</h2>
+            <p class="lp-sub">Start free, upgrade whenever you outgrow it.</p>
+        </div>
+
+        <div class="row g-4 align-items-stretch">
+            @foreach ($plans as $key => $plan)
+                @php
+                    $isPopular = ! empty($plan['popular']);
+                    $tierIcon = match ($key) {
+                        'free' => 'bi-gift',
+                        'starter' => 'bi-lightning-charge',
+                        'growth' => 'bi-graph-up-arrow',
+                        default => 'bi-building',
+                    };
+                @endphp
+                <div class="col-sm-6 col-xl-3">
+                    <div class="lp-price {{ $isPopular ? 'lp-price-popular' : '' }}" data-reveal style="--i: {{ $loop->index }};">
+                        @if ($isPopular)
+                            <span class="lp-price-badge"><i class="bi bi-star-fill"></i> Most popular</span>
+                        @endif
+                        <span class="lp-price-icon"><i class="bi {{ $tierIcon }}"></i></span>
+                        <div class="lp-price-name">{{ $plan['name'] }}</div>
+                        <p class="lp-price-desc">{{ $plan['description'] }}</p>
+                        <div class="lp-price-amount">
+                            @if ($plan['price'] > 0)
+                                &#8377;{{ number_format($plan['price']) }}<span>/mo</span>
+                            @else
+                                Free
+                            @endif
+                        </div>
+                        <ul class="lp-price-list">
+                            <li><i class="bi bi-check-lg"></i>{{ $plan['instances'] }} instance{{ $plan['instances'] > 1 ? 's' : '' }}</li>
+                            <li><i class="bi bi-check-lg"></i>{{ number_format($plan['messages_per_month']) }} messages/mo</li>
+                            <li><i class="bi bi-check-lg"></i>Full REST API access</li>
+                            <li><i class="bi bi-check-lg"></i>Webhook delivery</li>
+                        </ul>
+                        <a href="{{ route('register') }}" class="lp-btn {{ $isPopular ? 'lp-btn-primary' : 'lp-btn-outline' }} w-100 mt-auto">Get started</a>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+
+        {{-- Unofficial-integration disclosure --}}
+        <div class="lp-note" data-reveal>
+            <i class="bi bi-info-circle"></i>
+            <div>
+                This is an unofficial WhatsApp Web-style integration, not affiliated with or endorsed by
+                WhatsApp/Meta &mdash; not the official WhatsApp Business Cloud API. See our
+                <a href="{{ route('terms') }}">Terms of Service</a> for details.
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ========================== FINAL CTA ========================= --}}
+<section class="lp-section pt-0">
+    <div class="container">
+        <div class="lp-cta" data-reveal>
+            <svg class="lp-cta-curves" viewBox="0 0 1200 400" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M-20 320 C 200 200, 380 380, 620 260 S 1000 120, 1220 220" />
+                <path d="M-20 90 C 240 20, 420 170, 700 90 S 1060 10, 1220 60" />
+            </svg>
+
+            <div class="row align-items-center gy-4 position-relative">
+                <div class="col-lg-5 order-lg-2">
+                    <div class="lp-cta-art" aria-hidden="true">
+                        <span class="lp-cta-wa lp-float" style="--f: 6s;"><i class="bi bi-whatsapp"></i></span>
+                        <div class="lp-cta-card lp-float" style="--f: 8s;">
+                            <span class="lp-float-icon lp-icon-green"><i class="bi bi-plug"></i></span>
+                            <span class="lh-sm"><span class="d-block fw-semibold">Instance connected</span><span class="lp-float-sub">Ready to send</span></span>
+                        </div>
+                        <div class="lp-cta-bubble lp-float" style="--f: 7s;">Your first message is one API call away &#x1F44B;</div>
+                    </div>
+                </div>
+                <div class="col-lg-7 order-lg-1">
+                    <h2 class="lp-h2 mb-2">Ready to connect your WhatsApp number?</h2>
+                    <p class="lp-sub mb-4">No credit card required to get started on the free plan.</p>
+                    <a href="{{ route('register') }}" class="lp-btn lp-btn-primary lp-btn-lg">
+                        <i class="bi bi-rocket-takeoff"></i> Create your free account
+                        <i class="bi bi-arrow-right lp-btn-arrow"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 @endsection
