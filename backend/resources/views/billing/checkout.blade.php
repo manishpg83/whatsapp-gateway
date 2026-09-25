@@ -4,18 +4,29 @@
 
 @section('content')
 <div class="row justify-content-center">
-    <div class="col-md-6 text-center">
-        <div class="card shadow-sm">
-            <div class="card-body p-5">
-                <div class="bg-wa-light text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3 fs-2" style="width: 72px; height: 72px;">
-                    <i class="bi bi-shield-lock"></i>
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm text-center bl-checkout db-in">
+            <div class="card-body p-4 p-sm-5">
+                <div class="bl-checkout-art mx-auto mb-4" aria-hidden="true">
+                    <span class="bl-checkout-orbit"></span>
+                    <span class="bl-checkout-icon"><i class="bi bi-shield-lock"></i></span>
                 </div>
-                <h1 class="h4 mb-3">Redirecting to secure checkout&hellip;</h1>
-                <p class="text-muted">Cashfree will ask you to authorize the recurring payment (sandbox/test mode — no real money moves).</p>
+                <h1 class="h4 mb-2">Redirecting to secure checkout&hellip;</h1>
+                <p class="text-muted mb-4">Cashfree will ask you to authorize the recurring payment (sandbox/test mode — no real money moves).</p>
+
+                <ol class="bl-checkout-steps">
+                    <li class="done"><i class="bi bi-check-circle-fill"></i>Plan selected</li>
+                    <li class="now"><span class="spinner-border spinner-border-sm"></span>Opening Cashfree</li>
+                    <li><i class="bi bi-circle"></i>Authorize payment</li>
+                </ol>
+
                 <div id="checkout-error" class="alert alert-danger d-none"></div>
                 <button id="checkout-button" class="btn btn-primary d-inline-flex align-items-center gap-2 mx-auto">
                     <i class="bi bi-arrow-right-circle"></i> Continue to checkout
                 </button>
+                <div class="mt-3">
+                    <a href="{{ route('billing.index') }}" class="small text-muted text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Back to billing</a>
+                </div>
             </div>
         </div>
     </div>

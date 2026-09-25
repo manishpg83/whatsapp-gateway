@@ -594,6 +594,11 @@ html:has(body.landing) {
 .lp-float-api {
     top: 36px;
     left: -44px;
+}
+
+/* Dark "API request" card (hero + auth panel). */
+.lp-float-api,
+.lp-code-card {
     width: 250px;
     display: block;
     padding: 0;
@@ -1665,5 +1670,382 @@ html:has(body.landing) {
 
     .lp-area {
         opacity: 1;
+    }
+}
+
+/* ================================================================
+ * Auth pages (layouts/auth.blade.php): login, register, forgot /
+ * reset password, verify email. Form on the left, brand panel on the
+ * right at lg+. Reuses the landing tokens, buttons and chat pieces.
+ * ================================================================ */
+
+.lp-auth {
+    /* Bootstrap form controls and the password "eye" button read this. */
+    --bs-border-radius: 12px;
+}
+
+.lp-auth-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 100vh;
+}
+
+.lp-auth-main {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 24px clamp(20px, 5vw, 56px);
+    background:
+        radial-gradient(600px 320px at 100% 0%, rgba(16, 185, 129, 0.1), transparent 60%),
+        radial-gradient(520px 320px at 0% 100%, rgba(59, 130, 246, 0.08), transparent 60%),
+        #f7fbff;
+}
+
+.lp-auth-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.lp-auth-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--lp-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.lp-auth-back:hover {
+    color: var(--lp-navy);
+}
+
+.lp-auth-back i {
+    transition: transform 0.25s var(--lp-ease);
+}
+
+.lp-auth-back:hover i {
+    transform: translateX(-3px);
+}
+
+.lp-auth-form-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 0;
+}
+
+.lp-auth-form {
+    width: 100%;
+    max-width: 440px;
+    animation: lp-rise 0.8s var(--lp-ease) both;
+}
+
+.lp-auth-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    font-size: 0.82rem;
+    color: var(--lp-muted);
+}
+
+.lp-auth-foot a {
+    color: var(--lp-muted);
+    text-decoration: none;
+}
+
+.lp-auth-foot a:hover {
+    color: var(--lp-navy);
+}
+
+/* ---- Page heading (icon, title, subtitle) */
+
+.lp-auth-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    color: var(--lp-green);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.06));
+}
+
+.lp-auth-icon.lp-tone-blue {
+    color: var(--lp-blue);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.06));
+}
+
+.lp-auth-title {
+    font-size: clamp(1.7rem, 3vw, 2.1rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    margin-bottom: 0.5rem;
+}
+
+.lp-auth-sub {
+    color: var(--lp-muted);
+    margin-bottom: 2rem;
+}
+
+.lp-auth-switch {
+    text-align: center;
+    color: var(--lp-muted);
+    font-size: 0.93rem;
+    margin: 1.75rem 0 0;
+}
+
+/* ---- Form controls */
+
+.lp-auth .form-label {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--lp-navy);
+    margin-bottom: 0.4rem;
+}
+
+.lp-auth .form-control {
+    padding: 0.8rem 1rem;
+    font-size: 0.97rem;
+    color: var(--lp-navy);
+    background-color: #fff;
+    border-color: rgba(15, 40, 80, 0.14);
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.lp-auth .form-control::placeholder {
+    color: #9aa7b8;
+}
+
+.lp-auth .form-control:focus {
+    border-color: var(--lp-green-2);
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+}
+
+.lp-auth .form-control.is-invalid:focus {
+    box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.15);
+}
+
+/* Password "eye" button: blends into the field. */
+.lp-auth .input-group .btn-outline-secondary {
+    color: var(--lp-muted);
+    background-color: #fff;
+    border-color: rgba(15, 40, 80, 0.14);
+    padding-inline: 0.95rem;
+}
+
+.lp-auth .input-group .btn-outline-secondary:hover {
+    color: var(--lp-navy);
+    background-color: var(--lp-ice);
+}
+
+.lp-auth .form-check-input {
+    border-color: rgba(15, 40, 80, 0.25);
+}
+
+.lp-auth .form-check-input:checked {
+    background-color: var(--lp-green);
+    border-color: var(--lp-green);
+}
+
+.lp-auth .form-check-input:focus {
+    border-color: var(--lp-green-2);
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+}
+
+.lp-auth .form-text {
+    color: var(--lp-muted);
+}
+
+.lp-auth-form a:not(.lp-btn) {
+    color: var(--lp-green);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.lp-auth-form a:not(.lp-btn):hover {
+    text-decoration: underline;
+}
+
+.lp-auth-form .lp-btn[type="submit"] {
+    width: 100%;
+    padding-block: 0.9rem;
+    font-size: 1rem;
+}
+
+.lp-auth-alert {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    padding: 0.85rem 1rem;
+    margin-bottom: 1.5rem;
+    border-radius: 14px;
+    font-size: 0.92rem;
+}
+
+.lp-auth-alert i {
+    margin-top: 0.1rem;
+}
+
+.lp-auth-alert-success {
+    color: #065f46;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+}
+
+.lp-auth-alert-danger {
+    color: #991b1b;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+}
+
+/* ---- Brand panel */
+
+.lp-auth-aside {
+    display: none;
+}
+
+@media (min-width: 992px) {
+    .lp-auth-shell {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .lp-auth-main {
+        background: #fff;
+    }
+
+    .lp-auth-aside {
+        position: sticky;
+        top: 16px;
+        height: calc(100vh - 32px);
+        margin: 16px 16px 16px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 40px;
+        overflow: hidden;
+        border-radius: 28px;
+        background:
+            radial-gradient(600px 360px at 90% 5%, rgba(59, 130, 246, 0.14), transparent 60%),
+            radial-gradient(600px 360px at 5% 95%, rgba(16, 185, 129, 0.2), transparent 60%),
+            linear-gradient(135deg, #eef7ff 0%, #e8f8f1 100%);
+    }
+}
+
+.lp-auth-aside-inner {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 520px;
+    text-align: center;
+}
+
+.lp-auth-art {
+    position: relative;
+    height: 420px;
+    margin-bottom: 36px;
+}
+
+.lp-auth-phone {
+    position: absolute;
+    top: 0;
+    left: 58%;
+    width: 236px;
+    height: 420px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    padding: 11px;
+    overflow: hidden;
+    background: #fff;
+    border-radius: 38px;
+    border: 1px solid rgba(15, 40, 80, 0.08);
+    box-shadow: var(--lp-shadow-lg), inset 0 0 0 6px #f4f7fb;
+    text-align: left;
+    animation: lp-phone-in 1.1s var(--lp-ease) both;
+}
+
+.lp-auth-phone .lp-chat-head {
+    border-radius: 28px 28px 0 0;
+}
+
+.lp-auth-phone .lp-chat-body {
+    border-radius: 0 0 28px 28px;
+}
+
+.lp-auth-art .lp-float {
+    text-align: left;
+}
+
+.lp-auth-card-api {
+    top: 44px;
+    left: -24px;
+    width: 226px;
+}
+
+.lp-auth-card-webhook {
+    right: -20px;
+    bottom: 96px;
+}
+
+.lp-auth-card-connected {
+    left: 0;
+    bottom: 12px;
+}
+
+.lp-auth-aside-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.25;
+    margin: 0 auto 1.25rem;
+    max-width: 440px;
+}
+
+.lp-auth-aside .lp-trust {
+    margin-top: 0;
+}
+
+/* Narrow laptops: the panel is too tight for the side cards. */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+    .lp-auth-card-api,
+    .lp-auth-card-webhook {
+        display: none;
+    }
+
+    .lp-auth-phone {
+        left: 50%;
+    }
+
+    .lp-auth-card-connected {
+        left: 50%;
+        bottom: 20px;
+        translate: -50% 0;
+        animation: lp-card-in 0.9s var(--lp-ease) both;
+    }
+}
+
+/* Short screens: shrink the art so the title still fits. */
+@media (min-width: 992px) and (max-height: 760px) {
+    .lp-auth-art {
+        height: 340px;
+    }
+
+    .lp-auth-phone {
+        width: 200px;
+        height: 340px;
+    }
+
+    .lp-auth-phone .lp-typing {
+        display: none;
     }
 }

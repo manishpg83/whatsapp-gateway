@@ -1,0 +1,408 @@
+/*
+ * Messages page (messages/index.blade.php). Classes start with ms-.
+ * Uses db-in / count-up (dashboard.css) and the empty-state rings
+ * (instances.css). Motion stops under prefers-reduced-motion (bottom).
+ */
+
+.ms-head-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    color: var(--wa-primary);
+    background: var(--wa-primary-light);
+}
+
+/* ---- Summary tiles */
+
+.ms-tile {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem 1.1rem;
+    text-decoration: none;
+    color: var(--wa-dark);
+    background: #fff;
+    border: 1px solid rgba(16, 35, 28, 0.08);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    transition: transform 0.3s var(--db-ease), box-shadow 0.3s var(--db-ease), border-color 0.3s;
+}
+
+.ms-tile:hover {
+    color: var(--wa-dark);
+    transform: translateY(-3px);
+    box-shadow: 0 14px 28px -18px rgba(16, 35, 28, 0.4);
+}
+
+.ms-tile.active {
+    border-color: var(--ms-tone);
+    box-shadow: 0 0 0 3px var(--ms-tone-soft);
+}
+
+.ms-tile-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: var(--ms-tone);
+    background: var(--ms-tone-soft);
+    transition: transform 0.4s var(--db-ease);
+}
+
+.ms-tile:hover .ms-tile-icon {
+    transform: rotate(-8deg) scale(1.05);
+}
+
+.ms-tile-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6c757d;
+}
+
+.ms-tile-value {
+    display: block;
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.ms-tone-green {
+    --ms-tone: #0b8457;
+    --ms-tone-soft: rgba(16, 185, 129, 0.13);
+}
+
+.ms-tone-blue {
+    --ms-tone: #3b82f6;
+    --ms-tone-soft: rgba(59, 130, 246, 0.13);
+}
+
+.ms-tone-purple {
+    --ms-tone: #8b5cf6;
+    --ms-tone-soft: rgba(139, 92, 246, 0.13);
+}
+
+.ms-tone-red {
+    --ms-tone: #dc2626;
+    --ms-tone-soft: rgba(239, 68, 68, 0.12);
+}
+
+/* ---- Filters */
+
+.ms-seg {
+    display: inline-flex;
+    padding: 3px;
+    gap: 2px;
+    background: #f1f5f3;
+    border-radius: 10px;
+}
+
+.ms-seg-btn {
+    padding: 0.3rem 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #5c6b66;
+    text-decoration: none;
+    border-radius: 8px;
+    white-space: nowrap;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.ms-seg-btn:hover {
+    color: var(--wa-dark);
+}
+
+.ms-seg-btn.active {
+    color: var(--wa-dark);
+    font-weight: 600;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(16, 35, 28, 0.15);
+}
+
+.ms-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.4rem 0.2rem 0.7rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--wa-primary-dark);
+    background: var(--wa-primary-light);
+    border-radius: 999px;
+    transition: background-color 0.2s;
+}
+
+.ms-chip:hover {
+    color: #b91c1c;
+    background: #fee2e2;
+}
+
+/* ---- List */
+
+.ms-day {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.55rem 1.25rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--wa-dark);
+    background: #f7faf9;
+    border-bottom: 1px solid rgba(16, 35, 28, 0.06);
+}
+
+.ms-row {
+    border-bottom: 1px solid rgba(16, 35, 28, 0.06);
+    animation: db-rise 0.5s var(--db-ease) both;
+    animation-delay: calc(350ms + var(--i, 0) * 45ms);
+}
+
+.ms-row-main {
+    display: grid;
+    grid-template-columns: auto minmax(140px, 200px) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1.25rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.ms-row-main:hover {
+    background: #fafdfb;
+}
+
+.ms-row-main:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.45);
+}
+
+.ms-row-who {
+    min-width: 0;
+    line-height: 1.3;
+}
+
+.ms-instance {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    max-width: 100%;
+    font-size: 0.78rem;
+    color: #6c757d;
+    text-decoration: none;
+}
+
+.ms-instance:hover {
+    color: var(--wa-primary);
+}
+
+.ms-row-content {
+    min-width: 0;
+}
+
+/* The compact content partial sets its own max-widths for table cells;
+   in this grid the column itself decides the width. */
+.ms-row-content > span,
+.ms-row-content > div {
+    max-width: 100% !important;
+}
+
+.ms-row-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    white-space: nowrap;
+}
+
+.ms-time {
+    font-size: 0.8rem;
+    color: #6c757d;
+    font-variant-numeric: tabular-nums;
+}
+
+.ms-chevron {
+    color: #adb5bd;
+    transition: transform 0.3s var(--db-ease);
+}
+
+.ms-row-main[aria-expanded='true'] {
+    background: #f7faf9;
+}
+
+.ms-row-main[aria-expanded='true'] .ms-chevron {
+    transform: rotate(180deg);
+    color: var(--wa-primary);
+}
+
+/* ---- Expanded detail: the message as a chat bubble + timestamps */
+
+.ms-detail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem 2rem;
+    align-items: flex-start;
+    padding: 0.5rem 1.25rem 1.25rem 4.1rem;
+    background: #f7faf9;
+}
+
+.ms-detail-bubble {
+    position: relative;
+    max-width: min(460px, 100%);
+    padding: 0.75rem 0.9rem;
+    font-size: 0.92rem;
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(16, 35, 28, 0.08);
+}
+
+.ms-detail-bubble.in {
+    background: #fff;
+    border-top-left-radius: 4px;
+}
+
+.ms-detail-bubble.out {
+    background: #d9fdd3;
+    border-top-left-radius: 4px;
+}
+
+.ms-detail-bubble img,
+.ms-detail-bubble video,
+.ms-detail-bubble audio {
+    max-width: 100% !important;
+}
+
+.ms-detail-meta {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0;
+    font-size: 0.82rem;
+    min-width: 0;
+}
+
+.ms-detail-meta > div {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.ms-detail-meta dt {
+    width: 84px;
+    flex-shrink: 0;
+    font-weight: 400;
+    color: #6c757d;
+}
+
+.ms-detail-meta dd {
+    margin: 0;
+    color: var(--wa-dark);
+    min-width: 0;
+}
+
+/* ---- Tablets: number + meta on the first line, content below. */
+
+@media (max-width: 991.98px) {
+    .ms-row-main {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-areas:
+            'icon who meta'
+            'icon content content';
+        row-gap: 0.4rem;
+        column-gap: 0.85rem;
+    }
+
+    .ms-row-main > .direction-bubble {
+        grid-area: icon;
+        align-self: start;
+    }
+
+    .ms-row-who {
+        grid-area: who;
+    }
+
+    .ms-row-content {
+        grid-area: content;
+    }
+
+    .ms-row-meta {
+        grid-area: meta;
+        align-self: start;
+    }
+}
+
+/* ---- Phones */
+
+@media (max-width: 575.98px) {
+    .ms-tile {
+        padding: 0.8rem;
+        gap: 0.65rem;
+    }
+
+    .ms-tile-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+
+    .ms-tile-value {
+        font-size: 1.3rem;
+    }
+
+    .ms-seg {
+        display: flex;
+    }
+
+    .ms-seg-btn {
+        flex: 1;
+        text-align: center;
+    }
+
+    .ms-row-main {
+        padding: 0.8rem 1rem;
+    }
+
+    .ms-row-meta {
+        gap: 0.5rem;
+    }
+
+    /* Status badge moves under the number on very small screens. */
+    .ms-row-meta .badge {
+        font-size: 0.68rem;
+    }
+
+    .ms-day {
+        padding: 0.5rem 1rem;
+    }
+
+    .ms-detail {
+        padding: 0.25rem 1rem 1rem;
+        flex-direction: column;
+    }
+
+    .ms-detail-meta dt {
+        width: 76px;
+    }
+}
+
+/* Pagination: wrap instead of overflowing on phones. */
+.ms-pagination .pagination {
+    flex-wrap: wrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [class*='ms-'],
+    [class*='ms-']::before,
+    [class*='ms-']::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}

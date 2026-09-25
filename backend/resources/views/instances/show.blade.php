@@ -10,23 +10,56 @@
     // it), so Reconnect goes straight back in — no QR steps to show.
     $isResuming = $instance->status === 'connecting' && $instance->phone_number;
     $lastDelivery = $webhookDeliveries->first();
+
+    // Header status pill (same look as the instances list).
+    [$pillLabel, $pillTone] = match (true) {
+        $isConnected => ['Connected', 'green'],
+        $isResuming => ['Reconnecting', 'amber'],
+        $instance->status === 'qr_pending' => ['Waiting for QR scan', 'amber'],
+        $isWaiting => ['Connecting', 'amber'],
+        $instance->status === 'logged_out' => ['Logged out', 'red'],
+        default => ['Disconnected', 'grey'],
+    };
+
+    // In-page section links (only the sections this page actually shows).
+    $sections = array_filter([
+        'instance-status' => ['bi-activity', 'Status'],
+        'send-test' => $isConnected ? ['bi-send', 'Test message'] : null,
+        'credentials' => ['bi-key', 'API credentials'],
+        'webhook' => ['bi-diagram-3', 'Webhook'],
+        'recent-messages' => ['bi-chat-left-text', 'Messages'],
+        'connection-history' => ['bi-clock-history', 'History'],
+    ]);
 @endphp
 
 <div class="row justify-content-center">
     <div class="col-xl-11">
 
         {{-- Page header --}}
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <nav aria-label="breadcrumb" class="db-in">
+            <ol class="breadcrumb ish-crumbs mb-2">
+                <li class="breadcrumb-item"><a href="{{ route('instances.index') }}"><i class="bi bi-hdd-stack me-1"></i>Instances</a></li>
+                <li class="breadcrumb-item active text-truncate" aria-current="page">{{ $instance->name }}</li>
+            </ol>
+        </nav>
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-3 db-in" style="--i: 1;">
             <div class="d-flex align-items-center gap-3" style="min-width: 0;">
-                <span class="bg-wa-light text-primary rounded-3 d-inline-flex align-items-center justify-content-center flex-shrink-0 fs-5" style="width: 44px; height: 44px;">
-                    <i class="bi bi-list-ul"></i>
-                </span>
+                <span class="ish-avatar in-tone-{{ $pillTone }}"><i class="bi bi-whatsapp"></i></span>
                 <div style="min-width: 0;">
-                    <h1 class="h3 mb-0 text-break">{{ $instance->name }}</h1>
-                    <div class="text-muted small font-monospace text-break">{{ $instance->instance_id }}</div>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                        <h1 class="h3 mb-0 text-break">{{ $instance->name }}</h1>
+                        <span class="in-pill in-pill-{{ $pillTone }}"><span class="in-pill-dot"></span>{{ $pillLabel }}</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1 text-muted small" style="min-width: 0;">
+                        <span class="font-monospace text-truncate">{{ $instance->instance_id }}</span>
+                        <input type="hidden" id="header-instance-id" value="{{ $instance->instance_id }}">
+                        <button type="button" class="btn btn-sm btn-outline-secondary ish-copy" data-copy-target="#header-instance-id" title="Copy instance ID" aria-label="Copy instance ID">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="d-flex flex-wrap gap-2">
+            <div class="d-flex flex-wrap gap-2 flex-shrink-0">
                 <a href="{{ route('api-logs.index', ['instance_id' => $instance->instance_id]) }}" class="btn btn-sm btn-outline-secondary">
                     <i class="bi bi-clock-history me-1"></i>API Logs
                 </a>
@@ -36,13 +69,22 @@
             </div>
         </div>
 
+        {{-- Jump-to-section bar (sticks under the top bar while scrolling). --}}
+        <nav class="ish-jump db-in mb-4" style="--i: 2;" aria-label="Sections on this page" data-ish-jump>
+            @foreach ($sections as $anchor => [$icon, $label])
+                <a href="#{{ $anchor }}" class="ish-jump-link {{ $loop->first ? 'active' : '' }}" data-ish-target="{{ $anchor }}">
+                    <i class="bi {{ $icon }}"></i>{{ $label }}
+                </a>
+            @endforeach
+        </nav>
+
         {{-- Status banner --}}
-        <div id="instance-status" data-instance-status="{{ $instance->status }}"
-             class="card shadow-sm mb-4 overflow-hidden {{ $isConnected ? 'instance-hero' : '' }}">
+        <div id="instance-status" data-instance-status="{{ $instance->status }}" style="--i: 3;"
+             class="card shadow-sm mb-4 overflow-hidden ish-section db-in {{ $isConnected ? 'instance-hero' : '' }}">
             <div class="card-body p-4 p-md-5">
                 @if ($isConnected)
                     <div class="d-flex flex-column flex-md-row align-items-md-center gap-4">
-                        <div class="instance-hero-icon"><span class="inner"><i class="bi bi-check-lg"></i></span></div>
+                        <div class="instance-hero-icon ish-hero-icon ish-ping"><span class="inner"><i class="bi bi-check-lg"></i></span></div>
                         <div class="flex-grow-1">
                             <div class="fs-3 fw-semibold text-primary mb-1">Connected</div>
                             <div class="text-muted mb-2">
@@ -55,18 +97,11 @@
                                 @endif
                             </div>
                             <div class="d-flex flex-wrap gap-2">
-                                <span class="stat-chip"><i class="bi bi-arrow-up-right text-primary me-1"></i>{{ $sentCount }} sent</span>
-                                <span class="stat-chip"><i class="bi bi-arrow-down-left text-info me-1"></i>{{ $receivedCount }} received</span>
+                                <span class="stat-chip"><i class="bi bi-arrow-up-right text-primary me-1"></i><span data-count-up="{{ $sentCount }}" data-count-suffix=" sent">{{ $sentCount }} sent</span></span>
+                                <span class="stat-chip"><i class="bi bi-arrow-down-left text-info me-1"></i><span data-count-up="{{ $receivedCount }}" data-count-suffix=" received">{{ $receivedCount }} received</span></span>
                                 @if ($failedCount > 0)
-                                    <span class="stat-chip text-danger"><i class="bi bi-exclamation-triangle me-1"></i>{{ $failedCount }} failed</span>
+                                    <span class="stat-chip text-danger"><i class="bi bi-exclamation-triangle me-1"></i><span data-count-up="{{ $failedCount }}" data-count-suffix=" failed">{{ $failedCount }} failed</span></span>
                                 @endif
-                            </div>
-                        </div>
-                        <div class="d-none d-lg-block position-relative hero-illustration me-3">
-                            <span class="hero-blob hero-blob-1"></span>
-                            <span class="hero-blob hero-blob-2"></span>
-                            <div class="position-absolute top-50 start-50 translate-middle">
-                                <div class="hero-phone"><i class="bi bi-whatsapp fs-1"></i></div>
                             </div>
                         </div>
                         <div class="d-flex flex-wrap gap-2 align-self-md-start">
@@ -113,7 +148,7 @@
                     </div>
                 @elseif ($isResuming)
                     <div class="d-flex flex-column flex-md-row align-items-md-center gap-4">
-                        <div class="instance-hero-icon"><span class="inner"><span class="spinner-border spinner-border-sm"></span></span></div>
+                        <div class="instance-hero-icon ish-hero-icon ish-orbit"><span class="inner"><i class="bi bi-arrow-repeat ish-spin"></i></span></div>
                         <div class="flex-grow-1">
                             <div class="fs-3 fw-semibold mb-1">Reconnecting&hellip;</div>
                             <p class="small text-muted mb-0">Going back online as {{ $instance->phone_number }}. No QR code needed.</p>
@@ -128,25 +163,41 @@
                     </div>
                 @else
                     {{-- connecting / qr_pending --}}
-                    <div class="row align-items-center g-4">
-                        <div class="col-md-6">
-                            <div class="section-icon mb-3" style="background-color: var(--wa-info-light); color: var(--wa-info);">
-                                <i class="bi bi-qr-code"></i>
-                            </div>
-                            <div class="fs-4 fw-semibold mb-2">Link your WhatsApp</div>
-                            <ol class="text-muted mb-0 ps-3">
-                                <li>Open WhatsApp on your phone</li>
-                                <li>Go to <strong>Settings &rarr; Linked Devices</strong></li>
-                                <li>Tap <strong>Link a Device</strong> and scan this code</li>
+                    <div class="row align-items-center g-4 g-lg-5">
+                        <div class="col-md-6 order-2 order-md-1">
+                            <div class="fs-4 fw-semibold mb-1">Link your WhatsApp</div>
+                            <p class="text-muted small mb-4">Keep this page open: it updates by itself once your phone is linked.</p>
+                            <ol class="ish-qr-steps">
+                                <li style="--i: 0;">
+                                    <span class="ish-qr-step-num">1</span>
+                                    <span><i class="bi bi-phone me-1 text-primary"></i>Open <strong>WhatsApp</strong> on your phone</span>
+                                </li>
+                                <li style="--i: 1;">
+                                    <span class="ish-qr-step-num">2</span>
+                                    <span><i class="bi bi-gear me-1 text-primary"></i>Go to <strong>Settings &rarr; Linked Devices</strong></span>
+                                </li>
+                                <li style="--i: 2;">
+                                    <span class="ish-qr-step-num">3</span>
+                                    <span><i class="bi bi-qr-code-scan me-1 text-primary"></i>Tap <strong>Link a Device</strong> and scan this code</span>
+                                </li>
                             </ol>
+                            <div class="ish-qr-note">
+                                <i class="bi bi-arrow-repeat"></i>
+                                The code refreshes automatically until it's scanned.
+                            </div>
                         </div>
-                        <div class="col-md-6 text-center">
-                            <div id="qr-holder">
-                                @if ($instance->qr_code)
-                                    <img src="{{ $instance->qr_code }}" alt="WhatsApp QR code" id="qr-image" class="img-fluid rounded-3 border" style="max-width: 280px;">
-                                @else
-                                    <div class="text-muted py-5"><span class="spinner-border spinner-border-sm me-2"></span>Waiting for QR code&hellip;</div>
-                                @endif
+                        <div class="col-md-6 order-1 order-md-2">
+                            <div class="ish-qr-frame mx-auto">
+                                <span class="ish-qr-corner tl"></span><span class="ish-qr-corner tr"></span>
+                                <span class="ish-qr-corner bl"></span><span class="ish-qr-corner br"></span>
+                                <div id="qr-holder" class="ish-qr-holder">
+                                    @if ($instance->qr_code)
+                                        <img src="{{ $instance->qr_code }}" alt="WhatsApp QR code" id="qr-image" class="img-fluid rounded-3 border" style="max-width: 280px;">
+                                    @else
+                                        <div class="text-muted py-5"><span class="spinner-border spinner-border-sm me-2"></span>Waiting for QR code&hellip;</div>
+                                    @endif
+                                </div>
+                                <span class="ish-qr-scan" aria-hidden="true"></span>
                             </div>
                         </div>
                     </div>
@@ -156,7 +207,7 @@
 
         {{-- Send a test message --}}
         @if ($isConnected)
-            <div class="card shadow-sm mb-4">
+            <div class="card shadow-sm mb-4 ish-section db-in" id="send-test" style="--i: 4;">
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center gap-3 mb-4">
                         <span class="section-icon" style="background-color: var(--wa-info-light); color: var(--wa-info);"><i class="bi bi-send"></i></span>
@@ -277,7 +328,7 @@
         <div class="row g-4 mb-4">
             {{-- API credentials --}}
             <div class="col-lg-6">
-                <div class="card shadow-sm h-100">
+                <div class="card shadow-sm h-100 ish-section db-in" id="credentials" style="--i: 5;">
                     <div class="card-body p-4">
                         <div class="d-flex align-items-center gap-3 mb-4">
                             <span class="section-icon" style="background-color: var(--wa-purple-light); color: var(--wa-purple);"><i class="bi bi-key"></i></span>
@@ -370,7 +421,7 @@
 
             {{-- Webhook --}}
             <div class="col-lg-6">
-                <div class="card shadow-sm h-100">
+                <div class="card shadow-sm h-100 ish-section db-in" id="webhook" style="--i: 6;">
                     <div class="card-body p-4">
                         <div class="d-flex align-items-center gap-3 mb-4">
                             <span class="section-icon" style="background-color: var(--wa-info-light); color: var(--wa-info);"><i class="bi bi-diagram-3"></i></span>
@@ -530,7 +581,7 @@
         </div>
 
         {{-- Recent messages --}}
-        <div class="card shadow-sm" id="recent-messages">
+        <div class="card shadow-sm ish-section db-in" id="recent-messages" style="--i: 7;">
             <div class="card-body p-4 pb-2">
                 <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
                     <span class="section-icon bg-wa-light text-primary"><i class="bi bi-chat-left-text"></i></span>
@@ -593,7 +644,7 @@
         </div>
 
         {{-- Connection history --}}
-        <div class="card shadow-sm mt-4" id="connection-history">
+        <div class="card shadow-sm mt-4 ish-section db-in" id="connection-history" style="--i: 8;">
             <div class="card-body p-4">
                 <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 mb-3">
                     <div class="d-flex align-items-center gap-3 flex-grow-1">
@@ -857,6 +908,36 @@
             holder.innerHTML = '<img src="' + data.qr_code + '" alt="WhatsApp QR code" id="qr-image" class="img-fluid rounded-3 border" style="max-width: 280px;">';
         }
     }, 2500);
+})();
+
+// Jump bar: highlight the section currently in view, and keep the active
+// link scrolled into view inside the bar on narrow screens.
+(function () {
+    const bar = document.querySelector('[data-ish-jump]');
+    if (!bar || !('IntersectionObserver' in window)) {
+        return;
+    }
+
+    const links = [...bar.querySelectorAll('[data-ish-target]')];
+    const setActive = (id) => links.forEach((link) => {
+        const on = link.dataset.ishTarget === id;
+        link.classList.toggle('active', on);
+        if (on) {
+            bar.scrollTo({ left: link.offsetLeft - 16, behavior: 'smooth' });
+        }
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.filter((entry) => entry.isIntersecting)
+            .forEach((entry) => setActive(entry.target.id));
+    }, { rootMargin: '-35% 0px -60% 0px' });
+
+    links.forEach((link) => {
+        const section = document.getElementById(link.dataset.ishTarget);
+        if (section) {
+            observer.observe(section);
+        }
+    });
 })();
 </script>
 @endsection

@@ -1,0 +1,554 @@
+/*
+ * Billing + checkout pages (billing/*.blade.php). Classes start with bl-.
+ * Uses db-in / count-up (dashboard.css), in-pill-dot (instances.css) and
+ * ms-head-icon (messages.css). Motion stops under prefers-reduced-motion.
+ */
+
+.bl-btn-lift {
+    transition: transform 0.25s var(--db-ease), box-shadow 0.25s var(--db-ease);
+}
+
+.bl-btn-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.45);
+}
+
+/* ---- Current plan card */
+
+.bl-current {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 1.75rem;
+    overflow: hidden;
+    color: #fff;
+    border-radius: 20px;
+    background:
+        radial-gradient(420px 220px at 110% -10%, rgba(52, 211, 153, 0.45), transparent 60%),
+        linear-gradient(145deg, #0e5a3c 0%, #0b8457 55%, #10a36b 100%);
+    box-shadow: 0 24px 48px -28px rgba(11, 132, 87, 0.9);
+}
+
+.bl-current-glow {
+    position: absolute;
+    width: 260px;
+    height: 260px;
+    right: -90px;
+    bottom: -120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.16), transparent 70%);
+    animation: db-drift 16s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+
+.bl-current > *:not(.bl-current-glow) {
+    position: relative;
+}
+
+.bl-current-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.bl-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.bl-status-green {
+    color: #047857;
+}
+
+.bl-status-green .in-pill-dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: currentColor;
+    animation: db-ping 1.8s ease-out infinite;
+}
+
+.bl-status-amber {
+    color: #b45309;
+}
+
+.bl-status-grey {
+    color: #5c6b66;
+}
+
+.bl-current-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.75;
+}
+
+.bl-current-name {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
+
+.bl-current-price {
+    font-size: 1.15rem;
+    font-weight: 600;
+    opacity: 0.95;
+    margin-bottom: 1.25rem;
+}
+
+.bl-current-price span {
+    font-weight: 400;
+    opacity: 0.75;
+}
+
+.bl-current-list {
+    list-style: none;
+    padding: 1rem 0 0;
+    margin: 0 0 1.5rem;
+    display: grid;
+    gap: 0.45rem;
+    font-size: 0.92rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.bl-current-list i {
+    margin-right: 0.5rem;
+    opacity: 0.85;
+}
+
+.bl-current-actions {
+    margin-top: auto;
+}
+
+.bl-cancel {
+    padding: 0;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+    background: none;
+    border: 0;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.bl-cancel:hover {
+    color: #fff;
+}
+
+/* ---- Usage ring meters */
+
+.bl-meter {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: relative;
+}
+
+.bl-tone-green {
+    --bl-tone: #10b981;
+}
+
+.bl-tone-amber {
+    --bl-tone: #f59e0b;
+}
+
+.bl-tone-red {
+    --bl-tone: #ef4444;
+}
+
+.bl-ring {
+    width: 104px;
+    height: 104px;
+    flex-shrink: 0;
+    rotate: -90deg;
+}
+
+.bl-ring circle {
+    fill: none;
+    stroke-width: 10;
+}
+
+.bl-ring-track {
+    stroke: rgba(16, 35, 28, 0.07);
+}
+
+/* Circumference of r=52 is ~326.73; the offset hides the unused part. */
+.bl-ring-fill {
+    stroke: var(--bl-tone);
+    stroke-linecap: round;
+    stroke-dasharray: 326.73;
+    stroke-dashoffset: calc(326.73 * (1 - var(--pct) / 100));
+    animation: bl-ring-grow 1.4s var(--db-ease) 0.4s both;
+}
+
+.bl-ring-center {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 104px;
+    translate: 0 -50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.1;
+    color: var(--bl-tone);
+}
+
+.bl-ring-center i {
+    font-size: 1.1rem;
+}
+
+.bl-ring-pct {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--wa-dark);
+}
+
+.bl-meter-text {
+    min-width: 0;
+}
+
+.bl-meter-count {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--wa-dark);
+    line-height: 1.2;
+}
+
+.bl-meter-count .text-muted {
+    font-size: 1rem;
+}
+
+/* ---- Plans */
+
+.bl-plans-head {
+    scroll-margin-top: 80px;
+    margin-bottom: 1rem;
+}
+
+.bl-plan {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 1.75rem 1.5rem 1.5rem;
+    background: #fff;
+    border: 1px solid rgba(16, 35, 28, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    transition: transform 0.35s var(--db-ease), box-shadow 0.35s var(--db-ease);
+}
+
+.bl-plan:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px -24px rgba(16, 35, 28, 0.45);
+}
+
+.bl-plan-popular {
+    border: 2px solid transparent;
+    background:
+        linear-gradient(#fff, #fff) padding-box,
+        linear-gradient(135deg, #10b981, #0ea5a4, #3b82f6) border-box;
+    box-shadow: 0 20px 44px -26px rgba(11, 132, 87, 0.55);
+}
+
+.bl-plan-current {
+    background: linear-gradient(180deg, #f0fbf6 0%, #fff 60%);
+    border: 2px solid rgba(16, 185, 129, 0.45);
+}
+
+.bl-plan-badge {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    translate: -50% -50%;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    white-space: nowrap;
+    color: #fff;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #10b981, var(--wa-primary));
+    box-shadow: 0 8px 16px -8px rgba(11, 132, 87, 0.7);
+}
+
+.bl-plan-badge-current {
+    color: var(--wa-primary-dark);
+    background: #fff;
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    box-shadow: none;
+}
+
+.bl-plan-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: var(--wa-primary);
+    background: var(--wa-primary-light);
+    margin-bottom: 1rem;
+    transition: transform 0.4s var(--db-ease);
+}
+
+.bl-plan:hover .bl-plan-icon {
+    transform: rotate(-8deg) scale(1.06);
+}
+
+.bl-plan-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--wa-dark);
+}
+
+.bl-plan-desc {
+    font-size: 0.87rem;
+    color: #6c757d;
+    min-height: 2.6em;
+    margin: 0.3rem 0 1rem;
+}
+
+.bl-plan-price {
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--wa-dark);
+    margin-bottom: 1.25rem;
+}
+
+.bl-plan-price span {
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    color: #6c757d;
+}
+
+.bl-plan-list {
+    list-style: none;
+    padding: 1.1rem 0 0;
+    margin: 0 0 1.5rem;
+    display: grid;
+    gap: 0.6rem;
+    font-size: 0.9rem;
+    border-top: 1px dashed rgba(16, 35, 28, 0.12);
+}
+
+.bl-plan-list i {
+    width: 20px;
+    height: 20px;
+    margin-right: 0.5rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    color: var(--wa-primary);
+    background: var(--wa-primary-light);
+}
+
+.bl-plan-btn {
+    border-radius: 10px;
+    font-weight: 600;
+    padding-block: 0.6rem;
+}
+
+.bl-plan-btn i {
+    display: inline-block;
+    transition: transform 0.25s var(--db-ease);
+}
+
+.bl-plan-btn:hover i {
+    transform: translateX(3px);
+}
+
+.bl-note {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    margin-top: 2rem;
+    padding: 1rem 1.25rem;
+    font-size: 0.88rem;
+    color: #5c6b66;
+    background: #fff;
+    border: 1px solid rgba(16, 35, 28, 0.08);
+    border-radius: 14px;
+}
+
+.bl-note > i {
+    font-size: 1.2rem;
+    color: var(--wa-primary);
+}
+
+/* ---- Upgrade dialog */
+
+.bl-modal {
+    border: 0;
+    border-radius: 20px;
+    box-shadow: 0 30px 60px -20px rgba(16, 35, 28, 0.45);
+}
+
+.bl-modal-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f0fbf6, #eef6ff);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.bl-modal-price {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--wa-dark);
+    line-height: 1;
+}
+
+.bl-modal .form-control:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+}
+
+/* ---- Checkout redirect page */
+
+.bl-checkout {
+    border-radius: 20px;
+}
+
+.bl-checkout-art {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bl-checkout-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #fff;
+    background: linear-gradient(135deg, #10b981, var(--wa-primary));
+    box-shadow: 0 16px 30px -12px rgba(11, 132, 87, 0.7);
+}
+
+.bl-checkout-orbit {
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 2px dashed rgba(16, 185, 129, 0.5);
+    animation: ish-rotate 8s linear infinite;
+}
+
+.bl-checkout-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0 auto 1.75rem;
+    max-width: 260px;
+    display: grid;
+    gap: 0.6rem;
+    text-align: left;
+    font-size: 0.92rem;
+    color: #8a9792;
+}
+
+.bl-checkout-steps li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.bl-checkout-steps .done {
+    color: var(--wa-primary);
+}
+
+.bl-checkout-steps .now {
+    color: var(--wa-dark);
+    font-weight: 600;
+}
+
+.bl-checkout-steps .spinner-border {
+    color: var(--wa-primary);
+}
+
+/* ---- Phones */
+
+@media (max-width: 575.98px) {
+    .bl-current {
+        padding: 1.4rem;
+    }
+
+    .bl-current-name {
+        font-size: 1.7rem;
+    }
+
+    .bl-ring,
+    .bl-ring-center {
+        width: 88px;
+    }
+
+    .bl-ring {
+        height: 88px;
+    }
+
+    .bl-modal-summary {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .bl-modal-summary .text-end {
+        text-align: left !important;
+    }
+
+    .bl-modal .modal-footer {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .bl-modal .modal-footer .btn {
+        width: 100%;
+        margin: 0.25rem 0;
+    }
+}
+
+@keyframes bl-ring-grow {
+    from {
+        stroke-dashoffset: 326.73;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [class*='bl-'],
+    [class*='bl-']::before,
+    [class*='bl-']::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}

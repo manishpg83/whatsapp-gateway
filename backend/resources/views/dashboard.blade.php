@@ -3,21 +3,32 @@
 @section('title', 'Dashboard')
 
 @section('content')
+@php
+    $connectedPct = $instanceCount > 0 ? round($connectedCount / $instanceCount * 100) : 0;
+@endphp
+
 {{-- Hero --}}
-<div class="bg-wa-light rounded-4 p-4 p-md-5 mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+<div class="db-hero db-in bg-wa-light rounded-4 p-4 p-md-5 mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <span class="db-orb db-orb-1" aria-hidden="true"></span>
+    <span class="db-orb db-orb-2" aria-hidden="true"></span>
+
     <div>
         <div class="text-muted">Welcome,</div>
         <h1 class="h3 mb-1">{{ $user->name }}</h1>
         <p class="text-muted mb-0">Here is an overview of your WhatsApp Gateway account.</p>
     </div>
 
-    <div class="hero-illustration position-relative d-none d-md-block">
-        <div class="hero-blob hero-blob-1"></div>
-        <div class="hero-blob hero-blob-2"></div>
-        <div class="hero-phone mx-auto">
-            <i class="bi bi-phone fs-1"></i>
-            <span class="hero-phone-badge"><i class="bi bi-whatsapp"></i></span>
+    {{-- Little animated phone scene (decorative). --}}
+    <div class="db-hero-art d-none d-md-block" aria-hidden="true">
+        <div class="db-phone">
+            <span class="db-bubble in" style="--d: 400ms;"></span>
+            <span class="db-bubble out" style="--d: 900ms;"></span>
+            <span class="db-bubble in short" style="--d: 1400ms;"></span>
+            <span class="db-typing" style="--d: 1900ms;"><span></span><span></span><span></span></span>
         </div>
+        
+        <span class="db-chip"><i class="bi bi-check2-all"></i> Delivered</span>
+        <span class="db-badge-wa"><i class="bi bi-whatsapp"></i></span>
     </div>
 
     <a href="{{ route('instances.create') }}" class="btn btn-primary d-inline-flex align-items-center gap-2 flex-shrink-0">
@@ -28,14 +39,14 @@
 {{-- Summary cards --}}
 <div class="row g-3 mb-4">
     <div class="col-md-3 col-sm-6">
-        <div class="card stat-card stat-card-green shadow-sm h-100">
+        <div class="card stat-card stat-card-green shadow-sm h-100 db-stat db-in" style="--i: 1;">
             <div class="card-body d-flex align-items-start gap-3">
-                <div class="bg-wa-light text-primary rounded-3 p-2 fs-4 lh-1">
+                <div class="bg-wa-light text-primary rounded-3 p-2 fs-4 lh-1 db-stat-icon">
                     <i class="bi bi-hdd-stack"></i>
                 </div>
                 <div>
                     <div class="text-muted small text-uppercase">Instances</div>
-                    <div class="display-6 fw-semibold">{{ $instanceCount }}</div>
+                    <div class="display-6 fw-semibold" data-count-up="{{ $instanceCount }}">{{ $instanceCount }}</div>
                     <div class="text-muted small">WhatsApp connections you have created</div>
                 </div>
             </div>
@@ -43,18 +54,24 @@
     </div>
 
     <div class="col-md-3 col-sm-6">
-        <div class="card stat-card stat-card-blue shadow-sm h-100">
+        <div class="card stat-card stat-card-blue shadow-sm h-100 db-stat db-in" style="--i: 2;">
             <div class="card-body d-flex align-items-start gap-3">
-                <div class="rounded-3 p-2 fs-4 lh-1" style="background-color: var(--wa-info-light); color: var(--wa-info);">
+                <div class="rounded-3 p-2 fs-4 lh-1 db-stat-icon" style="background-color: var(--wa-info-light); color: var(--wa-info);">
                     <i class="bi bi-wifi"></i>
                 </div>
-                <div>
+                <div class="flex-grow-1">
                     <div class="text-muted small text-uppercase">Connection status</div>
                     @if ($instanceCount === 0)
                         <div class="fs-4 fw-semibold"><span class="badge text-bg-secondary">No instances yet</span></div>
                         <div class="text-muted small mt-2">Create an instance to connect WhatsApp.</div>
                     @else
-                        <div class="fs-4 fw-semibold">{{ $connectedCount }} of {{ $instanceCount }} connected</div>
+                        <div class="fs-4 fw-semibold">
+                            <span class="db-live {{ $connectedCount > 0 ? 'is-on' : '' }}" aria-hidden="true"></span><span data-count-up="{{ $connectedCount }}">{{ $connectedCount }}</span> of {{ $instanceCount }} connected
+                        </div>
+                        <div class="db-progress" role="progressbar" aria-label="Connected instances"
+                             aria-valuenow="{{ $connectedPct }}" aria-valuemin="0" aria-valuemax="100">
+                            <span style="--pct: {{ $connectedPct }}%;"></span>
+                        </div>
                     @endif
                 </div>
             </div>
@@ -62,18 +79,18 @@
     </div>
 
     <div class="col-md-3 col-sm-6">
-        <div class="card stat-card shadow-sm h-100" style="border-left-color: var(--wa-primary-dark);">
+        <div class="card stat-card shadow-sm h-100 db-stat db-in" style="--i: 3; border-left-color: var(--wa-primary-dark);">
             <div class="card-body d-flex align-items-start gap-3">
-                <div class="bg-wa-light text-primary rounded-3 p-2 fs-4 lh-1">
+                <div class="bg-wa-light text-primary rounded-3 p-2 fs-4 lh-1 db-stat-icon">
                     <i class="bi bi-chat-left-text"></i>
                 </div>
                 <div>
                     <div class="text-muted small text-uppercase">Messages</div>
                     <div class="text-muted small">
-                        <i class="bi bi-arrow-up-short text-primary"></i>{{ $sentCount }} sent
+                        <i class="bi bi-arrow-up-short text-primary"></i><span data-count-up="{{ $sentCount }}" data-count-suffix=" sent">{{ $sentCount }} sent</span>
                     </div>
                     <div class="text-muted small">
-                        <i class="bi bi-arrow-down-short text-primary"></i>{{ $receivedCount }} received
+                        <i class="bi bi-arrow-down-short text-primary"></i><span data-count-up="{{ $receivedCount }}" data-count-suffix=" received">{{ $receivedCount }} received</span>
                     </div>
                     <div class="text-muted small mt-1">Across all your instances</div>
                 </div>
@@ -82,9 +99,9 @@
     </div>
 
     <div class="col-md-3 col-sm-6">
-        <div class="card stat-card stat-card-purple shadow-sm h-100">
+        <div class="card stat-card stat-card-purple shadow-sm h-100 db-stat db-in" style="--i: 4;">
             <div class="card-body d-flex align-items-start gap-3">
-                <div class="rounded-3 p-2 fs-4 lh-1" style="background-color: var(--wa-purple-light); color: var(--wa-purple);">
+                <div class="rounded-3 p-2 fs-4 lh-1 db-stat-icon" style="background-color: var(--wa-purple-light); color: var(--wa-purple);">
                     <i class="bi bi-person-circle"></i>
                 </div>
                 {{-- min-width: 0 lets long names/emails shrink and get "…" instead of spilling out of the card. --}}
@@ -100,7 +117,7 @@
 </div>
 
 {{-- Getting started --}}
-<div class="card shadow-sm">
+<div class="card shadow-sm db-in" style="--i: 5;">
     <div class="card-body d-flex align-items-center gap-3 border-bottom">
         <div class="bg-wa-light text-primary rounded-circle p-2 fs-4 lh-1">
             <i class="bi bi-rocket-takeoff"></i>
@@ -111,7 +128,7 @@
         </div>
     </div>
     <ul class="list-group list-group-flush">
-        <li class="list-group-item d-flex justify-content-between align-items-center gap-3 py-3">
+        <li class="list-group-item d-flex justify-content-between align-items-center gap-3 py-3 db-step db-in" style="--i: 6;">
             <span class="d-flex align-items-center gap-3">
                 <span class="step-number step-number-1">1</span>
                 <span>
@@ -121,7 +138,7 @@
             </span>
             <a href="{{ route('instances.create') }}" class="btn btn-sm btn-primary text-nowrap"><i class="bi bi-plus-lg me-1"></i>Create instance</a>
         </li>
-        <li class="list-group-item d-flex justify-content-between align-items-center gap-3 py-3">
+        <li class="list-group-item d-flex justify-content-between align-items-center gap-3 py-3 db-step db-in" style="--i: 7;">
             <span class="d-flex align-items-center gap-3">
                 <span class="step-number step-number-2">2</span>
                 <span>
@@ -131,7 +148,7 @@
             </span>
             <a href="{{ route('instances.index') }}" class="btn btn-sm btn-outline-secondary text-nowrap"><i class="bi bi-eye me-1"></i>View instances</a>
         </li>
-        <li class="list-group-item d-flex justify-content-between align-items-center gap-3 py-3">
+        <li class="list-group-item d-flex justify-content-between align-items-center gap-3 py-3 db-step db-in" style="--i: 8;">
             <span class="d-flex align-items-center gap-3">
                 <span class="step-number step-number-3">3</span>
                 <span>

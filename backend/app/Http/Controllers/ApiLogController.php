@@ -29,16 +29,6 @@ class ApiLogController extends Controller
 
         $rejectedCount = (clone $rejected)->count();
 
-        if ($tab === 'rejected') {
-            return view('api-logs.index', [
-                'tab' => $tab,
-                'rejectedLogs' => $rejected->with(['whatsappSession', 'apiToken'])->latest()->latest('id')->paginate(20)->withQueryString(),
-                'rejectedCount' => $rejectedCount,
-                'instances' => $user->whatsappSessions()->orderBy('name')->get(),
-                'selectedInstanceId' => $selectedInstanceId,
-            ]);
-        }
-
         $query = Message::whereHas('whatsappSession', fn ($q) => $q->where('user_id', $user->id))
             ->whereNotNull('api_token_id')
             ->with(['whatsappSession', 'apiToken']);
@@ -50,9 +40,24 @@ class ApiLogController extends Controller
             $query->whereHas('whatsappSession', fn ($q) => $q->where('instance_id', $selectedInstanceId));
         }
 
+        // Shown on the "API calls" tab label whichever tab is open.
+        $callsCount = (clone $query)->count();
+
+        if ($tab === 'rejected') {
+            return view('api-logs.index', [
+                'tab' => $tab,
+                'rejectedLogs' => $rejected->with(['whatsappSession', 'apiToken'])->latest()->latest('id')->paginate(20)->withQueryString(),
+                'rejectedCount' => $rejectedCount,
+                'callsCount' => $callsCount,
+                'instances' => $user->whatsappSessions()->orderBy('name')->get(),
+                'selectedInstanceId' => $selectedInstanceId,
+            ]);
+        }
+
         return view('api-logs.index', [
             'tab' => $tab,
             'rejectedCount' => $rejectedCount,
+            'callsCount' => $callsCount,
             // latest('id') breaks ties between calls in the same second, so
             // paging never shows a row twice or skips one.
             'logs' => $query->latest()->latest('id')->paginate(20)->withQueryString(),

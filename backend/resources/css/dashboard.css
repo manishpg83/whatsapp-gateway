@@ -1,0 +1,393 @@
+/*
+ * Dashboard motion + polish (dashboard.blade.php only — every class here
+ * starts with db-). Imported at the top of app.css. Only transform /
+ * translate / scale / opacity / width are animated, and everything stops
+ * under prefers-reduced-motion (bottom of this file).
+ */
+
+:root {
+    --db-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Page-load entrance, staggered with --i (0, 1, 2 …). */
+.db-in {
+    animation: db-rise 0.7s var(--db-ease) both;
+    animation-delay: calc(var(--i, 0) * 90ms);
+}
+
+/* ---------------------------------------------------------------- Hero */
+
+.db-hero {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.db-hero > * {
+    position: relative;
+    z-index: 1;
+}
+
+.db-hero .db-orb {
+    position: absolute;
+    z-index: 0;
+    border-radius: 50%;
+    filter: blur(40px);
+    pointer-events: none;
+    animation: db-drift 18s ease-in-out infinite alternate;
+}
+
+.db-orb-1 {
+    width: 280px;
+    height: 280px;
+    right: -60px;
+    top: -120px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.35), transparent 70%);
+}
+
+.db-orb-2 {
+    width: 240px;
+    height: 240px;
+    left: 30%;
+    bottom: -150px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.2), transparent 70%);
+    animation-duration: 24s;
+}
+
+.db-hero .btn-primary {
+    transition: transform 0.25s var(--db-ease), box-shadow 0.25s var(--db-ease);
+}
+
+.db-hero .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -12px rgba(11, 132, 87, 0.8);
+}
+
+.db-wave {
+    display: inline-block;
+    transform-origin: 70% 70%;
+    animation: db-wave 2.4s ease-in-out 0.8s 2;
+}
+
+/* Little phone scene (md+ only). */
+.db-hero-art {
+    position: relative;
+    width: 210px;
+    height: 160px;
+    flex-shrink: 0;
+}
+
+.db-phone {
+    position: absolute;
+    left: 50%;
+    top: 4px;
+    width: 96px;
+    height: 150px;
+    translate: -50% 0;
+    padding: 18px 9px 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 14px 30px -12px rgba(16, 35, 28, 0.3), inset 0 0 0 4px #f1f5f3;
+    animation: db-float-centered 6s ease-in-out infinite;
+}
+
+.db-phone::before {
+    content: '';
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    width: 30px;
+    height: 6px;
+    translate: -50% 0;
+    border-radius: 999px;
+    background: #10231c;
+}
+
+.db-bubble {
+    height: 16px;
+    border-radius: 7px;
+    animation: db-pop 0.5s var(--db-ease) both;
+    animation-delay: var(--d, 0ms);
+}
+
+.db-bubble.in {
+    width: 70%;
+    align-self: flex-start;
+    background: #eef2f0;
+    border-top-left-radius: 2px;
+}
+
+.db-bubble.out {
+    width: 76%;
+    align-self: flex-end;
+    background: #d9fdd3;
+    border-top-right-radius: 2px;
+}
+
+.db-bubble.short {
+    width: 45%;
+}
+
+.db-typing {
+    display: inline-flex;
+    gap: 3px;
+    align-self: flex-start;
+    padding: 5px 7px;
+    border-radius: 7px;
+    background: #eef2f0;
+    animation: db-pop 0.5s var(--db-ease) both;
+    animation-delay: var(--d, 0ms);
+}
+
+.db-typing span {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #9aa8a4;
+    animation: db-typing 1.2s ease-in-out infinite;
+}
+
+.db-typing span:nth-child(2) {
+    animation-delay: 0.15s;
+}
+
+.db-typing span:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.db-badge-wa {
+    position: absolute;
+    right: 22px;
+    bottom: 10px;
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: #fff;
+    background: linear-gradient(135deg, #25d366, var(--wa-primary));
+    box-shadow: 0 10px 20px -8px rgba(11, 132, 87, 0.7);
+    animation: db-float 5s ease-in-out 0.6s infinite;
+}
+
+.db-chip {
+    position: absolute;
+    left: 0;
+    top: 34px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--wa-primary-dark);
+    background: #fff;
+    box-shadow: 0 8px 18px -10px rgba(16, 35, 28, 0.35);
+    animation:
+        db-pop 0.6s var(--db-ease) 1.6s both,
+        db-float 7s ease-in-out 2.2s infinite;
+}
+
+.db-chip .bi-check2-all {
+    color: #34b7f1;
+}
+
+/* ---------------------------------------------------------- Stat cards */
+
+.db-stat {
+    transition: transform 0.3s var(--db-ease), box-shadow 0.3s var(--db-ease);
+}
+
+.db-stat:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 32px -18px rgba(16, 35, 28, 0.35) !important;
+}
+
+.db-stat-icon {
+    transition: transform 0.4s var(--db-ease);
+}
+
+.db-stat:hover .db-stat-icon {
+    transform: translateY(-2px) rotate(-8deg);
+}
+
+/* Live status dot: pulses green while something is connected. */
+.db-live {
+    position: relative;
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 6px;
+    border-radius: 50%;
+    vertical-align: middle;
+    background: #adb5bd;
+}
+
+.db-live.is-on {
+    background: #10b981;
+}
+
+.db-live.is-on::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: #10b981;
+    animation: db-ping 1.8s ease-out infinite;
+}
+
+.db-progress {
+    height: 6px;
+    margin-top: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(59, 130, 246, 0.12);
+}
+
+.db-progress span {
+    display: block;
+    height: 100%;
+    width: var(--pct, 0%);
+    border-radius: inherit;
+    background: linear-gradient(90deg, #10b981, var(--wa-info));
+    animation: db-grow 1.2s var(--db-ease) 0.5s both;
+}
+
+/* ----------------------------------------------------- Getting started */
+
+.db-step {
+    transition: background-color 0.25s;
+}
+
+.db-step:hover {
+    background-color: #fafdfb;
+}
+
+.db-step .step-number {
+    animation: db-pop 0.5s var(--db-ease) both;
+    animation-delay: calc(300ms + var(--i, 0) * 120ms);
+    transition: transform 0.3s var(--db-ease);
+}
+
+.db-step:hover .step-number {
+    transform: scale(1.12);
+}
+
+.db-step .btn {
+    transition: transform 0.25s var(--db-ease), background-color 0.2s, color 0.2s;
+}
+
+.db-step .btn:hover {
+    transform: translateX(3px);
+}
+
+/* ----------------------------------------------------------- Keyframes */
+
+@keyframes db-rise {
+    from {
+        opacity: 0;
+        translate: 0 16px;
+    }
+    to {
+        opacity: 1;
+        translate: 0 0;
+    }
+}
+
+@keyframes db-pop {
+    from {
+        opacity: 0;
+        scale: 0.6;
+    }
+    to {
+        opacity: 1;
+        scale: 1;
+    }
+}
+
+@keyframes db-float {
+    0%,
+    100% {
+        translate: 0 0;
+    }
+    50% {
+        translate: 0 -6px;
+    }
+}
+
+/* Same float for the phone, which is centred with translate -50%. */
+@keyframes db-float-centered {
+    0%,
+    100% {
+        translate: -50% 0;
+    }
+    50% {
+        translate: -50% -6px;
+    }
+}
+
+@keyframes db-drift {
+    to {
+        translate: 30px 20px;
+    }
+}
+
+@keyframes db-typing {
+    0%,
+    60%,
+    100% {
+        opacity: 0.45;
+        translate: 0 0;
+    }
+    30% {
+        opacity: 1;
+        translate: 0 -3px;
+    }
+}
+
+@keyframes db-ping {
+    from {
+        opacity: 0.7;
+        scale: 1;
+    }
+    to {
+        opacity: 0;
+        scale: 2.6;
+    }
+}
+
+@keyframes db-grow {
+    from {
+        width: 0;
+    }
+}
+
+@keyframes db-wave {
+    0%,
+    60%,
+    100% {
+        rotate: 0deg;
+    }
+    10%,
+    30% {
+        rotate: 14deg;
+    }
+    20%,
+    40% {
+        rotate: -8deg;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [class*='db-'],
+    [class*='db-']::before,
+    [class*='db-']::after,
+    [class*='db-'] * {
+        animation: none !important;
+        transition: none !important;
+    }
+}

@@ -28,11 +28,14 @@ class InstanceController extends Controller
     // date is picked.
     private const HISTORY_LIMIT = 50;
 
-    public function index(Request $request): View
+    public function index(Request $request, PlanLimiter $limiter): View
     {
         $instances = $request->user()->whatsappSessions()->latest()->get();
 
-        return view('instances.index', ['instances' => $instances]);
+        return view('instances.index', [
+            'instances' => $instances,
+            'instanceLimit' => $limiter->instanceLimit($request->user()),
+        ]);
     }
 
     public function create(): View

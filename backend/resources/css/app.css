@@ -1,5 +1,12 @@
 @import 'bootstrap/dist/css/bootstrap.min.css';
 @import 'bootstrap-icons/font/bootstrap-icons.css';
+@import './dashboard.css';
+@import './instances.css';
+@import './instance-show.css';
+@import './messages.css';
+@import './billing.css';
+@import './docs.css';
+@import './api-logs.css';
 
 /*
  * Brand palette. Bootstrap's compiled CSS hardcodes most component colors
@@ -17,6 +24,9 @@
     --wa-info-light: #dbeafe;
     --wa-purple: #8b5cf6;
     --wa-purple-light: #ede9fe;
+
+    /* Inline <code> in brand green instead of Bootstrap pink. */
+    --bs-code-color: #0a6b47;
 }
 
 body {
@@ -63,6 +73,16 @@ a:hover {
     --bs-btn-active-border-color: var(--wa-primary);
 }
 
+/* Pagination in the brand green instead of Bootstrap blue. */
+.pagination {
+    --bs-pagination-color: var(--wa-primary);
+    --bs-pagination-hover-color: var(--wa-primary-dark);
+    --bs-pagination-focus-color: var(--wa-primary-dark);
+    --bs-pagination-focus-box-shadow: 0 0 0 0.25rem rgba(11, 132, 87, 0.2);
+    --bs-pagination-active-bg: var(--wa-primary);
+    --bs-pagination-active-border-color: var(--wa-primary);
+}
+
 .navbar-dark.bg-dark,
 .site-footer {
     background-color: var(--wa-dark) !important;
@@ -84,6 +104,13 @@ a:hover {
 .sidebar-shell,
 .sidebar-shell .offcanvas-body {
     background-color: var(--wa-dark) !important;
+}
+
+/* The content column is a flex item next to the sidebar; without this it
+   grows to fit any wide child (scrolling tab bars, tables) and pushes the
+   whole page sideways on phones instead of letting that child scroll. */
+.app-content {
+    min-width: 0;
 }
 
 .sidebar-shell {

@@ -92,7 +92,8 @@ class DashboardTest extends TestCase
         $this->actingAs($me)->get('/dashboard')
             ->assertOk()
             ->assertSee('2') // instanceCount
-            ->assertSee('1 of 2 connected');
+            // Text, not raw HTML: the numbers are wrapped in count-up <span>s.
+            ->assertSeeText('1 of 2 connected');
     }
 
     public function test_dashboard_shows_total_sent_and_received_across_all_instances(): void

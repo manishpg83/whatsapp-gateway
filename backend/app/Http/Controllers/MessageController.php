@@ -50,10 +50,25 @@ class MessageController extends Controller
             $query->where('type', $filters['type']);
         }
 
+        // Totals for the summary tiles: all of this user's messages, not
+        // just the filtered view (same ownership scope as the list above).
+        $totals = Message::whereHas('whatsappSession', fn ($q) => $q->where('user_id', $user->id))
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw("SUM(direction = 'outgoing') as sent")
+            ->selectRaw("SUM(direction = 'incoming') as received")
+            ->selectRaw("SUM(direction = 'outgoing' AND status = 'failed') as failed")
+            ->first();
+
         return view('messages.index', [
             'messages' => $query->latest()->latest('id')->paginate(20)->withQueryString(),
             'instances' => $user->whatsappSessions()->orderBy('name')->get(),
             'filters' => $filters,
+            'totals' => [
+                'total' => (int) $totals->total,
+                'sent' => (int) $totals->sent,
+                'received' => (int) $totals->received,
+                'failed' => (int) $totals->failed,
+            ],
         ]);
     }
 }
