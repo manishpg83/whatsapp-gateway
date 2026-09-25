@@ -236,6 +236,38 @@ class InstanceController extends Controller
     }
 
     /**
+     * Dashboard version of POST /api/v1/numbers/check, for one number.
+     */
+    public function checkNumber(Request $request, string $instance, WorkerClient $worker): RedirectResponse
+    {
+        $whatsappSession = $this->findOwnedInstance($request, $instance);
+        $back = redirect()->to(route('instances.show', $whatsappSession).'#check-number');
+
+        $data = $request->validate([
+            'check_number' => ['required', 'regex:/^\d{7,15}$/'],
+        ], [
+            'check_number.regex' => 'Digits only with country code, e.g. 919876543210.',
+        ]);
+
+        if ($whatsappSession->status !== 'connected') {
+            return $back->with('error', 'Connect this instance first.');
+        }
+
+        try {
+            [$result] = $worker->checkNumbers($whatsappSession->instance_id, [$data['check_number']]);
+        } catch (Throwable $e) {
+            Log::error('Number check failed', [
+                'instance_id' => $whatsappSession->instance_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $back->withInput()->with('error', 'Could not check the number. Is the worker running?');
+        }
+
+        return $back->withInput()->with('number_check', $result);
+    }
+
+    /**
      * Polled by the browser every 2-3 seconds on the show page.
      */
     public function status(Request $request, string $instance): JsonResponse

@@ -108,6 +108,36 @@ describe("POST /sessions/:instanceId/disconnect", () => {
   });
 });
 
+describe("POST /sessions/:instanceId/check-numbers", () => {
+  const url = () => `/sessions/${randomUUID()}/check-numbers`;
+  const headers = { "x-internal-secret": testConfig.INTERNAL_API_SECRET };
+
+  it("rejects a request with no secret", async () => {
+    const app = await buildApp(testConfig);
+    const response = await app.inject({ method: "POST", url: url(), payload: { numbers: ["919999999999"] } });
+    expect(response.statusCode).toBe(401);
+    await app.close();
+  });
+
+  it("rejects non-numeric, empty, or too many numbers", async () => {
+    const app = await buildApp(testConfig);
+
+    for (const numbers of [["+91 99999"], [], Array(21).fill("919999999999")]) {
+      const response = await app.inject({ method: "POST", url: url(), headers, payload: { numbers } });
+      expect(response.statusCode).toBe(400);
+    }
+
+    await app.close();
+  });
+
+  it("returns 409 when the instance has no active session", async () => {
+    const app = await buildApp(testConfig);
+    const response = await app.inject({ method: "POST", url: url(), headers, payload: { numbers: ["919999999999"] } });
+    expect(response.statusCode).toBe(409);
+    await app.close();
+  });
+});
+
 describe("POST /sessions/:instanceId/messages", () => {
   // A request with no active session for that instance never reaches
   // Baileys/the network at all (it 409s before calling sendMessage), so

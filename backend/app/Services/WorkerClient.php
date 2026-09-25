@@ -48,6 +48,23 @@ class WorkerClient
     }
 
     /**
+     * Asks WhatsApp which of these numbers have an account. Throws on any
+     * failure (worker down, instance not connected in the worker).
+     *
+     * @param  list<string>  $numbers  digits only, country code first
+     * @return list<array{number: string, exists: bool, whatsapp_number: string|null}>
+     */
+    public function checkNumbers(string $instanceId, array $numbers): array
+    {
+        return $this->http()
+            // One WhatsApp lookup per number, so allow a little longer than a send.
+            ->timeout(30)
+            ->post("/sessions/{$instanceId}/check-numbers", ['numbers' => array_values($numbers)])
+            ->throw()
+            ->json('results');
+    }
+
+    /**
      * Sends a text or media message synchronously (no queue yet, per
      * CLAUDE.md §13 M7) and returns WhatsApp's message id. Throws on any
      * failure — network, worker error, or the instance not actually being

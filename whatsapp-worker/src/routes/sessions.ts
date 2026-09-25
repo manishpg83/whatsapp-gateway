@@ -4,10 +4,28 @@ import { z } from "zod";
 import { requireInternalSecret } from "../auth.js";
 import type { Config } from "../config.js";
 import { OUTGOING_TYPES, buildOutgoingContent, resolveMediaPath } from "../whatsapp/outgoingMessage.js";
-import { SessionNotActiveError, disconnectSession, sendMessage, startSession, stopSession } from "../whatsapp/sessionManager.js";
+import {
+  SessionNotActiveError,
+  checkNumbers,
+  disconnectSession,
+  sendMessage,
+  startSession,
+  stopSession,
+} from "../whatsapp/sessionManager.js";
 
 const startBodySchema = z.object({
   instance_id: z.string().uuid(),
+});
+
+// Laravel enforces the same limit; kept small so this can't be used to
+// scrape which numbers are on WhatsApp.
+export const MAX_NUMBERS_PER_CHECK = 20;
+
+const checkNumbersBodySchema = z.object({
+  numbers: z
+    .array(z.string().regex(/^\d{7,15}$/, "numbers must be digits only (7-15 of them)"))
+    .min(1)
+    .max(MAX_NUMBERS_PER_CHECK),
 });
 
 const sendMessageBodySchema = z
@@ -50,6 +68,32 @@ export async function sessionsRoute(app: FastifyInstance, config: Config) {
       await startSession(parsed.data.instance_id, config, request.log);
 
       return reply.code(202).send({ started: true });
+    }
+  );
+
+  // Which of these numbers have a WhatsApp account?
+  app.post(
+    "/sessions/:instanceId/check-numbers",
+    { onRequest: requireInternalSecret(config) },
+    async (request, reply) => {
+      const { instanceId } = request.params as { instanceId: string };
+      const parsed = checkNumbersBodySchema.safeParse(request.body);
+
+      if (!parsed.success) {
+        return reply.code(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid body" });
+      }
+
+      try {
+        const results = await checkNumbers(instanceId, parsed.data.numbers);
+        return reply.code(200).send({ results });
+      } catch (err) {
+        if (err instanceof SessionNotActiveError) {
+          return reply.code(409).send({ error: err.message });
+        }
+
+        request.log.error({ err, instanceId }, "Failed to check numbers");
+        return reply.code(502).send({ error: "Failed to check numbers" });
+      }
     }
   );
 

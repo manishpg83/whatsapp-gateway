@@ -41,6 +41,12 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->bearerToken() ?? $request->ip());
         });
 
+        // "Is this number on WhatsApp?" (up to 20 numbers per call). Kept
+        // low so it's for checking real recipients, not scraping lists.
+        RateLimiter::for('number-check', function (Request $request) {
+            return Limit::perMinute(10)->by($request->bearerToken() ?? $request->user()?->id ?? $request->ip());
+        });
+
         // "Send test webhook" makes our server call an owner-supplied URL
         // on demand, so keep it to a handful per minute per user.
         // The public contact form sends a real email each time, so keep

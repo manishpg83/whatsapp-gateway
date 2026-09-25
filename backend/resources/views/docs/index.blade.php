@@ -136,6 +136,12 @@
                         <td>Check a sent message's status</td>
                         <td class="text-nowrap small">60 / min</td>
                     </tr>
+                    <tr>
+                        <td><span class="badge text-bg-primary">POST</span></td>
+                        <td><a href="#endpoint-check-numbers" class="text-decoration-none"><code>/api/v1/numbers/check</code></a></td>
+                        <td>Check if numbers are on WhatsApp (up to 20 per request)</td>
+                        <td class="text-nowrap small">10 / min</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -324,7 +330,7 @@
     </div>
 
     {{-- 2. Check message status --}}
-    <div class="card-body" id="endpoint-status">
+    <div class="card-body border-bottom" id="endpoint-status">
         <h5 class="h6 fw-semibold mb-2">Check message status</h5>
         <p class="mb-0"><span class="badge text-bg-success">GET</span> <code>/api/v1/messages/{message_id}</code></p>
 
@@ -406,6 +412,118 @@
 
         <p class="text-muted small mb-0 mt-3">
             <i class="bi bi-speedometer2 me-1"></i>Rate limit: 60 requests per minute per access token.
+        </p>
+    </div>
+
+    {{-- 3. Check numbers --}}
+    <div class="card-body" id="endpoint-check-numbers">
+        <h5 class="h6 fw-semibold mb-2">Check if numbers are on WhatsApp</h5>
+        <p class="mb-0"><span class="badge text-bg-primary">POST</span> <code>/api/v1/numbers/check</code></p>
+        <p class="small text-muted mt-2 mb-0">
+            Check before you send, so you don't waste a message on a number without WhatsApp.
+            Nothing is sent, and it doesn't count toward your monthly message limit. The instance must be connected.
+        </p>
+
+        <h6 class="mt-3">Request body (JSON)</h6>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>instance_id</code></td>
+                        <td>string (UUID)</td>
+                        <td>Your instance's ID. Must match the token used.</td>
+                    </tr>
+                    <tr>
+                        <td><code>numbers</code></td>
+                        <td>array of strings</td>
+                        <td>
+                            1 to 20 phone numbers, same format as <code>to</code> when sending:
+                            country code first, digits only (e.g. <code>919876543210</code>).
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h6 class="mt-3">Responses</h6>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Body</th>
+                        <th>Meaning</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge text-bg-success">200</span></td>
+                        <td><code>{"success": true, "results": [...]}</code></td>
+                        <td>One result per number (example below).</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge text-bg-danger">401</span></td>
+                        <td>&mdash;</td>
+                        <td>Missing, unknown, or revoked access token.</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge text-bg-warning text-dark">422</span></td>
+                        <td><code>{"success": false, "error": "..."}</code></td>
+                        <td>Invalid numbers, more than 20, wrong <code>instance_id</code>, or instance not connected.</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge text-bg-warning text-dark">429</span></td>
+                        <td>&mdash;</td>
+                        <td>Too many requests; wait a minute.</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge text-bg-danger">502</span></td>
+                        <td><code>{"success": false, "error": "Could not check numbers right now"}</code></td>
+                        <td>WhatsApp couldn't be asked right now; try again shortly.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <h6>Example request</h6>
+<pre class="bg-light rounded p-3 mb-0"><code>curl -X POST {{ url('/api/v1/numbers/check') }} \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "instance_id": "YOUR_INSTANCE_ID",
+    "numbers": ["919876543210", "12499793168"]
+  }'</code></pre>
+                <p class="small text-muted mt-2 mb-0">
+                    <code>whatsapp_number</code> is the number as WhatsApp knows it. It's usually the same as
+                    <code>number</code>, but WhatsApp adjusts some countries' numbers. It's <code>null</code> when the
+                    number isn't on WhatsApp.
+                </p>
+            </div>
+            <div class="col-lg-6">
+                <h6>Example response</h6>
+<pre class="bg-light rounded p-3 mb-0"><code>{
+  "success": true,
+  "results": [
+    { "number": "919876543210", "on_whatsapp": true,  "whatsapp_number": "919876543210" },
+    { "number": "12499793168",  "on_whatsapp": false, "whatsapp_number": null }
+  ]
+}</code></pre>
+            </div>
+        </div>
+
+        <p class="text-muted small mb-0 mt-3">
+            <i class="bi bi-speedometer2 me-1"></i>Rate limit: 10 requests per minute per access token (up to 20 numbers each).
+            It's meant for checking real recipients, not for scanning lists of numbers.
         </p>
     </div>
 </div>

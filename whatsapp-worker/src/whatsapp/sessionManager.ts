@@ -382,6 +382,43 @@ export async function sendMessage(instanceId: string, to: string, content: AnyMe
   return messageId;
 }
 
+export type NumberCheck = {
+  number: string;
+  exists: boolean;
+  // The number as WhatsApp knows it — usually identical, but WhatsApp
+  // normalises some countries' numbers. null when not on WhatsApp.
+  whatsapp_number: string | null;
+};
+
+/**
+ * Asks WhatsApp whether each number has an account. One lookup per
+ * number: Baileys only returns the numbers that DO exist (possibly in a
+ * normalised form), so a batched query can't reliably be matched back to
+ * the numbers that were asked about.
+ */
+export async function checkNumbers(instanceId: string, numbers: string[]): Promise<NumberCheck[]> {
+  const session = sessions.get(instanceId);
+
+  if (!session) {
+    throw new SessionNotActiveError(instanceId);
+  }
+
+  const results: NumberCheck[] = [];
+
+  for (const number of numbers) {
+    const [found] = (await session.socket.onWhatsApp(`${number}@s.whatsapp.net`)) ?? [];
+    const exists = Boolean(found?.exists);
+
+    results.push({
+      number,
+      exists,
+      whatsapp_number: exists && found ? found.jid.split("@")[0]!.split(":")[0]! : null,
+    });
+  }
+
+  return results;
+}
+
 /**
  * Closes a running session WITHOUT logging out: the device stays in the
  * phone's "Linked devices" list and the saved credentials are kept, so a

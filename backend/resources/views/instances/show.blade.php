@@ -237,6 +237,39 @@
                             </div>
                         </div>
                     </form>
+
+                    {{-- Is this number on WhatsApp? (same as POST /api/v1/numbers/check) --}}
+                    <div class="border-top mt-4 pt-4" id="check-number">
+                        <div class="small fw-semibold mb-2"><i class="bi bi-person-check me-1 text-primary"></i>Check if a number is on WhatsApp</div>
+                        <form method="POST" action="{{ route('instances.check-number', $instance) }}" class="d-flex flex-column flex-sm-row gap-2">
+                            @csrf
+                            <div class="flex-grow-1">
+                                <label for="check-number-input" class="visually-hidden">Phone number to check</label>
+                                <input type="text" class="form-control @error('check_number') is-invalid @enderror"
+                                       id="check-number-input" name="check_number" placeholder="919876543210"
+                                       value="{{ old('check_number') }}" required inputmode="numeric">
+                                @error('check_number')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <button type="submit" class="btn btn-outline-primary text-nowrap"><i class="bi bi-search me-1"></i>Check</button>
+                        </form>
+
+                        @if ($check = session('number_check'))
+                            @if ($check['exists'])
+                                <div class="alert alert-success small mt-2 mb-0 py-2">
+                                    <i class="bi bi-check-circle me-1"></i><strong>{{ $check['number'] }}</strong> is on WhatsApp.
+                                    @if ($check['whatsapp_number'] && $check['whatsapp_number'] !== $check['number'])
+                                        WhatsApp knows it as <strong>{{ $check['whatsapp_number'] }}</strong>.
+                                    @endif
+                                </div>
+                            @else
+                                <div class="alert alert-warning small mt-2 mb-0 py-2">
+                                    <i class="bi bi-x-circle me-1"></i><strong>{{ $check['number'] }}</strong> is not on WhatsApp. Check the country code and digits.
+                                </div>
+                            @endif
+                        @endif
+                    </div>
                 </div>
             </div>
         @endif
