@@ -1,11 +1,12 @@
 import path from "node:path";
 import fs from "node:fs/promises";
-import makeWASocket, { DisconnectReason, downloadMediaMessage, useMultiFileAuthState } from "baileys";
+import makeWASocket, { downloadMediaMessage, useMultiFileAuthState } from "baileys";
 import type { AnyMessageContent, WAMessage } from "baileys";
 import QRCode from "qrcode";
 import type { FastifyBaseLogger } from "fastify";
 import type { Config } from "../config.js";
 import { notifyLaravel } from "./callbacks.js";
+import { decideOnClose } from "./closeReason.js";
 import { parseIncomingMessage } from "./incomingMessage.js";
 import type { IncomingMedia } from "./incomingMessage.js";
 import { MediaTooLargeError, mediaFileName, saveMediaStream } from "./media.js";
@@ -31,6 +32,16 @@ const sessions = new Map<string, Session>();
 // pass the check and open two sockets for the same instance/auth files.
 const startingInstanceIds = new Set<string>();
 
+// Automatic reconnects after a network-type drop (see closeReason.ts):
+// the pending timer per instance, and how many retries happened in a row.
+const retryTimers = new Map<string, NodeJS.Timeout>();
+const retryAttempts = new Map<string, number>();
+
+function cancelRetry(instanceId: string): void {
+  clearTimeout(retryTimers.get(instanceId));
+  retryTimers.delete(instanceId);
+}
+
 /**
  * Starts (or no-ops if already running/starting) a Baileys session for
  * one instance. QR codes and connection state changes are reported back
@@ -41,6 +52,9 @@ export async function startSession(
   config: Config,
   logger: FastifyBaseLogger
 ): Promise<void> {
+  // A manual start replaces any automatic retry that was waiting.
+  cancelRetry(instanceId);
+
   if (sessions.has(instanceId) || startingInstanceIds.has(instanceId)) {
     return;
   }
@@ -102,6 +116,7 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
     }
 
     if (connection === "open") {
+      retryAttempts.delete(instanceId);
       const phoneNumber = socket.user?.phoneNumber ?? socket.user?.id?.split(/[:@]/)[0] ?? null;
       await notifyLaravel(
         config,
@@ -130,27 +145,60 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
       // Baileys wraps the disconnect reason in a Boom error.
       const error = lastDisconnect?.error as { output?: { statusCode?: number } } | undefined;
       const statusCode = error?.output?.statusCode;
-      const loggedOut = statusCode === DisconnectReason.loggedOut;
-      const restartRequired = statusCode === DisconnectReason.restartRequired;
+      // creds.me is only set once a QR has actually been scanned.
+      const paired = Boolean(state.creds.me);
+      const attempt = retryAttempts.get(instanceId) ?? 0;
+      const decision = decideOnClose(statusCode, paired, attempt);
 
-      if (restartRequired) {
+      logger.info(
+        { instanceId, statusCode, reason: lastDisconnect?.error?.message, action: decision.action },
+        "WhatsApp connection closed"
+      );
+
+      if (decision.action === "restart") {
         // Expected: happens exactly once, right after a fresh QR pairing.
         // Reconnect silently with the (now-saved) credentials — this is
         // not a real disconnect, so Laravel/the user never need to know.
-        logger.info({ instanceId }, "Restart required after pairing, reconnecting automatically");
         setTimeout(() => {
           void connect(instanceId, config, logger);
         }, 1000);
         return;
       }
 
-      // loggedOut means the user unlinked the device from their phone —
-      // no point reconnecting automatically, and the saved credentials
+      if (decision.action === "retry") {
+        retryAttempts.set(instanceId, attempt + 1);
+        retryTimers.set(
+          instanceId,
+          setTimeout(() => {
+            retryTimers.delete(instanceId);
+            startSession(instanceId, config, logger).catch((err) => {
+              logger.error({ instanceId, err }, "Automatic reconnect failed to start");
+            });
+          }, decision.delayMs)
+        );
+
+        await notifyLaravel(
+          config,
+          {
+            event: "connection.updated",
+            instance_id: instanceId,
+            status: "disconnected",
+            auto_retry: true,
+            last_disconnect_reason: decision.reason,
+          },
+          logger
+        );
+        return;
+      }
+
+      retryAttempts.delete(instanceId);
+
+      // logged_out means the device was unlinked — the saved credentials
       // are now dead, so clear them (a later "Reconnect" then correctly
-      // starts a fresh pairing instead of failing forever). Anything else
-      // (lost network, etc.), Laravel offers a "Reconnect" button and the
-      // existing credentials are still good.
-      if (loggedOut) {
+      // starts a fresh pairing instead of failing forever). Same for an
+      // expired QR: nothing useful was saved. Any other "stop", the
+      // credentials are still good and Reconnect needs no QR.
+      if (decision.status === "logged_out" || !paired) {
         await clearAuthState(instanceId, config);
       }
 
@@ -159,8 +207,9 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
         {
           event: "connection.updated",
           instance_id: instanceId,
-          status: loggedOut ? "logged_out" : "disconnected",
-          last_disconnect_reason: lastDisconnect?.error?.message ?? null,
+          status: decision.status,
+          auto_retry: false,
+          last_disconnect_reason: decision.reason,
         },
         logger
       );
@@ -339,6 +388,9 @@ export async function sendMessage(instanceId: string, to: string, content: AnyMe
  * later "Reconnect" goes straight back in with no QR code.
  */
 export async function disconnectSession(instanceId: string): Promise<void> {
+  cancelRetry(instanceId);
+  retryAttempts.delete(instanceId);
+
   const session = sessions.get(instanceId);
 
   if (!session) {
@@ -357,6 +409,9 @@ export async function disconnectSession(instanceId: string): Promise<void> {
  * later "Reconnect" should start a fresh pairing either way.
  */
 export async function stopSession(instanceId: string, config: Config): Promise<void> {
+  cancelRetry(instanceId);
+  retryAttempts.delete(instanceId);
+
   const session = sessions.get(instanceId);
 
   if (session) {

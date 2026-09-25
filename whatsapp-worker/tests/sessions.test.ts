@@ -81,6 +81,33 @@ describe("DELETE /sessions/:instanceId", () => {
   });
 });
 
+describe("POST /sessions/:instanceId/disconnect", () => {
+  it("rejects a request with no secret", async () => {
+    const app = await buildApp(testConfig);
+
+    const response = await app.inject({ method: "POST", url: `/sessions/${randomUUID()}/disconnect` });
+
+    expect(response.statusCode).toBe(401);
+
+    await app.close();
+  });
+
+  it("accepts a request for an unknown session id (nothing to disconnect)", async () => {
+    const app = await buildApp(testConfig);
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/sessions/${randomUUID()}/disconnect`,
+      headers: { "x-internal-secret": testConfig.INTERNAL_API_SECRET },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ disconnected: true });
+
+    await app.close();
+  });
+});
+
 describe("POST /sessions/:instanceId/messages", () => {
   // A request with no active session for that instance never reaches
   // Baileys/the network at all (it 409s before calling sendMessage), so

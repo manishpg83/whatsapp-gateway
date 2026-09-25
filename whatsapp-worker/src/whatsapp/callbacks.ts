@@ -9,6 +9,9 @@ export type WorkerEvent =
       instance_id: string;
       status: "connected" | "disconnected" | "logged_out";
       phone_number?: string | null;
+      // true = the worker will reconnect by itself shortly (network drop);
+      // false = it has stopped trying and the user must act.
+      auto_retry?: boolean;
       last_disconnect_reason?: string | null;
     }
   | {
