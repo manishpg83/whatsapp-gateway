@@ -111,4 +111,21 @@ class WhatsappSession extends Model
     {
         return $this->hasMany(WebhookDelivery::class);
     }
+
+    /**
+     * @return HasMany<InstanceEvent, $this>
+     */
+    public function events(): HasMany
+    {
+        return $this->hasMany(InstanceEvent::class);
+    }
+
+    /**
+     * Adds one line to this instance's connection history (see
+     * InstanceEvent::TYPES).
+     */
+    public function logEvent(string $type, ?string $detail = null): void
+    {
+        $this->events()->create(['type' => $type, 'detail' => $detail]);
+    }
 }

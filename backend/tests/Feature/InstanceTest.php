@@ -301,6 +301,29 @@ class InstanceTest extends TestCase
         Http::assertNotSent(fn ($request) => $request->method() === 'DELETE');
     }
 
+    public function test_user_actions_are_recorded_and_shown_in_the_connection_history(): void
+    {
+        Http::fake(['*' => Http::response([], 200)]);
+
+        $user = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($user)->connected()->create();
+
+        $this->actingAs($user)->post(route('instances.disconnect', $instance));
+        $this->actingAs($user)->post(route('instances.reconnect', $instance));
+        $this->actingAs($user)->delete(route('instances.destroy', $instance));
+
+        $this->assertSame(
+            ['user_disconnected', 'user_reconnect', 'user_logged_out'],
+            $instance->events()->orderBy('id')->pluck('type')->all()
+        );
+
+        $this->actingAs($user)->get(route('instances.show', $instance))
+            ->assertOk()
+            ->assertSee('Connection history')
+            ->assertSee('Disconnected by you')
+            ->assertSee('Logged out by you');
+    }
+
     public function test_logout_calls_the_worker_and_updates_status(): void
     {
         Http::fake(['*' => Http::response(['stopped' => true], 200)]);

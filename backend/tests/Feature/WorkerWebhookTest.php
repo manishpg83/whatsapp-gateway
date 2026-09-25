@@ -6,7 +6,9 @@ use App\Jobs\DeliverWebhook;
 use App\Models\Message;
 use App\Models\WhatsappSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Notifications\InstanceDisconnected;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -72,6 +74,120 @@ class WorkerWebhookTest extends TestCase
         $this->assertSame('919999999999', $instance->phone_number);
         $this->assertNotNull($instance->connected_at);
         $this->assertNull($instance->qr_code);
+    }
+
+    public function test_an_auto_retrying_disconnect_shows_as_connecting(): void
+    {
+        $instance = WhatsappSession::factory()->connected()->create();
+
+        $this->postJson('/internal/worker/events', [
+            'event' => 'connection.updated',
+            'instance_id' => $instance->instance_id,
+            'status' => 'disconnected',
+            'auto_retry' => true,
+            'last_disconnect_reason' => 'Connection lost. Reconnecting automatically (attempt 1 of 6)…',
+        ], ['X-Internal-Secret' => self::SECRET])->assertNoContent();
+
+        $instance->refresh();
+        $this->assertSame('connecting', $instance->status);
+        $this->assertNotNull($instance->phone_number);
+    }
+
+    public function test_a_final_disconnect_shows_as_disconnected(): void
+    {
+        $instance = WhatsappSession::factory()->connected()->create();
+
+        $this->postJson('/internal/worker/events', [
+            'event' => 'connection.updated',
+            'instance_id' => $instance->instance_id,
+            'status' => 'disconnected',
+            'auto_retry' => false,
+        ], ['X-Internal-Secret' => self::SECRET])->assertNoContent();
+
+        $this->assertSame('disconnected', $instance->fresh()->status);
+    }
+
+    public function test_connection_changes_are_recorded_in_the_history(): void
+    {
+        $instance = WhatsappSession::factory()->create(['status' => 'qr_pending']);
+        $send = fn (array $payload) => $this->postJson('/internal/worker/events', [
+            'event' => 'connection.updated',
+            'instance_id' => $instance->instance_id,
+            ...$payload,
+        ], ['X-Internal-Secret' => self::SECRET])->assertNoContent();
+
+        $send(['status' => 'connected', 'phone_number' => '919999999999']);
+        $send(['status' => 'disconnected', 'auto_retry' => true]);
+        $send(['status' => 'disconnected', 'auto_retry' => true]); // 2nd attempt: not logged again
+        $send(['status' => 'disconnected', 'auto_retry' => false, 'last_disconnect_reason' => 'Gave up']);
+
+        $this->assertSame(
+            ['connected', 'connection_lost', 'disconnected'],
+            $instance->events()->orderBy('id')->pluck('type')->all()
+        );
+        $this->assertSame('Gave up', $instance->events()->where('type', 'disconnected')->value('detail'));
+    }
+
+    public function test_owner_is_emailed_when_a_linked_instance_goes_offline_for_good(): void
+    {
+        Notification::fake();
+        $instance = WhatsappSession::factory()->connected()->create();
+
+        $this->postJson('/internal/worker/events', [
+            'event' => 'connection.updated',
+            'instance_id' => $instance->instance_id,
+            'status' => 'logged_out',
+        ], ['X-Internal-Secret' => self::SECRET])->assertNoContent();
+
+        Notification::assertSentTo($instance->user, InstanceDisconnected::class, function (InstanceDisconnected $notification) use ($instance) {
+            $html = (string) $notification->toMail($instance->user)->render();
+
+            return str_contains($html, e($instance->name)) && str_contains($html, 'scan a new QR code');
+        });
+    }
+
+    public function test_owner_is_not_emailed_while_the_worker_is_auto_reconnecting(): void
+    {
+        Notification::fake();
+        $instance = WhatsappSession::factory()->connected()->create();
+
+        $this->postJson('/internal/worker/events', [
+            'event' => 'connection.updated',
+            'instance_id' => $instance->instance_id,
+            'status' => 'disconnected',
+            'auto_retry' => true,
+        ], ['X-Internal-Secret' => self::SECRET])->assertNoContent();
+
+        Notification::assertNothingSent();
+    }
+
+    public function test_owner_is_not_emailed_when_a_never_linked_qr_expires(): void
+    {
+        Notification::fake();
+        $instance = WhatsappSession::factory()->create(['status' => 'qr_pending', 'phone_number' => null]);
+
+        $this->postJson('/internal/worker/events', [
+            'event' => 'connection.updated',
+            'instance_id' => $instance->instance_id,
+            'status' => 'disconnected',
+            'auto_retry' => false,
+        ], ['X-Internal-Secret' => self::SECRET])->assertNoContent();
+
+        Notification::assertNothingSent();
+    }
+
+    public function test_owner_is_not_emailed_twice_for_an_already_offline_instance(): void
+    {
+        Notification::fake();
+        $instance = WhatsappSession::factory()->create(['status' => 'disconnected', 'phone_number' => '919999999999']);
+
+        $this->postJson('/internal/worker/events', [
+            'event' => 'connection.updated',
+            'instance_id' => $instance->instance_id,
+            'status' => 'logged_out',
+        ], ['X-Internal-Secret' => self::SECRET])->assertNoContent();
+
+        Notification::assertNothingSent();
     }
 
     public function test_connection_updated_event_marks_the_instance_logged_out(): void

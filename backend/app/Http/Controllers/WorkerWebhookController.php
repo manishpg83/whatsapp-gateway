@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Message;
 use App\Models\WhatsappSession;
+use App\Notifications\InstanceDisconnected;
 use App\Services\WebhookDispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Receives status updates from the Node worker: a new QR code, a
@@ -55,13 +57,27 @@ class WorkerWebhookController extends Controller
             'status' => ['required', 'in:connected,disconnected,logged_out'],
             'phone_number' => ['nullable', 'string'],
             'last_disconnect_reason' => ['nullable', 'string'],
+            'auto_retry' => ['sometimes', 'boolean'],
         ]);
 
         $session = $this->findByInstanceId($data['instance_id']);
         $connected = $data['status'] === 'connected';
+        // The worker is reconnecting by itself after a network drop: show it
+        // as "connecting" so the page says "Reconnecting…" and keeps polling.
+        $autoRetrying = $data['status'] === 'disconnected' && ($data['auto_retry'] ?? false);
+
+        // Alert the owner only when a linked, online (or auto-reconnecting)
+        // instance goes offline for good. User-clicked Disconnect/Logout
+        // never reach here, an expired QR has no phone number, and an
+        // already-offline instance was alerted about before.
+        $phoneNumber = $session->phone_number;
+        $previousStatus = $session->status;
+        $shouldAlert = ! $connected && ! $autoRetrying
+            && $phoneNumber !== null
+            && in_array($previousStatus, ['connected', 'connecting'], true);
 
         $session->update([
-            'status' => $data['status'],
+            'status' => $autoRetrying ? 'connecting' : $data['status'],
             // logged_out = unlinked, so forget the number (the next pairing sets it again).
             'phone_number' => match ($data['status']) {
                 'connected' => $data['phone_number'] ?? null,
@@ -73,6 +89,31 @@ class WorkerWebhookController extends Controller
             // A QR left over from before this connection/disconnect is stale either way.
             'qr_code' => null,
         ]);
+
+        // Connection history. While auto-retrying, only the first drop is
+        // logged — not every attempt.
+        if ($connected) {
+            $session->logEvent('connected', $session->phone_number);
+        } elseif ($autoRetrying) {
+            if ($previousStatus === 'connected') {
+                $session->logEvent('connection_lost');
+            }
+        } else {
+            $session->logEvent($data['status'], $data['last_disconnect_reason'] ?? null);
+        }
+
+        if ($shouldAlert) {
+            try {
+                $session->user->notify(new InstanceDisconnected($session, $phoneNumber));
+            } catch (Throwable $e) {
+                // The status update above already happened; a mail hiccup
+                // shouldn't make the worker think its callback failed.
+                Log::error('Could not send instance-disconnected email', [
+                    'instance_id' => $session->instance_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         return response()->noContent();
     }

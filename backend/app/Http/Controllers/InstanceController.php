@@ -50,6 +50,7 @@ class InstanceController extends Controller
             'name' => $data['name'],
             'status' => 'connecting',
         ]);
+        $instance->logEvent('created');
 
         try {
             $worker->startSession($instance->instance_id);
@@ -81,6 +82,7 @@ class InstanceController extends Controller
             'failedCount' => $whatsappSession->messages()->where('direction', 'outgoing')->where('status', 'failed')->count(),
             'receivedCount' => $whatsappSession->messages()->where('direction', 'incoming')->count(),
             'webhookDeliveries' => $whatsappSession->webhookDeliveries()->latest()->latest('id')->take(20)->get(),
+            'connectionEvents' => $whatsappSession->events()->latest('id')->take(20)->get(),
         ]);
     }
 
@@ -227,6 +229,7 @@ class InstanceController extends Controller
             'status' => 'disconnected',
             'last_disconnect_reason' => 'Disconnected by you. Reconnect to go back online (no QR code needed).',
         ]);
+        $whatsappSession->logEvent('user_disconnected');
 
         return redirect()->route('instances.show', $whatsappSession)->with('status', 'Instance disconnected.');
     }
@@ -253,6 +256,7 @@ class InstanceController extends Controller
             'phone_number' => null,
             'last_disconnect_reason' => 'Logged out. Reconnect and scan a new QR code to link your phone again.',
         ]);
+        $whatsappSession->logEvent('user_logged_out');
 
         return redirect()->route('instances.show', $whatsappSession)->with('status', 'Instance logged out.');
     }
@@ -261,7 +265,8 @@ class InstanceController extends Controller
     {
         $whatsappSession = $this->findOwnedInstance($request, $instance);
 
-        $whatsappSession->update(['status' => 'connecting', 'qr_code' => null]);
+        $whatsappSession->update(['status' => 'connecting', 'qr_code' => null, 'last_disconnect_reason' => null]);
+        $whatsappSession->logEvent('user_reconnect');
 
         try {
             $worker->startSession($whatsappSession->instance_id);

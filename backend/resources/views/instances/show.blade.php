@@ -117,7 +117,14 @@
                         <div class="flex-grow-1">
                             <div class="fs-3 fw-semibold mb-1">Reconnecting&hellip;</div>
                             <p class="small text-muted mb-0">Going back online as {{ $instance->phone_number }}. No QR code needed.</p>
+                            @if ($instance->last_disconnect_reason)
+                                <p class="small text-muted mb-0">{{ $instance->last_disconnect_reason }}</p>
+                            @endif
                         </div>
+                        <form method="POST" action="{{ route('instances.disconnect', $instance) }}" class="align-self-md-start">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-outline-secondary" title="Stop trying and stay offline"><i class="bi bi-pause-circle me-1"></i>Disconnect</button>
+                        </form>
                     </div>
                 @else
                     {{-- connecting / qr_pending --}}
@@ -166,7 +173,7 @@
                                 <label for="test-message-to" class="form-label small fw-semibold">To (phone number)</label>
                                 <input type="text" class="form-control @error('to') is-invalid @enderror"
                                        id="test-message-to" name="to" placeholder="919876543210" value="{{ old('to') }}" required inputmode="numeric">
-                                <div class="form-text">Digits only, country code first.</div>
+                                <div class="form-text">Country code first, digits only: no <code>+</code>, spaces or dashes. E.g. <code>+91 98665 48992</code> &rarr; <code>919866548992</code>.</div>
                                 @error('to')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -550,6 +557,38 @@
                     </div>
                 @endif
             @endif
+        </div>
+
+        {{-- Connection history --}}
+        <div class="card shadow-sm mt-4" id="connection-history">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <span class="section-icon bg-wa-light text-primary"><i class="bi bi-clock-history"></i></span>
+                    <div>
+                        <h2 class="h5 mb-0">Connection history</h2>
+                        <div class="text-muted small">When this number connected and went offline, newest first (last 20).</div>
+                    </div>
+                </div>
+
+                @if ($connectionEvents->isEmpty())
+                    <p class="text-muted small mb-0">Nothing recorded yet.</p>
+                @else
+                    <ul class="list-unstyled mb-0 small">
+                        @foreach ($connectionEvents as $event)
+                            <li class="d-flex gap-3 py-2 @if (! $loop->last) border-bottom @endif">
+                                <i class="bi bi-{{ $event->icon() }} text-{{ $event->color() }} fs-6"></i>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="fw-semibold">{{ $event->label() }}</div>
+                                    @if ($event->detail)
+                                        <div class="text-muted text-break">{{ $event->detail }}</div>
+                                    @endif
+                                </div>
+                                <span class="text-muted text-nowrap">{{ $event->created_at->format('M j, H:i') }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </div>
         </div>
     </div>
 </div>
