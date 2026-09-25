@@ -324,6 +324,51 @@ class InstanceTest extends TestCase
             ->assertSee('Logged out by you');
     }
 
+    public function test_connection_history_is_grouped_by_day_and_can_be_filtered_by_date(): void
+    {
+        $user = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($user)->connected()->create();
+
+        $this->travelTo(now()->subDays(3)->setTime(10, 0));
+        $instance->logEvent('connected', 'OLD-DAY-DETAIL');
+        $this->travelBack();
+        $instance->logEvent('user_disconnected', 'TODAY-DETAIL');
+
+        $oldDay = now()->subDays(3)->toDateString();
+
+        // No filter: both days, each under its own day heading.
+        $this->actingAs($user)->get(route('instances.show', $instance))
+            ->assertOk()
+            ->assertSee('Today')
+            ->assertSee(now()->subDays(3)->format('D, M j, Y'))
+            ->assertSee('OLD-DAY-DETAIL')
+            ->assertSee('TODAY-DETAIL');
+
+        // Filtered to the old day: only that day's events.
+        $this->actingAs($user)->get(route('instances.show', [$instance, 'history_date' => $oldDay]))
+            ->assertOk()
+            ->assertSee('OLD-DAY-DETAIL')
+            ->assertDontSee('TODAY-DETAIL');
+
+        // A day with nothing on it.
+        $this->actingAs($user)->get(route('instances.show', [$instance, 'history_date' => now()->subDay()->toDateString()]))
+            ->assertOk()
+            ->assertSee('Nothing happened on this day.');
+    }
+
+    public function test_an_invalid_history_date_is_ignored(): void
+    {
+        $user = User::factory()->create();
+        $instance = WhatsappSession::factory()->for($user)->connected()->create();
+        $instance->logEvent('connected', 'SOME-DETAIL');
+
+        foreach (['2026-02-31', 'not-a-date', now()->addDays(5)->toDateString()] as $bad) {
+            $this->actingAs($user)->get(route('instances.show', [$instance, 'history_date' => $bad]))
+                ->assertOk()
+                ->assertSee('SOME-DETAIL');
+        }
+    }
+
     public function test_logout_calls_the_worker_and_updates_status(): void
     {
         Http::fake(['*' => Http::response(['stopped' => true], 200)]);

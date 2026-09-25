@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -23,6 +24,10 @@ use Throwable;
 
 class InstanceController extends Controller
 {
+    // How many connection-history events the instance page shows when no
+    // date is picked.
+    private const HISTORY_LIMIT = 50;
+
     public function index(Request $request): View
     {
         $instances = $request->user()->whatsappSessions()->latest()->get();
@@ -82,8 +87,44 @@ class InstanceController extends Controller
             'failedCount' => $whatsappSession->messages()->where('direction', 'outgoing')->where('status', 'failed')->count(),
             'receivedCount' => $whatsappSession->messages()->where('direction', 'incoming')->count(),
             'webhookDeliveries' => $whatsappSession->webhookDeliveries()->latest()->latest('id')->take(20)->get(),
-            'connectionEvents' => $whatsappSession->events()->latest('id')->take(20)->get(),
+            ...$this->connectionHistory($request, $whatsappSession),
         ]);
+    }
+
+    /**
+     * Connection history for the show page, grouped by day (newest first).
+     * With ?history_date=YYYY-MM-DD it shows only that day; otherwise the
+     * latest HISTORY_LIMIT events. A bad/future date is simply ignored.
+     *
+     * @return array{connectionEventsByDay: \Illuminate\Support\Collection, historyDate: ?Carbon, historyFirstDate: ?string}
+     */
+    protected function connectionHistory(Request $request, WhatsappSession $whatsappSession): array
+    {
+        $historyDate = null;
+        $input = $request->query('history_date');
+
+        if (is_string($input) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $input)) {
+            try {
+                $parsed = Carbon::createFromFormat('!Y-m-d', $input);
+                // Round-trip check rejects overflowing dates like 2026-02-31.
+                $historyDate = $parsed && $parsed->format('Y-m-d') === $input && ! $parsed->isFuture() ? $parsed : null;
+            } catch (Throwable) {
+                $historyDate = null;
+            }
+        }
+
+        $events = $whatsappSession->events()
+            ->when($historyDate, fn ($query) => $query->whereDate('created_at', $historyDate->toDateString()))
+            ->latest('id')
+            ->take($historyDate ? 500 : self::HISTORY_LIMIT)
+            ->get();
+
+        return [
+            'connectionEventsByDay' => $events->groupBy(fn ($event) => $event->created_at->toDateString()),
+            'historyDate' => $historyDate,
+            // Earliest selectable day in the date picker.
+            'historyFirstDate' => $whatsappSession->events()->min('created_at'),
+        ];
     }
 
     /**

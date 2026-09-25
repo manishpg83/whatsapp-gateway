@@ -17,16 +17,16 @@
 
         {{-- Page header --}}
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-            <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3" style="min-width: 0;">
                 <span class="bg-wa-light text-primary rounded-3 d-inline-flex align-items-center justify-content-center flex-shrink-0 fs-5" style="width: 44px; height: 44px;">
                     <i class="bi bi-list-ul"></i>
                 </span>
-                <div>
-                    <h1 class="h3 mb-0">{{ $instance->name }}</h1>
-                    <div class="text-muted small font-monospace">{{ $instance->instance_id }}</div>
+                <div style="min-width: 0;">
+                    <h1 class="h3 mb-0 text-break">{{ $instance->name }}</h1>
+                    <div class="text-muted small font-monospace text-break">{{ $instance->instance_id }}</div>
                 </div>
             </div>
-            <div class="d-flex gap-2">
+            <div class="d-flex flex-wrap gap-2">
                 <a href="{{ route('api-logs.index', ['instance_id' => $instance->instance_id]) }}" class="btn btn-sm btn-outline-secondary">
                     <i class="bi bi-clock-history me-1"></i>API Logs
                 </a>
@@ -69,7 +69,7 @@
                                 <div class="hero-phone"><i class="bi bi-whatsapp fs-1"></i></div>
                             </div>
                         </div>
-                        <div class="d-flex gap-2 align-self-md-start">
+                        <div class="d-flex flex-wrap gap-2 align-self-md-start">
                             <form method="POST" action="{{ route('instances.disconnect', $instance) }}"
                                   onsubmit="return confirm('Disconnect this WhatsApp number? It stays linked, so Reconnect will not need a QR code.');">
                                 @csrf
@@ -96,7 +96,7 @@
                                 <p class="small text-muted mb-0">Reconnect to get a new QR code and link your phone again.</p>
                             @endif
                         </div>
-                        <div class="d-flex gap-2">
+                        <div class="d-flex flex-wrap gap-2">
                             <form method="POST" action="{{ route('instances.reconnect', $instance) }}">
                                 @csrf
                                 <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-repeat me-1"></i>Reconnect</button>
@@ -316,7 +316,7 @@
                         @endif
 
                         @if ($isConnected)
-                            <form method="POST" action="{{ route('instances.tokens.store', $instance) }}" class="d-flex gap-2">
+                            <form method="POST" action="{{ route('instances.tokens.store', $instance) }}" class="d-flex flex-column flex-sm-row gap-2">
                                 @csrf
                                 <div class="flex-grow-1">
                                     <label for="token-name" class="visually-hidden">New token name</label>
@@ -562,31 +562,74 @@
         {{-- Connection history --}}
         <div class="card shadow-sm mt-4" id="connection-history">
             <div class="card-body p-4">
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    <span class="section-icon bg-wa-light text-primary"><i class="bi bi-clock-history"></i></span>
-                    <div>
-                        <h2 class="h5 mb-0">Connection history</h2>
-                        <div class="text-muted small">When this number connected and went offline, newest first (last 20).</div>
+                <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 mb-3">
+                    <div class="d-flex align-items-center gap-3 flex-grow-1">
+                        <span class="section-icon bg-wa-light text-primary flex-shrink-0"><i class="bi bi-clock-history"></i></span>
+                        <div>
+                            <h2 class="h5 mb-0">Connection history</h2>
+                            <div class="text-muted small">
+                                @if ($historyDate)
+                                    Showing {{ $historyDate->format('D, M j, Y') }} only.
+                                @else
+                                    When this number connected and went offline, by day (latest 50 events).
+                                @endif
+                            </div>
+                        </div>
                     </div>
+
+                    {{-- Date filter: picking a day reloads the page showing only that day. --}}
+                    <form method="GET" action="{{ route('instances.show', $instance) }}#connection-history" class="d-flex gap-2">
+                        <label for="history-date" class="visually-hidden">Show history for date</label>
+                        <input type="date" id="history-date" name="history_date" class="form-control form-control-sm"
+                               value="{{ $historyDate?->toDateString() }}"
+                               max="{{ now()->toDateString() }}"
+                               @if ($historyFirstDate) min="{{ \Illuminate\Support\Carbon::parse($historyFirstDate)->toDateString() }}" @endif
+                               onchange="if (this.value) this.form.submit()">
+                        <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap"><i class="bi bi-funnel me-1"></i>Show</button>
+                        @if ($historyDate)
+                            <a href="{{ route('instances.show', $instance) }}#connection-history" class="btn btn-sm btn-outline-secondary text-nowrap">
+                                <i class="bi bi-x-lg me-1"></i>Clear
+                            </a>
+                        @endif
+                    </form>
                 </div>
 
-                @if ($connectionEvents->isEmpty())
-                    <p class="text-muted small mb-0">Nothing recorded yet.</p>
+                @if ($connectionEventsByDay->isEmpty())
+                    <p class="text-muted small mb-0">
+                        {{ $historyDate ? 'Nothing happened on this day.' : 'Nothing recorded yet.' }}
+                    </p>
                 @else
-                    <ul class="list-unstyled mb-0 small">
-                        @foreach ($connectionEvents as $event)
-                            <li class="d-flex gap-3 py-2 @if (! $loop->last) border-bottom @endif">
-                                <i class="bi bi-{{ $event->icon() }} text-{{ $event->color() }} fs-6"></i>
-                                <div class="flex-grow-1 min-w-0">
-                                    <div class="fw-semibold">{{ $event->label() }}</div>
-                                    @if ($event->detail)
-                                        <div class="text-muted text-break">{{ $event->detail }}</div>
-                                    @endif
-                                </div>
-                                <span class="text-muted text-nowrap">{{ $event->created_at->format('M j, H:i') }}</span>
-                            </li>
-                        @endforeach
-                    </ul>
+                    @foreach ($connectionEventsByDay as $day => $dayEvents)
+                        @php
+                            $dayDate = \Illuminate\Support\Carbon::parse($day);
+                            $dayLabel = match (true) {
+                                $dayDate->isToday() => 'Today',
+                                $dayDate->isYesterday() => 'Yesterday',
+                                default => $dayDate->format('D, M j, Y'),
+                            };
+                        @endphp
+                        <div class="@if (! $loop->first) mt-3 @endif">
+                            <div class="d-flex align-items-center gap-2 bg-light rounded-2 px-3 py-2 small">
+                                <i class="bi bi-calendar3 text-muted"></i>
+                                <span class="fw-semibold">{{ $dayLabel }}</span>
+                                <span class="text-muted ms-auto">{{ $dayEvents->count() }} {{ Str::plural('event', $dayEvents->count()) }}</span>
+                            </div>
+                            <ul class="list-unstyled mb-0 small px-md-2">
+                                @foreach ($dayEvents as $event)
+                                    <li class="d-flex gap-3 py-2 @if (! $loop->last) border-bottom @endif">
+                                        <i class="bi bi-{{ $event->icon() }} text-{{ $event->color() }} fs-6 flex-shrink-0"></i>
+                                        <div class="flex-grow-1" style="min-width: 0;">
+                                            <div class="fw-semibold">{{ $event->label() }}</div>
+                                            @if ($event->detail)
+                                                <div class="text-muted text-break">{{ $event->detail }}</div>
+                                            @endif
+                                        </div>
+                                        <span class="text-muted text-nowrap flex-shrink-0">{{ $event->created_at->format('H:i') }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endforeach
                 @endif
             </div>
         </div>
