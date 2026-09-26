@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Notifications\WelcomeUser;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -32,6 +33,56 @@ class EmailVerificationTest extends TestCase
             'id' => $user->id,
             'hash' => sha1($user->email),
         ]);
+    }
+
+    public function test_verifying_sends_the_welcome_email_once(): void
+    {
+        Notification::fake();
+        $user = User::factory()->unverified()->create();
+
+        $this->actingAs($user)->get($this->verificationUrl($user))->assertRedirect(route('dashboard'));
+
+        Notification::assertSentToTimes($user, WelcomeUser::class, 1);
+        $this->assertNotNull($user->fresh()->welcome_sent_at);
+
+        // Clicking the link again doesn't send a second one.
+        $this->actingAs($user)->get($this->verificationUrl($user));
+        Notification::assertSentToTimes($user, WelcomeUser::class, 1);
+    }
+
+    public function test_re_verifying_after_an_email_change_does_not_welcome_again(): void
+    {
+        Notification::fake();
+        $user = User::factory()->unverified()->create();
+        $this->actingAs($user)->get($this->verificationUrl($user));
+
+        // Email change: back to unverified, then verify the new address.
+        $user->forceFill(['email' => 'new@example.com', 'email_verified_at' => null])->save();
+        $this->actingAs($user)->get($this->verificationUrl($user->fresh()))->assertRedirect(route('dashboard'));
+
+        $this->assertNotNull($user->fresh()->email_verified_at);
+        Notification::assertSentToTimes($user, WelcomeUser::class, 1);
+    }
+
+    public function test_admins_get_no_welcome_email(): void
+    {
+        Notification::fake();
+        $admin = User::factory()->unverified()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)->get($this->verificationUrl($admin))->assertRedirect(route('admin.dashboard'));
+
+        Notification::assertNotSentTo($admin, WelcomeUser::class);
+    }
+
+    public function test_welcome_email_content(): void
+    {
+        $user = User::factory()->create(['name' => 'Jane Doe']);
+        $html = (string) (new WelcomeUser)->toMail($user)->render();
+
+        $this->assertStringContainsString('Welcome aboard, Jane Doe!', $html);
+        $this->assertStringContainsString('Get started in 3 steps', $html);
+        $this->assertStringContainsString(route('dashboard'), $html);
+        $this->assertStringContainsString('Your plan: Free', $html);
     }
 
     public function test_registering_sends_a_verification_email_and_shows_the_notice(): void

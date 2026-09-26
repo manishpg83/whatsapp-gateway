@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Notifications\SubscriptionActivated;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -88,6 +90,56 @@ class CashfreeWebhookTest extends TestCase
         ])->assertNoContent();
 
         $this->assertSame('active', $user->subscription->fresh()->status);
+    }
+
+    private function statusWebhook(string $subscriptionId, string $status): TestResponse
+    {
+        return $this->postSignedWebhook([
+            'type' => 'SUBSCRIPTION_STATUS_CHANGE',
+            'data' => ['subscription' => ['subscription_id' => $subscriptionId, 'subscription_status' => $status]],
+        ]);
+    }
+
+    private function userWithSubscription(string $plan, string $status): User
+    {
+        $user = User::factory()->create();
+        $user->subscription->update(['plan' => $plan, 'status' => $status, 'cashfree_subscription_id' => 'sub_mail_1']);
+
+        return $user;
+    }
+
+    public function test_new_purchase_sends_the_subscribed_email_once(): void
+    {
+        Notification::fake();
+        $user = $this->userWithSubscription('growth', 'pending');
+
+        $this->statusWebhook('sub_mail_1', 'ACTIVE')->assertNoContent();
+        $this->statusWebhook('sub_mail_1', 'ACTIVE'); // retry / renewal while already active
+
+        Notification::assertSentToTimes($user, SubscriptionActivated::class, 1);
+    }
+
+    public function test_recovering_from_a_failed_payment_does_not_resend_it(): void
+    {
+        Notification::fake();
+        $user = $this->userWithSubscription('growth', 'past_due');
+
+        $this->statusWebhook('sub_mail_1', 'ACTIVE');
+
+        Notification::assertNotSentTo($user, SubscriptionActivated::class);
+    }
+
+    public function test_subscribed_email_content(): void
+    {
+        $user = $this->userWithSubscription('growth', 'active');
+        $user->subscription->update(['current_period_end' => '2026-10-26']);
+        $mail = (new SubscriptionActivated($user->subscription->fresh()))->toMail($user);
+        $html = (string) $mail->render();
+
+        $this->assertSame("You're subscribed to the Growth plan", $mail->subject);
+        $this->assertStringContainsString('₹1,499 / month', $html);
+        $this->assertStringContainsString('October 26, 2026', $html);
+        $this->assertStringContainsString(route('billing.index'), $html);
     }
 
     public function test_unknown_subscription_id_is_ignored_without_error(): void

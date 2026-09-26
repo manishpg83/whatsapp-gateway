@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Subscription;
+use App\Notifications\SubscriptionActivated;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Receives subscription lifecycle events from Cashfree (activated,
@@ -57,10 +59,35 @@ class CashfreeWebhookController extends Controller
             ?? data_get($payload, 'data.subscription_status');
 
         if ($status) {
+            $previousStatus = $subscription->status;
             $subscription->update(['status' => $this->mapStatus($status)]);
+
+            // A new purchase: pending -> active. Retries and monthly
+            // renewals arrive while it's already active, and a recovered
+            // failed payment comes from past_due, so neither emails again.
+            if ($previousStatus === 'pending' && $subscription->status === 'active') {
+                $this->sendSubscribedEmail($subscription);
+            }
         }
 
         return response()->noContent();
+    }
+
+    protected function sendSubscribedEmail(Subscription $subscription): void
+    {
+        if ($subscription->planDetails()['price'] <= 0) {
+            return;
+        }
+
+        try {
+            $subscription->user->notify(new SubscriptionActivated($subscription));
+        } catch (Throwable $e) {
+            // Never fail the webhook over an email — Cashfree would retry it.
+            Log::warning('Could not send subscription confirmation email', [
+                'subscription_id' => $subscription->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
