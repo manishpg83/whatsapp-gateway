@@ -16,7 +16,7 @@ use Throwable;
  */
 class MessageSender
 {
-    public function __construct(protected WorkerClient $worker) {}
+    public function __construct(protected WorkerClient $worker, protected UsageWarner $usageWarner) {}
 
     /**
      * Creates a pending message row, attempts to send it, and updates the
@@ -69,6 +69,10 @@ class MessageSender
 
             $message->update(['status' => 'failed', 'error' => $e->getMessage()]);
         }
+
+        // Emails the owner at 80% / 100% of their monthly message limit
+        // (once each per month) — for API sends and dashboard test sends alike.
+        $this->usageWarner->check($session->user);
 
         return $message->refresh();
     }

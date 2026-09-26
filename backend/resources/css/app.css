@@ -87,10 +87,6 @@ a:hover {
     --bs-pagination-active-border-color: var(--wa-primary);
 }
 
-.navbar-dark.bg-dark {
-    background-color: var(--wa-dark) !important;
-}
-
 /* Site footer (partials/footer.blade.php) — the landing page's look, on
  * every page. */
 .site-footer {

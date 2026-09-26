@@ -60,6 +60,22 @@ class HomeTest extends TestCase
             ->assertSee('View website');
     }
 
+    public function test_public_pages_share_the_landing_top_bar_for_guests(): void
+    {
+        foreach (['terms', 'privacy', 'contact'] as $route) {
+            $this->get(route($route))
+                ->assertOk()
+                ->assertSee('lp-nav', escape: false)
+                // Section links lead back to the landing page from here.
+                ->assertSee('href="'.route('home').'#pricing"', escape: false)
+                ->assertSee('href="'.route('home').'#faq"', escape: false)
+                ->assertSee(route('register'), escape: false);
+        }
+
+        // On the landing page itself they stay plain anchors.
+        $this->get('/')->assertSee('href="#pricing"', escape: false);
+    }
+
     public function test_admin_can_still_open_the_user_dashboard_by_url(): void
     {
         $this->actingAs(User::factory()->create(['is_admin' => true]))

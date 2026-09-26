@@ -7,13 +7,22 @@
     {{-- App pages are private (noindex); the public Terms / Privacy /
          Contact pages opt back in with @section('robots', 'index, follow'). --}}
     @include('partials.seo', ['defaultRobots' => 'noindex, nofollow'])
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @php
+        // Verified users get the app shell (sidebar); guests and unverified
+        // users get the public site's top bar, which needs landing.css + its font.
+        $appShell = auth()->check() && auth()->user()->hasVerifiedEmail();
+    @endphp
+    @unless ($appShell)
+        <link rel="preconnect" href="https://fonts.bunny.net">
+        <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800&display=swap" rel="stylesheet">
+    @endunless
+    @vite($appShell ? ['resources/css/app.css', 'resources/js/app.js'] : ['resources/css/app.css', 'resources/css/landing.css', 'resources/js/app.js'])
 </head>
 <body class="d-flex flex-column min-vh-100">
 {{-- The full app shell is for verified users only. A logged-in user who
      hasn't verified their email yet can't open any of its pages, so they
      get the simple top bar below (with just "Log out") instead. --}}
-@if (auth()->check() && auth()->user()->hasVerifiedEmail())
+@if ($appShell)
     <div class="d-flex flex-grow-1 app-shell">
         {{-- Sidebar: a static column at md+, a slide-in offcanvas below it --}}
         <div class="offcanvas-md offcanvas-start sidebar-shell" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
@@ -172,25 +181,7 @@
         @include('partials.footer')
     @endunless
 @else
-    <nav class="navbar navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('home') }}">
-                <i class="bi bi-chat-dots-fill fs-4"></i>
-                <span>{{ config('app.name') }}</span>
-            </a>
-            <div class="d-flex align-items-center">
-                @auth
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="btn btn-outline-light btn-sm">Log out</button>
-                    </form>
-                @else
-                    <a class="btn btn-outline-light btn-sm me-2" href="{{ route('login') }}">Log in</a>
-                    <a class="btn btn-primary btn-sm" href="{{ route('register') }}">Register</a>
-                @endauth
-            </div>
-        </div>
-    </nav>
+    @include('partials.site-nav')
 
     <main class="container py-5 flex-grow-1">
         @if (session('status'))

@@ -19,38 +19,7 @@
     @vite(['resources/css/app.css', 'resources/css/landing.css', 'resources/js/app.js', 'resources/js/landing.js'])
 </head>
 <body class="landing d-flex flex-column min-vh-100">
-    <nav class="navbar navbar-expand-lg lp-nav sticky-top" data-lp-nav>
-        <div class="container">
-            <a class="navbar-brand lp-brand" href="{{ route('home') }}">
-                <span class="lp-brand-mark"><i class="bi bi-whatsapp"></i></span>
-                <span>{{ config('app.name') }}</span>
-            </a>
-
-            <button class="navbar-toggler lp-nav-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#lpNavMenu"
-                    aria-controls="lpNavMenu" aria-expanded="false" aria-label="Toggle navigation">
-                <i class="bi bi-list"></i>
-            </button>
-
-            <div class="collapse navbar-collapse" id="lpNavMenu">
-                <ul class="navbar-nav mx-lg-auto gap-lg-2">
-                    <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#how-it-works">How it works</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#pricing">Pricing</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#faq">FAQ</a></li>
-                </ul>
-                <div class="d-flex flex-column flex-lg-row gap-2 pt-3 pt-lg-0">
-                    @if ($dashboardUrl ?? null)
-                        <a class="lp-btn lp-btn-primary lp-btn-sm" href="{{ $dashboardUrl }}">
-                            <i class="bi bi-speedometer2"></i> Go to dashboard
-                        </a>
-                    @else
-                        <a class="lp-btn lp-btn-ghost lp-btn-sm" href="{{ route('login') }}">Log in</a>
-                        <a class="lp-btn lp-btn-primary lp-btn-sm" href="{{ route('register') }}">Register</a>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </nav>
+    @include('partials.site-nav', ['onLanding' => true])
 
     <main class="flex-grow-1">
         @if (session('status') || session('error'))

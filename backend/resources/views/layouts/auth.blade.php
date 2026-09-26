@@ -114,7 +114,7 @@
                 </div>
             </div>
 
-            <h2 class="lp-auth-aside-title">WhatsApp messaging for your product, <span class="lp-highlight">live in minutes</span></h2>
+            <h2 class="lp-auth-aside-title">WhatsApp messaging API for your product, <span class="lp-highlight">live in minutes</span></h2>
             <ul class="lp-trust justify-content-center">
                 <li><i class="bi bi-check-circle-fill"></i> No credit card required</li>
                 <li><i class="bi bi-check-circle-fill"></i> Free plan available</li>
