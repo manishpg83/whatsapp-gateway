@@ -1,6 +1,7 @@
 @extends('layouts.auth')
 
 @section('title', 'Log in')
+@section('meta_description', 'Log in to your WhatsApp Gateway account to manage your WhatsApp instances, API tokens, webhooks and message history.')
 
 @section('content')
 <span class="lp-auth-icon"><i class="bi bi-box-arrow-in-right"></i></span>

@@ -1,6 +1,71 @@
 @extends('layouts.landing')
 
-@section('title', 'Home')
+@section('title', 'WhatsApp API for Developers')
+@section('og_title', 'WhatsApp API for Developers — Send & Receive Messages via REST API')
+@section('meta_description', 'Connect your own WhatsApp number by QR code and send & receive WhatsApp messages, media and webhooks through a simple REST API. Free plan, live in minutes, no Business API approval.')
+
+@push('structured_data')
+@php
+    // Structured data (schema.org) for search engines: who runs the site,
+    // the site itself, and the product with its real plan prices.
+    $offers = $plans->map(fn ($plan) => [
+        '@type' => 'Offer',
+        'name' => $plan->name,
+        'price' => (string) $plan->price,
+        'priceCurrency' => 'INR',
+        'description' => $plan->instances.' '.Str::plural('instance', $plan->instances).', '.number_format($plan->messages_per_month).' messages/month',
+        'url' => route('home').'#pricing',
+    ])->values()->all();
+
+    $schema = [
+        '@context' => 'https://schema.org',
+        '@graph' => [
+            [
+                '@type' => 'Organization',
+                '@id' => route('home').'#organization',
+                'name' => 'BriskBrain Technologies',
+                'url' => route('home'),
+                'logo' => asset('images/og-image.png'),
+                'email' => 'briskbraintechnologies@gmail.com',
+                'contactPoint' => [
+                    '@type' => 'ContactPoint',
+                    'contactType' => 'customer support',
+                    'email' => 'briskbraintechnologies@gmail.com',
+                    'url' => route('contact'),
+                    'areaServed' => 'IN',
+                    'availableLanguage' => ['English'],
+                ],
+            ],
+            [
+                '@type' => 'WebSite',
+                '@id' => route('home').'#website',
+                'name' => config('app.name'),
+                'url' => route('home'),
+                'inLanguage' => 'en-IN',
+                'publisher' => ['@id' => route('home').'#organization'],
+            ],
+            [
+                '@type' => 'SoftwareApplication',
+                'name' => config('app.name'),
+                'applicationCategory' => 'DeveloperApplication',
+                'operatingSystem' => 'Web',
+                'url' => route('home'),
+                'description' => 'A REST API to send and receive WhatsApp messages from your own WhatsApp number, with webhooks for incoming messages.',
+                'featureList' => [
+                    'Connect a WhatsApp number by scanning a QR code',
+                    'Send text and media messages through a REST API',
+                    'Receive incoming messages via webhooks',
+                    'Check whether a number is on WhatsApp',
+                    'Message history and API logs',
+                ],
+                'offers' => $offers,
+                'publisher' => ['@id' => route('home').'#organization'],
+            ],
+        ],
+    ];
+@endphp
+<script type="application/ld+json">{!! json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>
+@endpush
 
 @section('content')
 @php
@@ -33,7 +98,7 @@
                 </span>
 
                 <h1 class="lp-hero-title lp-hero-in" style="--d: 80ms;">
-                    WhatsApp messaging for your product,
+                    WhatsApp messaging API for your product,
                     <span class="lp-highlight">without the Business API paperwork</span>
                 </h1>
 

@@ -1,6 +1,7 @@
 @extends('layouts.auth')
 
 @section('title', 'Verify your email')
+@section('robots', 'noindex, nofollow')
 
 @section('content')
 <span class="lp-auth-icon lp-tone-blue"><i class="bi bi-envelope-check"></i></span>

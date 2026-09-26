@@ -24,6 +24,7 @@ use App\Http\Controllers\InternalSessionsController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MessageMediaController;
 use App\Http\Controllers\PrivacyController;
+use App\Http\Controllers\SeoController;
 use App\Http\Controllers\TermsController;
 use App\Http\Controllers\WorkerWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +37,11 @@ Route::get('/', HomeController::class)->name('home');
 // register page before an account exists, and still read afterward.
 Route::get('/terms', TermsController::class)->name('terms');
 Route::get('/privacy', PrivacyController::class)->name('privacy');
+
+// For search engines. public/robots.txt was removed so this route (which
+// knows the real domain for the Sitemap line) is what gets served.
+Route::get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
+Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap');
 
 // Public — guests and logged-in users can both reach support.
 Route::get('/contact', [ContactController::class, 'create'])->name('contact');

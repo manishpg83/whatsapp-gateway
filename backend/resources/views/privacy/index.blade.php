@@ -1,6 +1,12 @@
 @extends('layouts.app')
 
 @section('title', 'Privacy Policy')
+@section('robots', 'index, follow')
+@section('meta_description', "How WhatsApp Gateway collects, uses and protects your data — WhatsApp sessions, messages, cookies, retention and your rights under India's DPDP Act, 2023.")
+
+@push('structured_data')
+@include('partials.breadcrumb-schema', ['crumb' => 'Privacy Policy'])
+@endpush
 
 @section('content')
 @php

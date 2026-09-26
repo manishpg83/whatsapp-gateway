@@ -4,6 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'Dashboard') - {{ config('app.name') }}</title>
+    {{-- App pages are private (noindex); the public Terms / Privacy /
+         Contact pages opt back in with @section('robots', 'index, follow'). --}}
+    @include('partials.seo', ['defaultRobots' => 'noindex, nofollow'])
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="d-flex flex-column min-vh-100">

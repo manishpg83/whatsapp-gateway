@@ -1,6 +1,7 @@
 @extends('layouts.auth')
 
 @section('title', 'Forgot password')
+@section('robots', 'noindex, nofollow')
 
 @section('content')
 {{-- The "link sent" status message is shown by layouts/auth.blade.php. --}}

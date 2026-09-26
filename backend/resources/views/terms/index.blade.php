@@ -1,6 +1,12 @@
 @extends('layouts.app')
 
 @section('title', 'Terms of Service')
+@section('robots', 'index, follow')
+@section('meta_description', "Read WhatsApp Gateway's Terms of Service: acceptable use, bulk messaging and blocked-number responsibility, subscriptions and cancellation, and liability.")
+
+@push('structured_data')
+@include('partials.breadcrumb-schema', ['crumb' => 'Terms of Service'])
+@endpush
 
 @section('content')
 @php

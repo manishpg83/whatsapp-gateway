@@ -12,7 +12,7 @@ class TermsController extends Controller
      * (not `now()`) whenever the Terms text itself changes. A "Last
      * updated" date is meaningless if it just always shows today.
      */
-    private const LAST_UPDATED = '2026-09-24';
+    public const LAST_UPDATED = '2026-09-24';
 
     public function __invoke(): View
     {

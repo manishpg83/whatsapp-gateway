@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'Account') - {{ config('app.name') }}</title>
+    @include('partials.seo', ['defaultRobots' => 'index, follow'])
 
     {{-- Same font + styles as the landing page (layouts/landing.blade.php). --}}
     <link rel="preconnect" href="https://fonts.bunny.net">

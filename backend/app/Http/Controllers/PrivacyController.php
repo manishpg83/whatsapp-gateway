@@ -12,7 +12,7 @@ class PrivacyController extends Controller
      * (not `now()`) whenever the policy text itself changes, same as
      * TermsController.
      */
-    private const LAST_UPDATED = '2026-09-24';
+    public const LAST_UPDATED = '2026-09-24';
 
     public function __invoke(): View
     {

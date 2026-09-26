@@ -1,6 +1,7 @@
 @extends('layouts.auth')
 
 @section('title', 'Reset password')
+@section('robots', 'noindex, nofollow')
 
 @section('content')
 <span class="lp-auth-icon lp-tone-blue"><i class="bi bi-shield-lock"></i></span>

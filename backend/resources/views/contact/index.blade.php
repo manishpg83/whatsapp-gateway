@@ -1,6 +1,12 @@
 @extends('layouts.app')
 
 @section('title', 'Contact us')
+@section('robots', 'index, follow')
+@section('meta_description', 'Contact the WhatsApp Gateway team for technical support, billing, plans and pricing, or privacy requests. A real person replies within 1 business day.')
+
+@push('structured_data')
+@include('partials.breadcrumb-schema', ['crumb' => 'Contact us'])
+@endpush
 
 @section('content')
 @php

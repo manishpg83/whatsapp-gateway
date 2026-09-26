@@ -1,6 +1,7 @@
 @extends('layouts.auth')
 
-@section('title', 'Register')
+@section('title', 'Create a free account')
+@section('meta_description', 'Create a free WhatsApp Gateway account — connect your WhatsApp number by QR code and start sending messages through our REST API in minutes. No credit card required.')
 
 @section('content')
 <span class="lp-auth-icon"><i class="bi bi-rocket-takeoff"></i></span>

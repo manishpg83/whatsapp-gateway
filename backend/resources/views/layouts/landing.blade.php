@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'Home') - {{ config('app.name') }}</title>
-    <meta name="description" content="Connect your own WhatsApp number and send &amp; receive messages through a simple REST API, live in minutes.">
+    @include('partials.seo', ['defaultRobots' => 'index, follow'])
 
     {{-- Plus Jakarta Sans from Bunny Fonts (privacy-friendly Google Fonts
          mirror, the same host Laravel's own starter pages use). Only the
