@@ -1,0 +1,1125 @@
+/*
+ * Admin panel pages (views/admin/*). Classes start with ad-.
+ * Entrance animation (db-in), hero orbs, db-live, db-progress and
+ * count-up come from dashboard.css / app.js. Motion stops under
+ * prefers-reduced-motion (bottom of this file).
+ */
+
+.ad-btn-lift {
+    transition: transform 0.25s var(--db-ease), box-shadow 0.25s var(--db-ease);
+}
+
+.ad-btn-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -12px rgba(11, 132, 87, 0.8);
+}
+
+/* ---- Tones (icon squares, pills, dots) */
+
+.ad-tone-green {
+    color: var(--wa-primary);
+    background: rgba(16, 185, 129, 0.12);
+}
+
+.ad-tone-blue {
+    color: var(--wa-info);
+    background: rgba(59, 130, 246, 0.12);
+}
+
+.ad-tone-purple {
+    color: var(--wa-purple);
+    background: rgba(139, 92, 246, 0.12);
+}
+
+.ad-tone-amber {
+    color: #b45309;
+    background: rgba(245, 158, 11, 0.14);
+}
+
+.ad-tone-red {
+    color: #dc2626;
+    background: rgba(239, 68, 68, 0.12);
+}
+
+.ad-tone-grey {
+    color: #6c757d;
+    background: rgba(108, 117, 125, 0.12);
+}
+
+.ad-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    flex-shrink: 0;
+    border-radius: 50%;
+}
+
+.ad-dot-green { background: #10b981; }
+.ad-dot-blue { background: var(--wa-info); }
+.ad-dot-purple { background: var(--wa-purple); }
+.ad-dot-amber { background: #f59e0b; }
+.ad-dot-grey { background: #adb5bd; }
+
+.ad-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.15rem 0.55rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+/* ---- Hero (admin variant: soft green-to-blue wash, darker eyebrow) */
+
+.ad-hero {
+    background:
+        linear-gradient(120deg, rgba(231, 247, 239, 0.95), rgba(219, 234, 254, 0.6)),
+        #fff;
+    border: 1px solid rgba(16, 35, 28, 0.06);
+}
+
+.ad-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #fff;
+    background: var(--wa-dark);
+    border-radius: 999px;
+}
+
+.ad-eyebrow .bi {
+    color: #34d399;
+}
+
+.ad-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #3d4b46;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(16, 35, 28, 0.07);
+    border-radius: 999px;
+}
+
+.ad-chip .db-live {
+    margin-right: 0;
+}
+
+.ad-hero .btn-light {
+    background: #fff;
+    border-color: rgba(16, 35, 28, 0.1);
+}
+
+/* ---- Section titles */
+
+.ad-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6c7a75;
+}
+
+.ad-section-title::after {
+    content: '';
+    flex-grow: 1;
+    height: 1px;
+    background: rgba(16, 35, 28, 0.08);
+}
+
+/* ---- Stat tiles */
+
+.ad-stat {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 1.15rem 1.25rem;
+    background: #fff;
+    border: 1px solid rgba(16, 35, 28, 0.07);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    transition: transform 0.3s var(--db-ease), box-shadow 0.3s var(--db-ease);
+}
+
+.ad-stat:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 32px -18px rgba(16, 35, 28, 0.35);
+}
+
+.ad-stat-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.ad-stat-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6c757d;
+}
+
+.ad-stat-icon {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    border-radius: 12px;
+    transition: transform 0.4s var(--db-ease);
+}
+
+.ad-stat:hover .ad-stat-icon {
+    transform: translateY(-2px) rotate(-8deg);
+}
+
+.ad-stat-value {
+    margin-top: 0.15rem;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--wa-dark);
+    overflow-wrap: anywhere;
+}
+
+.ad-stat-note {
+    margin-top: 0.3rem;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.ad-stat .db-progress {
+    margin-top: 0.75rem;
+}
+
+.ad-stat-link {
+    align-self: flex-start;
+    margin-top: auto;
+    padding-top: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.ad-stat-link .bi {
+    display: inline-block;
+    transition: transform 0.25s var(--db-ease);
+}
+
+.ad-stat-link:hover .bi {
+    transform: translateX(3px);
+}
+
+/* Highlighted tile (monthly revenue): dark green gradient. */
+.ad-stat-feature {
+    color: #fff;
+    background: linear-gradient(140deg, #0b8457, #10231c);
+    border-color: transparent;
+    overflow: hidden;
+}
+
+.ad-stat-feature::after {
+    content: '';
+    position: absolute;
+    right: -50px;
+    bottom: -70px;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(52, 211, 153, 0.35), transparent 70%);
+    pointer-events: none;
+}
+
+.ad-stat-feature .ad-stat-label,
+.ad-stat-feature .ad-stat-note {
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.ad-stat-feature .ad-stat-value {
+    color: #fff;
+}
+
+.ad-stat-feature .ad-stat-icon {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.ad-stat-feature .ad-stat-link {
+    position: relative;
+    z-index: 1;
+    color: #a7f3d0;
+}
+
+.ad-stat-feature .ad-stat-link:hover {
+    color: #fff;
+}
+
+/* Messages tile: stacked share bar + legend. */
+.ad-stack {
+    display: flex;
+    height: 8px;
+    margin-top: 0.75rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(16, 35, 28, 0.07);
+}
+
+.ad-stack span {
+    height: 100%;
+    animation: ad-grow 1.1s var(--db-ease) 0.5s both;
+}
+
+.ad-stack-sent { background: #10b981; }
+.ad-stack-received { background: var(--wa-info); }
+.ad-stack-failed { background: #ef4444; }
+
+.ad-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.9rem;
+    margin: 0.6rem 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.82rem;
+    color: #6c757d;
+}
+
+.ad-legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+/* ---- Panels (chart + table cards) */
+
+.ad-panel {
+    height: 100%;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid rgba(16, 35, 28, 0.07);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.ad-panel-head {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(16, 35, 28, 0.07);
+}
+
+/* Sign-ups bar chart: pure CSS, one column per month. */
+.ad-bars {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.6rem;
+    padding: 1.25rem 1.25rem 1rem;
+}
+
+.ad-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.ad-bar-value {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--wa-dark);
+}
+
+.ad-bar-track {
+    position: relative;
+    width: 100%;
+    max-width: 44px;
+    height: 170px;
+    display: flex;
+    align-items: flex-end;
+    border-radius: 10px;
+    background: #f1f6f4;
+}
+
+.ad-bar-fill {
+    display: block;
+    width: 100%;
+    height: var(--h, 0%);
+    min-height: 4px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #6ee7b7, #10b981);
+    transform-origin: bottom;
+    animation: ad-rise 0.9s var(--db-ease) both;
+    animation-delay: calc(400ms + var(--i, 0) * 80ms);
+    transition: filter 0.2s;
+}
+
+.ad-bar.is-current .ad-bar-fill {
+    background: linear-gradient(180deg, #10b981, var(--wa-primary-dark));
+    box-shadow: 0 8px 18px -8px rgba(11, 132, 87, 0.8);
+}
+
+.ad-bar:hover .ad-bar-fill {
+    filter: brightness(1.08);
+}
+
+.ad-bar-label {
+    font-size: 0.78rem;
+    color: #6c757d;
+}
+
+.ad-bar.is-current .ad-bar-label {
+    font-weight: 700;
+    color: var(--wa-primary);
+}
+
+/* Tables inside panels. */
+.ad-table {
+    font-size: 0.92rem;
+}
+
+.ad-table thead th {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: #6c757d;
+    background: #f8fbfa;
+    border-bottom-color: rgba(16, 35, 28, 0.07);
+}
+
+.ad-table td {
+    padding: 0.85rem 1.25rem;
+    border-bottom-color: rgba(16, 35, 28, 0.06);
+}
+
+.ad-table tbody tr {
+    transition: background-color 0.2s;
+}
+
+.ad-table tbody tr:hover {
+    background: #fafdfb;
+}
+
+.ad-table tfoot td {
+    font-weight: 700;
+    color: var(--wa-dark);
+    background: #f8fbfa;
+    border-bottom: 0;
+}
+
+/* Tiny revenue-share bar under each plan's revenue. */
+.ad-share {
+    display: block;
+    width: 72px;
+    height: 4px;
+    margin: 0.35rem 0 0 auto;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(16, 35, 28, 0.07);
+}
+
+.ad-share span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    animation: ad-grow 1.1s var(--db-ease) 0.6s both;
+}
+
+/* ---- Compact stat tiles (list pages) */
+
+.ad-mini {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 1rem 1.1rem;
+    background: #fff;
+    border: 1px solid rgba(16, 35, 28, 0.07);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+@media (max-width: 575.98px) {
+    .ad-mini {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.55rem;
+        padding: 0.85rem;
+    }
+
+    .ad-mini .ad-stat-label {
+        font-size: 0.66rem;
+        letter-spacing: 0.02em;
+    }
+}
+
+.ad-mini-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--wa-dark);
+}
+
+/* ---- Avatars */
+
+.ad-avatar {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    border-radius: 12px;
+}
+
+/* ---- Responsive table: a normal table from lg up (the sidebar leaves too
+ * little room below that), stacked cards below. Cells with data-label show
+ * that label as a small heading in card mode. */
+
+.ad-table-wrap {
+    overflow-x: auto;
+}
+
+@media (max-width: 991.98px) {
+    .ad-rtable thead {
+        display: none;
+    }
+
+    .ad-rtable,
+    .ad-rtable tbody,
+    .ad-rtable tfoot {
+        display: block;
+    }
+
+    .ad-rtable tbody tr,
+    .ad-rtable tfoot tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem 1rem;
+        padding: 1rem;
+        border-bottom: 1px solid rgba(16, 35, 28, 0.07);
+    }
+
+    .ad-rtable tbody tr:last-child,
+    .ad-rtable tfoot tr {
+        border-bottom: 0;
+    }
+
+    .ad-rtable tbody td,
+    .ad-rtable tfoot td {
+        display: block;
+        padding: 0;
+        border: 0;
+        background: transparent;
+    }
+
+    .ad-rtable td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 0.2rem;
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #8a9792;
+    }
+
+    .ad-rtable .ad-cell-user,
+    .ad-rtable .ad-cell-wide,
+    .ad-rtable .ad-cell-action {
+        grid-column: 1 / -1;
+    }
+
+    .ad-rtable .ad-cell-action .btn {
+        width: 100%;
+    }
+
+    .ad-rtable .ad-cell-span2 {
+        grid-column: span 2;
+    }
+}
+
+/* Tablets: four detail columns side by side in each card. */
+@media (min-width: 576px) and (max-width: 991.98px) {
+    .ad-rtable tbody tr,
+    .ad-rtable tfoot tr {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        padding: 1.1rem 1.25rem;
+    }
+
+    .ad-rtable .ad-cell-action {
+        text-align: left !important;
+    }
+
+    .ad-rtable .ad-cell-action .btn {
+        width: auto;
+    }
+}
+
+/* Card mode for tables ending in three count columns (Sent / Failed /
+ * Received): the counts share one row instead of wrapping unevenly. */
+@media (max-width: 575.98px) {
+    .ad-rtable-counts tbody tr,
+    .ad-rtable-counts tfoot tr {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .ad-rtable-counts td[data-label] {
+        grid-column: span 3;
+    }
+
+    .ad-rtable-counts td[data-label='Sent'],
+    .ad-rtable-counts td[data-label='Failed'],
+    .ad-rtable-counts td[data-label='Received'] {
+        grid-column: span 2;
+    }
+}
+
+@media (min-width: 576px) and (max-width: 991.98px) {
+    .ad-rtable-counts tbody tr,
+    .ad-rtable-counts tfoot tr {
+        grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
+    }
+
+    /* Line the footer totals up under their columns. */
+    .ad-rtable-counts tfoot td[data-label='Sent'] {
+        grid-column-start: 3;
+    }
+}
+
+/* ---- Instances page */
+
+/* Status tiles that double as filter links. */
+.ad-filter {
+    --ad-ring: var(--wa-purple);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.9rem 1rem;
+    color: inherit;
+    text-decoration: none;
+    background: #fff;
+    border: 1px solid rgba(16, 35, 28, 0.07);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    transition: transform 0.25s var(--db-ease), box-shadow 0.25s var(--db-ease), border-color 0.2s;
+}
+
+.ad-filter:hover {
+    color: inherit;
+    transform: translateY(-3px);
+    box-shadow: 0 14px 28px -18px rgba(16, 35, 28, 0.35);
+}
+
+.ad-filter.active {
+    border-color: var(--ad-ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ad-ring) 18%, transparent);
+}
+
+.ad-filter-green { --ad-ring: #10b981; }
+.ad-filter-blue { --ad-ring: var(--wa-info); }
+.ad-filter-amber { --ad-ring: #f59e0b; }
+.ad-filter-grey { --ad-ring: #adb5bd; }
+.ad-filter-red { --ad-ring: #ef4444; }
+
+.ad-filter .ad-stat-label {
+    font-size: 0.7rem;
+    line-height: 1.25;
+}
+
+@media (min-width: 992px) {
+    .ad-nowrap-lg {
+        white-space: nowrap;
+    }
+
+    .ad-owner {
+        max-width: 190px;
+    }
+}
+
+.ad-search {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 460px;
+}
+
+/* One bar split by status share. */
+.ad-health {
+    display: flex;
+    gap: 3px;
+    height: 10px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(16, 35, 28, 0.07);
+}
+
+.ad-health span {
+    height: 100%;
+    border-radius: 999px;
+    animation: ad-grow 1.1s var(--db-ease) 0.4s both;
+}
+
+.ad-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.9rem 1.1rem;
+    font-size: 0.92rem;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 14px;
+}
+
+.ad-alert div {
+    color: #78350f;
+}
+
+/* Long disconnect reasons: one line in the table, full text in card mode. */
+.ad-reason {
+    display: block;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 991.98px) {
+    .ad-reason {
+        max-width: none;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+}
+
+/* ---- Revenue page */
+
+/* Donut chart: --donut is a conic-gradient built in the view. */
+.ad-donut {
+    position: relative;
+    width: 190px;
+    height: 190px;
+    border-radius: 50%;
+    background: var(--donut);
+    box-shadow: 0 14px 30px -20px rgba(16, 35, 28, 0.45);
+    animation: ad-spin-in 1s var(--db-ease) 0.3s both;
+}
+
+.ad-donut-hole {
+    position: absolute;
+    inset: 26px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.ad-donut-value {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--wa-dark);
+}
+
+@media (min-width: 992px) {
+    .ad-donut-col {
+        align-self: stretch;
+        align-items: center;
+        border-right: 1px solid rgba(16, 35, 28, 0.07);
+    }
+}
+
+@media (max-width: 991.98px) {
+    .ad-donut-col {
+        border-bottom: 1px solid rgba(16, 35, 28, 0.07);
+    }
+}
+
+.ad-share-bar {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(16, 35, 28, 0.07);
+}
+
+.ad-share-bar span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    animation: ad-grow 1.1s var(--db-ease) 0.6s both;
+}
+
+.ad-code {
+    overflow-wrap: anywhere;
+}
+
+/* ---- Billing (plans) pages. Plan cards reuse bl-plan from billing.css. */
+
+.ad-slug {
+    padding: 0.15rem 0.5rem;
+    font-size: 0.72rem;
+    color: #5c6b66;
+    background: #f1f6f4;
+    border-radius: 6px;
+}
+
+.ad-plan-subs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.87rem;
+    color: #5c6b66;
+    background: #f8fbfa;
+    border-radius: 10px;
+}
+
+.ad-plan-subs .bi {
+    color: var(--wa-info);
+}
+
+/* Dashed "add" tile at the end of the plan grid. */
+.ad-add-tile {
+    height: 100%;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--wa-dark);
+    text-decoration: none;
+    border: 2px dashed rgba(16, 185, 129, 0.35);
+    border-radius: 20px;
+    transition: background-color 0.25s, border-color 0.25s, transform 0.3s var(--db-ease);
+}
+
+.ad-add-tile:hover {
+    color: var(--wa-dark);
+    background: #f0fbf6;
+    border-color: #10b981;
+    transform: translateY(-4px);
+}
+
+.ad-add-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 0.4rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    color: #fff;
+    background: linear-gradient(135deg, #10b981, var(--wa-primary));
+    border-radius: 14px;
+    box-shadow: 0 10px 20px -10px rgba(11, 132, 87, 0.8);
+    transition: transform 0.4s var(--db-ease);
+}
+
+.ad-add-tile:hover .ad-add-icon {
+    transform: rotate(90deg);
+}
+
+/* Create/edit form. */
+.ad-form-section + .ad-form-section {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px dashed rgba(16, 35, 28, 0.12);
+}
+
+.ad-form-section .form-control:focus,
+.ad-form-section .form-check-input:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+}
+
+.ad-switch .form-check-input {
+    width: 2.5em;
+    height: 1.3em;
+    margin-top: 0.1em;
+    cursor: pointer;
+}
+
+.ad-switch .form-check-input:checked {
+    background-color: var(--wa-primary);
+    border-color: var(--wa-primary);
+}
+
+.ad-switch .form-check-label {
+    padding-left: 0.4rem;
+    cursor: pointer;
+}
+
+.ad-preview {
+    padding: 1.25rem 1.25rem 1.5rem;
+    background: linear-gradient(160deg, #f0fbf6, #eef4ff);
+    border: 1px solid rgba(16, 35, 28, 0.06);
+    border-radius: 20px;
+}
+
+.ad-preview .ad-action-title {
+    margin-bottom: 1.5rem;
+}
+
+.ad-preview .bl-plan {
+    height: auto;
+    max-width: 320px;
+    margin: 0 auto;
+}
+
+@media (min-width: 992px) {
+    .ad-sticky {
+        position: sticky;
+        top: 80px;
+    }
+}
+
+/* ---- Audit log table (audit-log/_table.blade.php) */
+
+/* Each "field: from → to" change as its own small code-style tag. */
+.ad-detail {
+    display: table;
+    margin: 0.15rem 0;
+    padding: 0.2rem 0.55rem;
+    font-family: var(--bs-font-monospace);
+    font-size: 0.78rem;
+    color: #3d4b46;
+    background: #f8fbfa;
+    border: 1px solid rgba(16, 35, 28, 0.08);
+    border-radius: 7px;
+    overflow-wrap: anywhere;
+}
+
+.ad-break {
+    overflow-wrap: anywhere;
+}
+
+/* Desktop table: room for the target, details wrap, IPv6 on two lines. */
+@media (min-width: 992px) {
+    .ad-rtable-log .ad-cell-span2 {
+        min-width: 230px;
+    }
+
+    .ad-rtable-log .ad-cell-details {
+        max-width: 340px;
+    }
+
+    .ad-ip {
+        min-width: 180px;
+        max-width: 200px;
+        overflow-wrap: anywhere;
+    }
+}
+
+/* Card mode: pack short fields side by side (dense fills the gaps, so the
+ * IP sits next to the action instead of on its own row). */
+@media (max-width: 991.98px) {
+    .ad-rtable-log tbody tr {
+        grid-auto-flow: row dense;
+    }
+
+    .ad-ip {
+        overflow-wrap: anywhere;
+    }
+
+    .ad-rtable-log .ad-cell-details {
+        grid-column: 1 / -1;
+    }
+}
+
+/* Tablets: three columns — date/admin/action, then target + IP, then details. */
+@media (min-width: 576px) and (max-width: 991.98px) {
+    .ad-rtable-log tbody tr {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* ---- Detail pages (user page) */
+
+.ad-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #5c6b66;
+    text-decoration: none;
+}
+
+.ad-back .bi {
+    transition: transform 0.25s var(--db-ease);
+}
+
+.ad-back:hover {
+    color: var(--wa-primary);
+}
+
+.ad-back:hover .bi {
+    transform: translateX(-3px);
+}
+
+.ad-avatar-lg {
+    width: 72px;
+    height: 72px;
+    font-size: 1.8rem;
+    border-radius: 20px;
+    box-shadow: 0 10px 24px -14px rgba(16, 35, 28, 0.45);
+}
+
+.ad-avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 0.95rem;
+    border-radius: 9px;
+}
+
+.ad-stat-value-sm {
+    font-size: 1.35rem;
+    margin-top: 0.4rem;
+}
+
+.ad-legend-stacked {
+    flex-direction: column;
+}
+
+.ad-panel-foot {
+    padding: 0.85rem 1.25rem;
+    font-size: 0.85rem;
+    color: #6c757d;
+    background: #f8fbfa;
+    border-top: 1px solid rgba(16, 35, 28, 0.07);
+}
+
+/* Action boxes in "Manage account". */
+.ad-action {
+    height: 100%;
+    padding: 1.1rem 1.2rem;
+    background: #f8fbfa;
+    border: 1px solid rgba(16, 35, 28, 0.07);
+    border-radius: 14px;
+}
+
+.ad-action-title {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #5c6b66;
+}
+
+.ad-action .form-select:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+}
+
+.ad-action .btn-outline-warning {
+    --bs-btn-color: #b45309;
+    --bs-btn-border-color: #f59e0b;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #d97706;
+    --bs-btn-hover-border-color: #d97706;
+}
+
+.ad-action-danger {
+    color: #7f1d1d;
+    background: #fef5f5;
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.ad-action-danger .ad-action-title {
+    color: #dc2626;
+}
+
+/* ---- Phones */
+
+@media (max-width: 575.98px) {
+    .ad-stat {
+        padding: 1rem;
+    }
+
+    .ad-stat-value {
+        font-size: 1.7rem;
+    }
+
+    .ad-bars {
+        gap: 0.35rem;
+        padding: 1rem 0.9rem 0.85rem;
+    }
+
+    .ad-bar-track {
+        height: 130px;
+    }
+
+    .ad-table thead th,
+    .ad-table td {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    .ad-hero .btn {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+}
+
+/* ---- Keyframes */
+
+@keyframes ad-rise {
+    from {
+        transform: scaleY(0);
+    }
+}
+
+@keyframes ad-spin-in {
+    from {
+        opacity: 0;
+        transform: rotate(-90deg) scale(0.85);
+    }
+}
+
+@keyframes ad-grow {
+    from {
+        width: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [class*='ad-'],
+    [class*='ad-']::before,
+    [class*='ad-']::after,
+    [class*='ad-'] * {
+        animation: none !important;
+        transition: none !important;
+    }
+}

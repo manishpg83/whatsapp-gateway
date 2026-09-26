@@ -3,44 +3,54 @@
 @section('title', 'Admin · Audit log')
 
 @section('content')
-<div class="mb-4">
-    <h1 class="h3 mb-1"><i class="bi bi-shield-lock me-2 text-primary"></i>Audit log</h1>
+{{-- Header --}}
+<div class="mb-4 db-in">
+    <span class="ad-eyebrow"><i class="bi bi-shield-lock-fill"></i> Admin</span>
+    <h1 class="h3 mt-2 mb-1">Audit log</h1>
     <p class="text-muted mb-0">Every admin action — who did what, to whom, and when. Entries can't be edited or deleted.</p>
 </div>
 
-<form method="GET" action="{{ route('admin.audit-log.index') }}" class="row g-2 align-items-end mb-3">
-    <div class="col-sm-6 col-md-4 col-lg-3">
-        <label for="filter-action" class="form-label small text-muted mb-1">Action</label>
-        <select id="filter-action" name="action" class="form-select form-select-sm" onchange="this.form.submit()">
-            <option value="">All actions</option>
-            @foreach ($actions as $value => $label)
-                <option value="{{ $value }}" @selected($action === $value)>{{ $label }}</option>
-            @endforeach
-        </select>
+{{-- Action filter (links, so they keep the current search) --}}
+<div class="in-tabs mb-3 db-in" style="--i: 1;" role="tablist" aria-label="Filter by action">
+    <a href="{{ route('admin.audit-log.index', array_filter(['search' => $search])) }}"
+       class="in-tab text-decoration-none {{ $action === null ? 'active' : '' }}" role="tab" aria-selected="{{ $action === null ? 'true' : 'false' }}">All actions</a>
+    @foreach ($actions as $value => $label)
+        <a href="{{ route('admin.audit-log.index', array_filter(['action' => $value, 'search' => $search])) }}"
+           class="in-tab text-decoration-none {{ $action === $value ? 'active' : '' }}" role="tab" aria-selected="{{ $action === $value ? 'true' : 'false' }}">{{ $label }}</a>
+    @endforeach
+</div>
+
+{{-- Search --}}
+<form method="GET" action="{{ route('admin.audit-log.index') }}" class="d-flex align-items-center gap-2 mb-4 db-in" style="--i: 2;">
+    @if ($action)
+        <input type="hidden" name="action" value="{{ $action }}">
+    @endif
+    <div class="in-search ad-search">
+        <i class="bi bi-search"></i>
+        <input type="search" id="filter-search" name="search" value="{{ $search }}" class="form-control"
+               placeholder="Admin name, user name/email or plan" aria-label="Search">
     </div>
-    <div class="col-sm-6 col-md-5 col-lg-4">
-        <label for="filter-search" class="form-label small text-muted mb-1">Search</label>
-        <input type="search" id="filter-search" name="search" value="{{ $search }}" class="form-control form-control-sm"
-               placeholder="Admin name, user name/email or plan">
-    </div>
-    <div class="col-auto">
-        <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-search me-1"></i>Search</button>
-    </div>
+    <button type="submit" class="btn btn-primary ad-btn-lift">Search</button>
     @if ($search !== '' || $action)
-        <div class="col-auto">
-            <a href="{{ route('admin.audit-log.index') }}" class="btn btn-sm btn-link text-decoration-none">Clear</a>
-        </div>
+        <a href="{{ route('admin.audit-log.index') }}" class="btn btn-light border text-nowrap"><i class="bi bi-x-lg me-1"></i>Clear</a>
     @endif
 </form>
 
 @if ($logs->isEmpty())
-    <div class="card shadow-sm">
-        <div class="card-body text-center text-muted py-5">
-            {{ $search !== '' || $action ? 'No entries match these filters.' : 'No admin actions recorded yet.' }}
-        </div>
+    <div class="ad-panel h-auto text-center text-muted py-5">
+        <i class="bi bi-journal fs-1 d-block mb-2"></i>
+        {{ $search !== '' || $action ? 'No entries match these filters.' : 'No admin actions recorded yet.' }}
     </div>
 @else
-    <div class="card shadow-sm">
+    <div class="ad-panel h-auto db-in" style="--i: 3;">
+        <div class="ad-panel-head">
+            <span class="ad-stat-icon ad-tone-blue"><i class="bi bi-journal-text"></i></span>
+            <div>
+                <div class="fw-semibold">{{ $action ? $actions[$action] : 'All actions' }}</div>
+                <div class="text-muted small">{{ number_format($logs->total()) }} {{ Str::plural('entry', $logs->total()) }}, newest first</div>
+            </div>
+            <span class="ms-auto ad-pill ad-tone-grey d-none d-sm-inline-flex"><i class="bi bi-lock"></i>Read-only</span>
+        </div>
         @include('admin.audit-log._table', ['logs' => $logs, 'existingUserIds' => $existingUserIds])
     </div>
 
