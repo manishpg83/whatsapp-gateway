@@ -36,6 +36,17 @@ class SeoTest extends TestCase
             ->assertSee('"priceCurrency":"INR"', escape: false);
     }
 
+    public function test_landing_page_has_an_faq_section_with_matching_structured_data(): void
+    {
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('id="faq"', escape: false)
+            ->assertSee('href="#faq"', escape: false) // nav link
+            ->assertSee('Can my WhatsApp number get banned?')
+            ->assertSee('"@type":"FAQPage"', escape: false)
+            ->assertSee('"name":"Can my WhatsApp number get banned?"', escape: false);
+    }
+
     public function test_text_is_escaped_exactly_once(): void
     {
         $this->get('/')

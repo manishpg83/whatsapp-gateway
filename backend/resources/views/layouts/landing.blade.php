@@ -36,6 +36,7 @@
                     <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
                     <li class="nav-item"><a class="nav-link" href="#how-it-works">How it works</a></li>
                     <li class="nav-item"><a class="nav-link" href="#pricing">Pricing</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#faq">FAQ</a></li>
                 </ul>
                 <div class="d-flex flex-column flex-lg-row gap-2 pt-3 pt-lg-0">
                     @if ($dashboardUrl ?? null)

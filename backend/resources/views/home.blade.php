@@ -409,6 +409,84 @@
     </div>
 </section>
 
+{{-- ============================= FAQ ============================ --}}
+@php
+    // Question => answer (HTML). The same list feeds the FAQPage structured
+    // data pushed below, so what search engines read always matches the page.
+    $faqs = [
+        'Is this the official WhatsApp Business API?' =>
+            'No. '.e(config('app.name')).' is an independent service and is not affiliated with WhatsApp or Meta. It links to your number the same way WhatsApp Web does, as a linked device. That\'s why there\'s no Meta approval process and you can start in minutes.',
+        'Can my WhatsApp number get banned?' =>
+            'It can, if WhatsApp sees behaviour it treats as spam, such as bulk or unsolicited messages or sudden bursts of identical texts. Only message people who expect to hear from you, keep volumes steady, and test with a number you can afford to lose. WhatsApp decides bans, not us, and we can\'t undo them. See <a href="'.route('terms').'#bulk-messaging">section 4 of our Terms</a>.',
+        'Do I need a WhatsApp Business account or Meta verification?' =>
+            'No. Both a regular WhatsApp number and a WhatsApp Business app number work. There are no business documents, no Meta verification and no message templates to get approved.',
+        'How do I connect my number?' =>
+            'Create an instance in your dashboard and scan the QR code with WhatsApp on your phone (<em>Settings → Linked devices → Link a device</em>), just like WhatsApp Web. Once it shows <strong>Connected</strong>, generate an API token and you\'re ready to send.',
+        'Can I receive incoming messages?' =>
+            'Yes. Set a webhook URL on your instance and every incoming message is sent to your server as it arrives, including photos, videos, voice notes and documents. You can also see them in the Messages page of your dashboard.',
+        'What can I send besides text?' =>
+            'Images, videos, audio, voice notes and documents. Pass a public file URL or upload the file directly with the same API call, and add an optional caption to images, videos and documents.',
+        'Which programming languages can I use?' =>
+            'Any language that can make an HTTP request. It\'s a plain REST API with JSON. The API Docs include ready-to-copy examples for curl, PHP, Python, JavaScript, Java and .NET.',
+        'Is my data safe? Do you read my messages?' =>
+            'Your messages are only visible to your own account, API tokens are stored hashed, and each WhatsApp session is kept isolated outside the public web directory. We don\'t read your messages for marketing, sell your data or use them to train AI. See our <a href="'.route('privacy').'">Privacy Policy</a>.',
+        'What happens when I reach my monthly message limit?' =>
+            'The API stops sending and returns a clear error telling you the limit was reached, so nothing is sent by surprise. Upgrade your plan from the Billing page to keep sending right away. Checking whether a number is on WhatsApp doesn\'t count toward the limit.',
+        'Is there a free plan, and can I cancel anytime?' =>
+            'Yes. The Free plan needs no credit card. Paid plans are billed monthly through Cashfree and you can cancel from your Billing page at any time, which stops future billing.',
+    ];
+@endphp
+
+@push('structured_data')
+<script type="application/ld+json">{!! json_encode([
+    '@context' => 'https://schema.org',
+    '@type' => 'FAQPage',
+    'mainEntity' => collect($faqs)->map(fn ($answer, $question) => [
+        '@type' => 'Question',
+        'name' => $question,
+        'acceptedAnswer' => ['@type' => 'Answer', 'text' => $answer],
+    ])->values()->all(),
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>
+@endpush
+
+<section class="lp-section lp-section-ice" id="faq">
+    <div class="container">
+        <div class="row g-5">
+            <div class="col-lg-4">
+                <div class="lp-faq-intro" data-reveal>
+                    <span class="lp-eyebrow"><i class="bi bi-question-circle"></i> FAQ</span>
+                    <h2 class="lp-h2">Questions, answered</h2>
+                    <p class="lp-sub mb-4">Everything people usually ask before connecting their first number.</p>
+
+                    <div class="lp-faq-help">
+                        <span class="lp-faq-help-icon"><i class="bi bi-headset"></i></span>
+                        <div>
+                            <div class="fw-bold">Still have a question?</div>
+                            <div class="small text-muted mb-2">A real person replies within 1 business day.</div>
+                            <a href="{{ route('contact') }}" class="lp-faq-help-link">Contact us <i class="bi bi-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="lp-faq">
+                    @foreach ($faqs as $question => $answer)
+                        <details class="lp-faq-item" data-reveal style="--i: {{ $loop->index % 4 }};" @if ($loop->first) open @endif>
+                            <summary class="lp-faq-q">
+                                <span class="lp-faq-num">{{ str_pad($loop->iteration, 2, '0', STR_PAD_LEFT) }}</span>
+                                <span class="flex-grow-1">{{ $question }}</span>
+                                <span class="lp-faq-toggle" aria-hidden="true"><i class="bi bi-plus-lg"></i></span>
+                            </summary>
+                            <div class="lp-faq-a">{!! $answer !!}</div>
+                        </details>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 {{-- ========================== FINAL CTA ========================= --}}
 <section class="lp-section pt-0">
     <div class="container">
