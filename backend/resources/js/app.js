@@ -123,6 +123,29 @@ if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     });
 }
 
+// "On this page" lists on the Terms / Privacy pages (legal.css .tm-toc):
+// open by default on large screens (a tap-to-open box on phones), and
+// highlight the section currently in view.
+const tocDetails = document.querySelector('[data-toc-details]');
+if (tocDetails) {
+    if (window.matchMedia('(min-width: 992px)').matches) {
+        tocDetails.open = true;
+    }
+
+    const tocLinks = document.querySelectorAll('[data-toc-link]');
+    if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    tocLinks.forEach((link) => link.classList.toggle('active', link.dataset.tocLink === entry.target.id));
+                }
+            });
+        }, { rootMargin: '-20% 0px -70% 0px' });
+
+        document.querySelectorAll('.tm-section').forEach((section) => observer.observe(section));
+    }
+}
+
 function showCopyResult(button, text, colorClass) {
     if (button.dataset.copyOriginal === undefined) {
         button.dataset.copyOriginal = button.innerHTML;

@@ -3,18 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\Plan;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class HomeController extends Controller
 {
-    public function __invoke(): View|RedirectResponse
+    public function __invoke(): View
     {
-        if (auth()->check()) {
-            // Admins go to the admin panel, everyone else to /dashboard.
-            return redirect()->route(auth()->user()->is_admin ? 'admin.dashboard' : 'dashboard');
-        }
+        // Logged-in users can view the landing page too (e.g. via the app's
+        // logo); its buttons then point to their dashboard instead of
+        // Log in / Register. Admins go to the admin panel.
+        $dashboardUrl = auth()->check()
+            ? route(auth()->user()->is_admin ? 'admin.dashboard' : 'dashboard')
+            : null;
 
-        return view('home', ['plans' => Plan::orderBy('price')->get()->keyBy('slug')]);
+        return view('home', [
+            'plans' => Plan::orderBy('price')->get()->keyBy('slug'),
+            'dashboardUrl' => $dashboardUrl,
+        ]);
     }
 }

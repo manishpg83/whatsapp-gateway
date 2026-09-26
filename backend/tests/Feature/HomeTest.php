@@ -32,18 +32,32 @@ class HomeTest extends TestCase
             ->assertSee(route('register'), escape: false);
     }
 
-    public function test_logged_in_user_is_redirected_to_the_dashboard(): void
+    public function test_logged_in_user_can_view_the_landing_page_with_a_dashboard_button(): void
     {
         $this->actingAs(User::factory()->create())
             ->get('/')
-            ->assertRedirect(route('dashboard'));
+            ->assertOk()
+            ->assertSee('Go to your dashboard')
+            ->assertSee(route('dashboard'), escape: false)
+            ->assertDontSee('Create your free account');
     }
 
-    public function test_logged_in_admin_is_redirected_to_the_admin_panel(): void
+    public function test_logged_in_admins_dashboard_button_goes_to_the_admin_panel(): void
     {
         $this->actingAs(User::factory()->create(['is_admin' => true]))
             ->get('/')
-            ->assertRedirect(route('admin.dashboard'));
+            ->assertOk()
+            ->assertSee('href="'.route('admin.dashboard').'"', escape: false)
+            ->assertDontSee('href="'.route('dashboard').'"', escape: false);
+    }
+
+    public function test_app_logo_and_menu_link_to_the_landing_page(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertSee('href="'.route('home').'"', escape: false)
+            ->assertSee('View website');
     }
 
     public function test_admin_can_still_open_the_user_dashboard_by_url(): void

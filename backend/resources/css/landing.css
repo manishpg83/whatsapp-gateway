@@ -1499,28 +1499,6 @@ html:has(body.landing) {
 
 /* ------------------------------------------------------------- Footer */
 
-.landing .site-footer {
-    padding-top: 3.5rem !important;
-    padding-bottom: 2.5rem !important;
-    background:
-        radial-gradient(700px 240px at 10% 0%, rgba(16, 185, 129, 0.12), transparent 60%),
-        #0b1b34 !important;
-}
-
-.landing .site-footer .link-light {
-    color: rgba(255, 255, 255, 0.7) !important;
-    transition: color 0.2s;
-}
-
-.landing .site-footer .link-light:hover {
-    color: #fff !important;
-}
-
-.landing .site-footer .text-uppercase {
-    letter-spacing: 0.08em;
-    font-size: 0.75rem;
-}
-
 /* ------------------------------------------------------ Scroll reveal */
 
 .lp-js [data-reveal] {

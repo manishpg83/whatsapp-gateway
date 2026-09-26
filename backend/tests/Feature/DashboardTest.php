@@ -38,14 +38,12 @@ class DashboardTest extends TestCase
         $this->get('/')->assertOk()->assertSee('Log in');
     }
 
-    public function test_home_page_forwards_logged_in_users_to_dashboard(): void
+    public function test_home_page_links_logged_in_users_to_their_dashboard(): void
     {
         $this->actingAs(User::factory()->create(['name' => 'Jane Doe']))
-            ->followingRedirects()
             ->get('/')
             ->assertOk()
-            ->assertSee('Welcome,')
-            ->assertSee('Jane Doe');
+            ->assertSee(route('dashboard'), escape: false);
     }
 
     public function test_dashboard_shows_the_users_own_account_details(): void

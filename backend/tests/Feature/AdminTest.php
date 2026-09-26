@@ -90,6 +90,22 @@ class AdminTest extends TestCase
             ->assertDontSee(route('docs.index'), escape: false);
     }
 
+    public function test_admin_panel_has_a_plain_powered_by_footer_without_links(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Powered by')
+            ->assertDontSee(route('terms'), escape: false)
+            ->assertDontSee(route('privacy'), escape: false);
+
+        // Regular users keep the full footer.
+        $this->actingAs(User::factory()->create())->get('/dashboard')
+            ->assertSee(route('terms'), escape: false)
+            ->assertDontSee('Powered by');
+    }
+
     public function test_regular_users_sidebar_is_unaffected(): void
     {
         $user = User::factory()->create();

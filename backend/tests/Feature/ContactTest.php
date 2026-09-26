@@ -58,7 +58,7 @@ class ContactTest extends TestCase
     {
         $this->get(route('contact', ['topic' => 'privacy']))
             ->assertOk()
-            ->assertSee('value="privacy" selected', escape: false);
+            ->assertSee('value="privacy" class="ct-topic-input" required checked', escape: false);
     }
 
     public function test_sending_emails_support_with_reply_to_the_sender(): void

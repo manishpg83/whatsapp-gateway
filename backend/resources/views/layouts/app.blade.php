@@ -11,7 +11,7 @@
      hasn't verified their email yet can't open any of its pages, so they
      get the simple top bar below (with just "Log out") instead. --}}
 @if (auth()->check() && auth()->user()->hasVerifiedEmail())
-    <div class="d-flex app-shell">
+    <div class="d-flex flex-grow-1 app-shell">
         {{-- Sidebar: a static column at md+, a slide-in offcanvas below it --}}
         <div class="offcanvas-md offcanvas-start sidebar-shell" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
             <div class="offcanvas-header d-md-none">
@@ -19,7 +19,8 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#sidebarMenu" aria-label="Close"></button>
             </div>
             <div class="offcanvas-body d-flex flex-column p-3">
-                <a href="{{ auth()->user()->is_admin ? route('admin.dashboard') : route('dashboard') }}" class="d-none d-md-flex align-items-center gap-2 text-white text-decoration-none mb-4">
+                {{-- Logo opens the public landing page (logged-in users can view it too). --}}
+                <a href="{{ route('home') }}" class="d-none d-md-flex align-items-center gap-2 text-white text-decoration-none mb-4" title="View website">
                     <span class="sidebar-logo-badge"><i class="bi bi-chat-dots-fill"></i></span>
                     <span class="fw-bold lh-sm">WhatsApp<br>Gateway</span>
                 </a>
@@ -94,20 +95,11 @@
                     @endif
                 </ul>
 
-                {{-- Just a tagline — Terms/copyright live in the page footer below
-                     @yield('content') now, no need to duplicate them here too. --}}
-                <div class="sidebar-footer mt-4 pt-3 border-top border-light-subtle text-center">
-                    <div class="d-flex justify-content-center align-items-center gap-2 text-white-50 small">
-                        <i class="bi bi-chat-dots-fill"></i>
-                        <span>{{ config('app.name') }}</span>
-                    </div>
-                    <div class="text-white-50 small">Connect &bull; Automate &bull; Grow</div>
-                </div>
             </div>
         </div>
 
         {{-- Content column --}}
-        <div class="d-flex flex-column flex-grow-1 min-vh-100 app-content">
+        <div class="d-flex flex-column flex-grow-1 app-content">
             <header class="d-flex align-items-center bg-white border-bottom px-3 px-md-4 py-2 sticky-top">
                 <button class="btn btn-outline-secondary d-md-none me-2" type="button"
                         data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
@@ -126,6 +118,11 @@
                         <li>
                             <a class="dropdown-item {{ request()->routeIs('account.*') ? 'active' : '' }}" href="{{ route('account.edit') }}">
                                 <i class="bi bi-gear me-2"></i>Account
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ route('home') }}">
+                                <i class="bi bi-globe2 me-2"></i>View website
                             </a>
                         </li>
                         @unless (auth()->user()->is_admin)
@@ -159,9 +156,18 @@
                 @yield('content')
             </main>
 
-            @include('partials.footer')
+            {{-- Admin panel: a slim "powered by" line inside the content
+                 column (next to the sidebar), no page links. --}}
+            @if (auth()->user()->is_admin)
+                @include('partials.footer-admin')
+            @endif
         </div>
     </div>
+
+    {{-- Everyone else: the full footer, full width below the sidebar too. --}}
+    @unless (auth()->user()->is_admin)
+        @include('partials.footer')
+    @endunless
 @else
     <nav class="navbar navbar-dark bg-dark">
         <div class="container">

@@ -38,8 +38,14 @@
                     <li class="nav-item"><a class="nav-link" href="#pricing">Pricing</a></li>
                 </ul>
                 <div class="d-flex flex-column flex-lg-row gap-2 pt-3 pt-lg-0">
-                    <a class="lp-btn lp-btn-ghost lp-btn-sm" href="{{ route('login') }}">Log in</a>
-                    <a class="lp-btn lp-btn-primary lp-btn-sm" href="{{ route('register') }}">Register</a>
+                    @if ($dashboardUrl ?? null)
+                        <a class="lp-btn lp-btn-primary lp-btn-sm" href="{{ $dashboardUrl }}">
+                            <i class="bi bi-speedometer2"></i> Go to dashboard
+                        </a>
+                    @else
+                        <a class="lp-btn lp-btn-ghost lp-btn-sm" href="{{ route('login') }}">Log in</a>
+                        <a class="lp-btn lp-btn-primary lp-btn-sm" href="{{ route('register') }}">Register</a>
+                    @endif
                 </div>
             </div>
         </div>

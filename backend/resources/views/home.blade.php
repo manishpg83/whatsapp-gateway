@@ -43,11 +43,18 @@
                 </p>
 
                 <div class="d-flex flex-column flex-sm-row gap-3 lp-hero-in" style="--d: 240ms;">
-                    <a href="{{ route('register') }}" class="lp-btn lp-btn-primary lp-btn-lg">
-                        <i class="bi bi-rocket-takeoff"></i> Create your free account
-                        <i class="bi bi-arrow-right lp-btn-arrow"></i>
-                    </a>
-                    <a href="{{ route('login') }}" class="lp-btn lp-btn-ghost lp-btn-lg">Log in</a>
+                    @if ($dashboardUrl)
+                        <a href="{{ $dashboardUrl }}" class="lp-btn lp-btn-primary lp-btn-lg">
+                            <i class="bi bi-speedometer2"></i> Go to your dashboard
+                            <i class="bi bi-arrow-right lp-btn-arrow"></i>
+                        </a>
+                    @else
+                        <a href="{{ route('register') }}" class="lp-btn lp-btn-primary lp-btn-lg">
+                            <i class="bi bi-rocket-takeoff"></i> Create your free account
+                            <i class="bi bi-arrow-right lp-btn-arrow"></i>
+                        </a>
+                        <a href="{{ route('login') }}" class="lp-btn lp-btn-ghost lp-btn-lg">Log in</a>
+                    @endif
                 </div>
 
                 <ul class="lp-trust lp-hero-in" style="--d: 320ms;">
@@ -319,7 +326,7 @@
                             <li><i class="bi bi-check-lg"></i>Full REST API access</li>
                             <li><i class="bi bi-check-lg"></i>Webhook delivery</li>
                         </ul>
-                        <a href="{{ route('register') }}" class="lp-btn {{ $isPopular ? 'lp-btn-primary' : 'lp-btn-outline' }} w-100 mt-auto">Get started</a>
+                        <a href="{{ $dashboardUrl ?? route('register') }}" class="lp-btn {{ $isPopular ? 'lp-btn-primary' : 'lp-btn-outline' }} w-100 mt-auto">{{ $dashboardUrl ? 'Go to dashboard' : 'Get started' }}</a>
                     </div>
                 </div>
             @endforeach
@@ -360,10 +367,17 @@
                 <div class="col-lg-7 order-lg-1">
                     <h2 class="lp-h2 mb-2">Ready to connect your WhatsApp number?</h2>
                     <p class="lp-sub mb-4">No credit card required to get started on the free plan.</p>
-                    <a href="{{ route('register') }}" class="lp-btn lp-btn-primary lp-btn-lg">
-                        <i class="bi bi-rocket-takeoff"></i> Create your free account
-                        <i class="bi bi-arrow-right lp-btn-arrow"></i>
-                    </a>
+                    @if ($dashboardUrl)
+                        <a href="{{ $dashboardUrl }}" class="lp-btn lp-btn-primary lp-btn-lg">
+                            <i class="bi bi-speedometer2"></i> Go to your dashboard
+                            <i class="bi bi-arrow-right lp-btn-arrow"></i>
+                        </a>
+                    @else
+                        <a href="{{ route('register') }}" class="lp-btn lp-btn-primary lp-btn-lg">
+                            <i class="bi bi-rocket-takeoff"></i> Create your free account
+                            <i class="bi bi-arrow-right lp-btn-arrow"></i>
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>

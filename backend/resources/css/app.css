@@ -8,6 +8,7 @@
 @import './docs.css';
 @import './api-logs.css';
 @import './admin.css';
+@import './legal.css';
 
 /*
  * Brand palette. Bootstrap's compiled CSS hardcodes most component colors
@@ -21,6 +22,8 @@
     --wa-primary-dark: #086b46;
     --wa-primary-light: #e7f7ef;
     --wa-dark: #10231c;
+    /* Footer + sidebar: neutral dark gray. */
+    --wa-charcoal: #1f2326;
     --wa-info: #3b82f6;
     --wa-info-light: #dbeafe;
     --wa-purple: #8b5cf6;
@@ -84,9 +87,44 @@ a:hover {
     --bs-pagination-active-border-color: var(--wa-primary);
 }
 
-.navbar-dark.bg-dark,
-.site-footer {
+.navbar-dark.bg-dark {
     background-color: var(--wa-dark) !important;
+}
+
+/* Site footer (partials/footer.blade.php) — the landing page's look, on
+ * every page. */
+.site-footer {
+    padding-top: 3.5rem !important;
+    padding-bottom: 2.5rem !important;
+    background:
+        radial-gradient(700px 240px at 10% 0%, rgba(16, 185, 129, 0.12), transparent 60%),
+        var(--wa-charcoal) !important;
+}
+
+.site-footer .link-light {
+    color: rgba(255, 255, 255, 0.7) !important;
+    transition: color 0.2s;
+}
+
+.site-footer .link-light:hover {
+    color: #fff !important;
+}
+
+.site-footer .text-uppercase {
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+}
+
+/* Admin panel: one slim "powered by" line instead (partials/footer-admin). */
+.admin-footer {
+    padding: 1rem 0;
+    font-size: 0.85rem;
+    color: #8a9792;
+    border-top: 1px solid rgba(16, 35, 28, 0.08);
+}
+
+.admin-footer strong {
+    color: #5c6b66;
 }
 
 .bg-wa-light {
@@ -102,9 +140,26 @@ a:hover {
  * !important. Below md, where it's a real slide-in offcanvas, this same
  * !important simply reapplies our color instead of fighting anything.
  */
-.sidebar-shell,
+.sidebar-shell {
+    background-color: var(--wa-charcoal) !important;
+    /* Same soft green glow as the footer, at the top of the sidebar. */
+    background-image: radial-gradient(420px 260px at 0% 0%, rgba(16, 185, 129, 0.14), transparent 70%) !important;
+}
+
+/* The body sits on top of the shell — keep it see-through so the glow shows. */
 .sidebar-shell .offcanvas-body {
-    background-color: var(--wa-dark) !important;
+    background-color: transparent !important;
+}
+
+/* Desktop: the menu stays in view while a long page scrolls past it (the
+   footer now runs full width underneath, so the column itself stretches). */
+@media (min-width: 768px) {
+    .sidebar-shell .offcanvas-body {
+        position: sticky;
+        top: 0;
+        max-height: 100vh;
+        overflow-y: auto;
+    }
 }
 
 /* The content column is a flex item next to the sidebar; without this it
