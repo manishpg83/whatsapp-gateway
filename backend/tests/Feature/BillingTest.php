@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -208,5 +209,40 @@ class BillingTest extends TestCase
     {
         $this->post(route('billing.return'))
             ->assertRedirect(route('billing.index'));
+    }
+
+    public function test_billing_page_shows_an_empty_payment_history(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get('/billing')
+            ->assertOk()
+            ->assertSee('Payment history')
+            ->assertSee('No payments yet');
+    }
+
+    public function test_billing_page_lists_only_the_users_own_payments(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+
+        foreach ([[$user, 'cf_mine_1'], [$other, 'cf_theirs_1']] as [$owner, $id]) {
+            Payment::create([
+                'user_id' => $owner->id,
+                'plan' => 'starter',
+                'plan_name' => 'Starter',
+                'amount' => 749,
+                'status' => 'paid',
+                'cf_payment_id' => $id,
+                'paid_at' => now(),
+            ]);
+        }
+
+        $this->actingAs($user)->get('/billing')
+            ->assertOk()
+            ->assertSee('cf_mine_1')
+            ->assertSee('749.00')
+            ->assertDontSee('cf_theirs_1')
+            ->assertDontSee('No payments yet');
     }
 }

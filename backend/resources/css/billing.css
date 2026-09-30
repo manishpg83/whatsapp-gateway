@@ -400,6 +400,42 @@
     color: var(--wa-primary);
 }
 
+/* ---- Payment history */
+
+.bl-history th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #5c6b66;
+    background: #f7faf9;
+    white-space: nowrap;
+}
+
+.bl-history th,
+.bl-history td {
+    padding: 0.85rem 1.25rem;
+}
+
+@media (max-width: 575.98px) {
+    .bl-history th,
+    .bl-history td {
+        padding: 0.75rem 0.6rem;
+    }
+}
+
+.bl-history-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    font-size: 1.5rem;
+    color: var(--wa-purple);
+    background: var(--wa-purple-light);
+    border-radius: 16px;
+}
+
 /* ---- Upgrade dialog */
 
 .bl-modal {

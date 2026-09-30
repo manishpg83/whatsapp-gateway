@@ -171,4 +171,76 @@ class CashfreeWebhookTest extends TestCase
 
         $this->assertSame('cancelled', $user->subscription->fresh()->status);
     }
+
+    private function paymentEvent(string $type, string $cfPaymentId = '49914526', string $status = 'SUCCESS'): array
+    {
+        return [
+            'type' => $type,
+            'event_time' => '2026-09-30T10:30:00+05:30',
+            'data' => [
+                'payment_id' => 'pay-'.$cfPaymentId,
+                'cf_payment_id' => $cfPaymentId,
+                'payment_amount' => 749.00,
+                'payment_currency' => 'INR',
+                'payment_status' => $status,
+                'subscription_id' => 'sub_pay_1',
+            ],
+        ];
+    }
+
+    private function paidUser(): User
+    {
+        $user = User::factory()->create();
+        $user->subscription->update([
+            'plan' => 'starter',
+            'status' => 'active',
+            'cashfree_subscription_id' => 'sub_pay_1',
+        ]);
+
+        return $user;
+    }
+
+    public function test_payment_success_event_is_saved_to_payment_history(): void
+    {
+        $user = $this->paidUser();
+
+        $this->postSignedWebhook($this->paymentEvent('SUBSCRIPTION_PAYMENT_SUCCESS'))->assertNoContent();
+
+        $payment = $user->payments()->sole();
+        $this->assertSame('paid', $payment->status);
+        $this->assertSame('749.00', $payment->amount);
+        $this->assertSame('INR', $payment->currency);
+        $this->assertSame('Starter', $payment->plan_name);
+        $this->assertSame('sub_pay_1', $payment->cashfree_subscription_id);
+        // 10:30 IST stored as 05:00 UTC.
+        $this->assertSame('2026-09-30 05:00:00', $payment->paid_at->format('Y-m-d H:i:s'));
+    }
+
+    public function test_a_retried_payment_webhook_does_not_create_a_duplicate(): void
+    {
+        $user = $this->paidUser();
+
+        $this->postSignedWebhook($this->paymentEvent('SUBSCRIPTION_PAYMENT_SUCCESS'))->assertNoContent();
+        $this->postSignedWebhook($this->paymentEvent('SUBSCRIPTION_PAYMENT_SUCCESS'))->assertNoContent();
+
+        $this->assertSame(1, $user->payments()->count());
+    }
+
+    public function test_payment_failed_event_is_saved_as_failed(): void
+    {
+        $user = $this->paidUser();
+
+        $this->postSignedWebhook($this->paymentEvent('SUBSCRIPTION_PAYMENT_FAILED', '777', 'FAILED'))->assertNoContent();
+
+        $this->assertSame('failed', $user->payments()->sole()->status);
+    }
+
+    public function test_non_payment_events_do_not_create_payments(): void
+    {
+        $user = $this->paidUser();
+
+        $this->postSignedWebhook($this->paymentEvent('SUBSCRIPTION_PAYMENT_NOTIFICATION_INITIATED'))->assertNoContent();
+
+        $this->assertSame(0, $user->payments()->count());
+    }
 }

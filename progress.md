@@ -2,21 +2,15 @@
 
 > Living checklist. Read this together with `CLAUDE.md` at the start of every session.
 > Update it at the end of every milestone (tick the box, add notes, set "Next step").
-> Last updated: 2026-09-23
+> Last updated: 2026-09-30
 
 ## Where we are
 
-**All 8 roadmap milestones (M0-M8) are done and live-verified, and all committed by the owner.** Post-roadmap work, beyond `CLAUDE.md`'s original scope, per the owner's direction — **all of the below is now committed** (verified against `git log`: `76a0592` solve bugs of connecting again, `4dc7111` forgot password, `bd3e5d1` cashfree account and billing module phase 1, `0a7eb33` account module, `0b69621` change token size from 64 to 32 characters):
-1. **Hardening fixes + "Send a test message" button** — coded, tested, committed.
-2. **Password reset** — coded, fully tested, committed.
-3. **Billing (Cashfree)** — built, confirmed working against the real sandbox API (real plans, a real subscription + checkout completed live), including a real local PHP CA-bundle fix along the way. Checkout works; automatic webhook status confirmation is **deliberately deferred** (needs a public URL — ngrok or real deployment — the owner chose to move on rather than set that up now). Committed.
-4. **Queues + webhook retries** — webhook deliveries (M8, incoming-message → customer webhook) now go through a queued, retried job instead of one synchronous best-effort attempt. Message *sending* deliberately stays synchronous (queuing it would break the public API's immediate-response contract — flagged, not done without a separate explicit decision). Committed.
-5. **Change password + delete account** — coded and tested. 2FA / audit logs / admin visibility explicitly deferred as their own future milestone(s), owner's choice. Committed.
-6. **Token size tweak** — `ApiToken::generateFor()` changed from `Str::random(64)` to `Str::random(32)` (`0b69621`), not otherwise documented below since it's a one-line change.
+**All 8 roadmap milestones (M0-M8) are done and live-verified.** Since then the owner has kept building features locally (no deployment yet, by choice), committing each one. As of 2026-09-30 the app has: auth with email verification, dashboard, instances with QR + connection history, send API (text + media, delivered/read receipts, number check), incoming messages + queued webhooks, API logs, Messages page, billing (Cashfree sandbox) with cancellation and **payment history**, an admin panel (users, instances, plans, revenue, audit log), a landing page with FAQ + SEO tags, legal/contact pages, and transactional emails (welcome, purchase, usage 80%/100%, disconnect/reconnect).
 
-**Working tree is clean; `main` is up to date with `origin/main`.** Whether the live-verification checklist further down (queued webhooks actually delivering, boot-reconnect, plan limits, etc.) was clicked through by the owner before these commits is not confirmed by git alone — treat those items as still open unless/until confirmed.
+The latest commit is `8cdde47` (welcome + purchase emails). **Payment history** (2026-09-30, see its own section) is built and tested but **not committed yet**. The owner makes all commits.
 
-**Next up: an API Docs page** (owner's stated next step).
+**Next up:** the owner picks. See "Next step" at the bottom.
 
 ## Milestones
 
@@ -344,11 +338,38 @@ Owner set up an ngrok tunnel (`https://salute-rupture-lark.ngrok-free.dev`, like
 - [x] **Verified the actual mechanism, not just "it should work now"**: hit a local server twice with `curl` — once with no proxy headers (form action correctly stayed `http://127.0.0.1:8001/login`, proving normal local dev is unaffected), and once sending the *exact* `X-Forwarded-Proto: https` header ngrok sends plus the owner's real ngrok hostname as the `Host` header — confirmed the form's `action` attribute changed to `https://salute-rupture-lark.ngrok-free.dev/login`. This reproduces the precise mechanism ngrok triggers, not a generic "trust proxies" assumption.
 - **Worth remembering**: this same class of bug would resurface behind *any* HTTPS-terminating reverse proxy this app ends up deployed behind in production (a load balancer, Cloudflare, etc.) — `trustProxies` is exactly the setting real Laravel hosting guides call out for that case, so this fix isn't ngrok-specific scaffolding to rip out later, it's a real production-readiness item that happened to surface first via ngrok.
 
+## Catch-up: features committed 2026-09-23 → 2026-09-26 (reconstructed from `git log`)
+
+This file wasn't updated during these days, so this is a short list rebuilt from commit messages and the code. The code and tests are the real source of detail.
+
+- **Admin panel phases 2+** (`a595e78`, `174c1c2`, `9ef8a1e`): users (suspend/unsuspend, change plan, delete), instances, **plans CRUD** (`admin/plans`), **revenue** (`583d028`, `1fe7d43`; estimated from current subscriptions, since there were no payment records then), **audit log** (`56946b1`), admin redirect fix (`1e56e49`).
+- **API logs page** (`5c0407e`, `api_request_logs` table): every public API call, including rejected ones, with a copyable request/response.
+- **Messages page** (`28111d1`): in and out messages per user.
+- **Media messages** (`a51a0dc`): send and receive images/documents etc.; incoming media served through signed URLs (`media/{message}`). This is why `php.ini` upload limits were raised on 2026-09-24 (see `CLAUDE.md` §3).
+- **Receipts** (`852055e`): delivered / read / failed statuses on outgoing messages, `GET /api/v1/messages/{id}`; plus a **profile update** form (name/email, with an `EmailChanged` notification).
+- **Webhook test button** (`93bba19`) and **email verification on register** (`b094cde`; existing users were marked verified by a migration).
+- **Connection reliability** (`5da262d`, `bb01943`, `ea41468`, `86cf055`): disconnect without losing the session (no new QR needed), automatic reconnect after network drops with an `InstanceDisconnected` email, connection history (`instance_events` table) with filters.
+- **Number check** (`25771de`): "is this number on WhatsApp?" on the instance page and via `POST /api/v1/numbers/check`.
+- **Public site**: landing page (`796990e`) + animation (`74d3cca`), privacy policy (`b4c01a2`), contact page (`8173eeb`, sends a `ContactMessage` mail), FAQ (`02c256d`), SEO tags + `robots.txt` + `sitemap.xml` (`5a041ba`).
+- **Full redesign** of user-side pages, admin panel, contact/privacy/terms and footer (`7043dd3`, `4eddf97`, `9ef8a1e`, `7196086`). Page by page, owner-checked, responsive.
+- **Emails**: real Gmail SMTP now (`MAIL_MAILER=smtp`, see `CLAUDE.md` §16). **Usage warnings at 80% / 100%** of the monthly message limit (`86f4140`, `UsageWarner`; "already sent" is kept in the cache, keyed by month + limit), **welcome email** (`welcome_sent_at` on users) and **plan purchase email** (`SubscriptionActivated`, sent on pending → active) (`8cdde47`).
+- Fixes: ngrok HTTPS / trusted proxies (`17ca26d`), bottom scrollbar + long email overflow (`e5efe20`).
+
+## Feature: Payment history on the Billing page (2026-09-30, owner-requested, not committed yet)
+
+Users could not see what they had paid. Only the admin revenue page existed, and that page estimates from current subscriptions. There was **no record of individual payments anywhere**, so this needed one new table.
+
+- [x] **`payments` table** (migration `2026_09_30_100000_create_payments_table`; `App\Models\Payment`; `User::payments()`): `user_id`, `plan` + `plan_name` (as they were at payment time), `amount`, `currency`, `status` (`paid` / `failed` / `cancelled`), `cashfree_subscription_id`, `cf_payment_id` (**unique**), `paid_at`. Migrated on the dev DB.
+- [x] **Recorded from the Cashfree webhook** (`CashfreeWebhookController::recordPayment`): `SUBSCRIPTION_PAYMENT_SUCCESS` / `_FAILED` / `_CANCELLED`. Field names come from Cashfree's documented payload (`data.cf_payment_id`, `data.payment_amount`, `data.payment_currency`, `event_time`), checked against their docs on 2026-09-30. `updateOrCreate` on `cf_payment_id`, so a retried webhook doesn't duplicate. `event_time` comes in IST (`+05:30`) and is converted to the app timezone (UTC) before saving.
+- [x] **Billing page**: a "Payment history" table (date, plan, amount, status badge, Cashfree payment ID), 10 per page, newest first, with an empty state. Scoped through `$user->payments()`. On phones the plan name moves under the date and the payment ID column is hidden.
+- [x] Tests: 4 webhook tests (payment saved incl. IST→UTC time, retry creates no duplicate, failed saved as failed, non-payment events ignored) + 2 billing page tests (empty state, only own payments shown). Screenshots checked at desktop and 390px.
+- **Limitation, same as before:** payments only arrive through the Cashfree webhook, and that needs a public URL (ngrok or deployment). On plain localhost the history stays empty, even after a real sandbox checkout. Old payments made before this change are not back-filled, because there was no record of them.
+
 ## Test status
 
-`php artisan test` (from `backend/`): **146 passed, 545 assertions**. `vendor/bin/pint --test`: clean.
+As of 2026-09-30: `php artisan test` (from `backend/`): **453 passed, 2074 assertions**. `npm test` (from `whatsapp-worker/`, Vitest): **68 passed** (8 files).
 
-`npm test` (from `whatsapp-worker/`, Vitest): **21 passed**. `npm run typecheck`: clean.
+`vendor/bin/pint --test` currently reports **pre-existing** style issues in about 16 files (mostly Windows CRLF line endings, plus some import ordering) from earlier commits. They were left alone on purpose ("don't refactor unrelated code"). The new payment-history files are clean. The owner can run `vendor/bin/pint` once to fix them all if they want.
 
 ## Things to remember (learned the hard way)
 
@@ -397,17 +418,15 @@ Owner set up an ngrok tunnel (`https://salute-rupture-lark.ngrok-free.dev`, like
 
 ## Next step
 
-**Status as of 2026-09-23: everything through the account-settings/billing/queues work is committed** (`git log` confirms `76a0592` → `0b69621`, working tree clean). Owner chose to move straight to the **API Docs page** rather than working through the live-verification checklist first — that page is now built (see section above), coded/tested/live-smoke-tested, **not yet committed** (the owner makes all commits, per `CLAUDE.md`'s workflow rule).
+**Status as of 2026-09-30:** everything up to `8cdde47` is committed. **Payment history is built, tested and migrated on the dev DB, but not committed.**
 
-Live-verification of the items below is still **unconfirmed** (not shown by git either way) — worth circling back to if anything in that area misbehaves:
+Ideas the owner can choose from (suggested 2026-09-30, none started):
+1. **Two more billing emails**: "subscription cancelled" confirmation, and a "renews / expires in 3 days" reminder.
+2. **Two-factor login (2FA).** Deferred by the owner earlier. Probably needs a package (ask before installing).
+3. Possibly a downloadable receipt per payment, on top of payment history.
 
-1. **Queued webhook delivery**: needs `php artisan queue:work` running as its own process, or queued `DeliverWebhook` jobs just sit in the `jobs` table forever, never actually delivered. Verify by setting a webhook URL, receiving a message, and confirming delivery still happens (just asynchronously now).
-2. **Change password / delete account**: `/account`, both forms.
-3. Try hitting a plan limit for real: on the free plan, create 1 instance (the limit), try a 2nd — should be blocked with a clear message pointing at Billing.
-4. **Stale-credentials fix**: click Reconnect on an instance whose status is `logged_out`/`disconnected` — confirm a genuinely fresh QR appears and scanning it reaches Connected again.
-5. **Boot-reconnect fix**: once connected, restart the worker — confirm the instance goes back to "Connected" **on its own**.
-6. **"Send a test message" button** and **password reset** (see `backend/storage/logs/laravel.log` for the reset link — `MAIL_MAILER=log`, nothing is actually emailed yet).
-
-Open housekeeping items, still unresolved: a stray unused `backend/CLAUDE.md` (Aug 25, Laravel installer default) the owner may want deleted; billing has no self-serve downgrade/cancellation yet (upgrade-only); Cashfree's webhook confirmation is unverified (needs ngrok or real deployment).
-
-**Now: API Docs page** (owner's explicit next step, filling the "API Docs — soon" navbar placeholder that's been sitting there since M3). Read `CLAUDE.md` §11 (mentions an "API docs/basic usage page" as one of the original UI pages), inspect what's already been explained informally in chat (the register→connect→token→send flow), and turn that into an actual page — present the plan (what it covers, code examples in which languages) before building, same as every other milestone. 2FA / audit logs / admin visibility across tenants remain explicitly deferred beyond that, owner's choice.
+Still open / unverified:
+- **Cashfree webhooks have never arrived for real** (they need a public URL). That covers the pending → active switch, the purchase email, and now payment history. When ngrok or a deployment is available, check one real delivery and compare the payload with the logged one.
+- `php artisan queue:work` must be running for queued webhook deliveries (and anything else queued) to go out.
+- Stray `backend/CLAUDE.md` (the Laravel installer's default file) is still there. The owner may want it deleted.
+- Production readiness (deployment, Redis, backups) is **deferred until the owner asks**.

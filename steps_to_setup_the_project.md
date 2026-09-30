@@ -101,6 +101,7 @@ npm run dev
 
 ngrok start whatsapp --config "$env:USERPROFILE\.ngrok-prachi\ngrok.yml"
 ```
+https://salute-rupture-lark.ngrok-free.dev/
 
 Visit `http://127.0.0.1:8000`, register a new account, create an instance, scan the QR.
 

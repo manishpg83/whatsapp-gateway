@@ -23,6 +23,8 @@ class BillingController extends Controller
             'plans' => Plan::orderBy('price')->get()->keyBy('slug'),
             'instanceCount' => $user->whatsappSessions()->count(),
             'messageCount' => $limiter->messagesSentThisMonth($user),
+            // Scoped to this user through the relation — never anyone else's.
+            'payments' => $user->payments()->latest('paid_at')->latest('id')->paginate(10),
         ]);
     }
 

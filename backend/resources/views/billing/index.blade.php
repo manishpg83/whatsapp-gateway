@@ -201,7 +201,64 @@
     @endforeach
 </div>
 
-<div class="bl-note db-in" style="--i: 8;">
+{{-- Payment history --}}
+<div id="payments" class="bl-plans-head db-in mt-5" style="--i: 8;">
+    <h2 class="h4 mb-1">Payment history</h2>
+    <p class="text-muted mb-0">Every subscription payment Cashfree has reported, including failed attempts.</p>
+</div>
+
+<div class="card shadow-sm overflow-hidden db-in" style="--i: 9;">
+    @if ($payments->isEmpty())
+        <div class="card-body text-center py-5 px-4">
+            <span class="bl-history-empty mx-auto mb-3"><i class="bi bi-receipt"></i></span>
+            <div class="fw-semibold">No payments yet</div>
+            <div class="small text-muted">When you upgrade to a paid plan, each monthly payment will show up here.</div>
+        </div>
+    @else
+        <div class="table-responsive">
+            <table class="table align-middle mb-0 bl-history">
+                <thead>
+                    <tr>
+                        <th scope="col">Date</th>
+                        <th scope="col" class="d-none d-sm-table-cell">Plan</th>
+                        <th scope="col" class="text-end">Amount</th>
+                        <th scope="col">Status</th>
+                        <th scope="col" class="d-none d-md-table-cell">Payment ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($payments as $payment)
+                        <tr>
+                            <td class="text-nowrap">
+                                <div class="fw-semibold">{{ $payment->paid_at?->format('M j, Y') ?? '—' }}</div>
+                                <div class="small text-muted">
+                                    {{ $payment->paid_at?->format('H:i') }}<span class="d-sm-none"> &middot; {{ $payment->plan_name }}</span>
+                                </div>
+                            </td>
+                            <td class="d-none d-sm-table-cell">{{ $payment->plan_name }}</td>
+                            <td class="text-end text-nowrap fw-semibold">
+                                {{ $payment->currency === 'INR' ? '₹' : $payment->currency.' ' }}{{ number_format((float) $payment->amount, 2) }}
+                            </td>
+                            <td class="text-nowrap">
+                                <span class="badge rounded-pill text-bg-{{ $payment->color() }}">
+                                    <i class="bi bi-{{ $payment->icon() }} me-1"></i>{{ $payment->label() }}
+                                </span>
+                            </td>
+                            <td class="d-none d-md-table-cell font-monospace small text-muted">{{ $payment->cf_payment_id }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @if ($payments->hasPages())
+            <div class="card-footer bg-white">
+                {{ $payments->fragment('payments')->links() }}
+            </div>
+        @endif
+    @endif
+</div>
+
+<div class="bl-note db-in" style="--i: 10;">
     <i class="bi bi-shield-check"></i>
     <div>
         Payments are handled by <strong>Cashfree</strong> on their own secure checkout page. We never see your card or bank details.

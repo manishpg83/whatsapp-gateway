@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Payment;
 use App\Models\Subscription;
 use App\Notifications\SubscriptionActivated;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -55,6 +57,8 @@ class CashfreeWebhookController extends Controller
             return response()->noContent();
         }
 
+        $this->recordPayment($subscription, $payload);
+
         $status = data_get($payload, 'data.subscription.subscription_status')
             ?? data_get($payload, 'data.subscription_status');
 
@@ -71,6 +75,50 @@ class CashfreeWebhookController extends Controller
         }
 
         return response()->noContent();
+    }
+
+    /**
+     * Saves a SUBSCRIPTION_PAYMENT_SUCCESS / _FAILED / _CANCELLED event as
+     * a row in the user's payment history. Field names follow Cashfree's
+     * documented payload (data.cf_payment_id, data.payment_amount, ...).
+     * Keyed on cf_payment_id, so a retried webhook updates the same row
+     * instead of adding a duplicate.
+     */
+    protected function recordPayment(Subscription $subscription, array $payload): void
+    {
+        $status = match ($payload['type'] ?? null) {
+            'SUBSCRIPTION_PAYMENT_SUCCESS' => 'paid',
+            'SUBSCRIPTION_PAYMENT_FAILED' => 'failed',
+            'SUBSCRIPTION_PAYMENT_CANCELLED' => 'cancelled',
+            default => null,
+        };
+
+        $paymentId = data_get($payload, 'data.cf_payment_id') ?? data_get($payload, 'data.payment_id');
+
+        if (! $status || ! $paymentId) {
+            return;
+        }
+
+        $plan = $subscription->planDetails();
+
+        // Cashfree sends IST with an offset ("...+05:30"); convert to the
+        // app's timezone, or the database would store the IST clock time.
+        $eventTime = data_get($payload, 'event_time');
+        $paidAt = $eventTime ? Carbon::parse($eventTime)->setTimezone(config('app.timezone')) : now();
+
+        Payment::updateOrCreate(
+            ['cf_payment_id' => (string) $paymentId],
+            [
+                'user_id' => $subscription->user_id,
+                'plan' => $subscription->plan,
+                'plan_name' => $plan['name'],
+                'amount' => data_get($payload, 'data.payment_amount') ?? $plan['price'],
+                'currency' => data_get($payload, 'data.payment_currency') ?? 'INR',
+                'status' => $status,
+                'cashfree_subscription_id' => $subscription->cashfree_subscription_id,
+                'paid_at' => $paidAt,
+            ]
+        );
     }
 
     protected function sendSubscribedEmail(Subscription $subscription): void
