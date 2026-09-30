@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Plan;
+use App\Notifications\SubscriptionCancelled;
 use App\Services\CashfreeClient;
 use App\Services\PlanLimiter;
 use Illuminate\Http\RedirectResponse;
@@ -114,12 +115,24 @@ class BillingController extends Controller
                 ->with('error', 'Could not cancel your subscription — please try again or contact support.');
         }
 
+        $planName = $subscription->planDetails()['name'];
+
         $subscription->update([
             'plan' => 'free',
             'status' => 'active',
             'cashfree_subscription_id' => null,
             'current_period_end' => null,
         ]);
+
+        try {
+            $user->notify(new SubscriptionCancelled($planName));
+        } catch (Throwable $e) {
+            // The cancel already happened; a mail problem must not undo or hide it.
+            Log::warning('Could not send subscription cancelled email', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return redirect()->route('billing.index')
             ->with('status', 'Your subscription has been cancelled. You are now on the Free plan.');

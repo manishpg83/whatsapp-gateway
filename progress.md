@@ -8,7 +8,7 @@
 
 **All 8 roadmap milestones (M0-M8) are done and live-verified.** Since then the owner has kept building features locally (no deployment yet, by choice), committing each one. As of 2026-09-30 the app has: auth with email verification, dashboard, instances with QR + connection history, send API (text + media, delivered/read receipts, number check), incoming messages + queued webhooks, API logs, Messages page, billing (Cashfree sandbox) with cancellation and **payment history**, an admin panel (users, instances, plans, revenue, audit log), a landing page with FAQ + SEO tags, legal/contact pages, and transactional emails (welcome, purchase, usage 80%/100%, disconnect/reconnect).
 
-The latest commit is `8cdde47` (welcome + purchase emails). **Payment history** (2026-09-30, see its own section) is built and tested but **not committed yet**. The owner makes all commits.
+The latest commit is `de7c38e` (payment history). **Billing emails + a Cashfree webhook fix** (2026-09-30, see its own section) are built and tested but **not committed yet**. The owner makes all commits.
 
 **Next up:** the owner picks. See "Next step" at the bottom.
 
@@ -355,7 +355,7 @@ This file wasn't updated during these days, so this is a short list rebuilt from
 - **Emails**: real Gmail SMTP now (`MAIL_MAILER=smtp`, see `CLAUDE.md` §16). **Usage warnings at 80% / 100%** of the monthly message limit (`86f4140`, `UsageWarner`; "already sent" is kept in the cache, keyed by month + limit), **welcome email** (`welcome_sent_at` on users) and **plan purchase email** (`SubscriptionActivated`, sent on pending → active) (`8cdde47`).
 - Fixes: ngrok HTTPS / trusted proxies (`17ca26d`), bottom scrollbar + long email overflow (`e5efe20`).
 
-## Feature: Payment history on the Billing page (2026-09-30, owner-requested, not committed yet)
+## Feature: Payment history on the Billing page (2026-09-30, owner-requested, committed `de7c38e`)
 
 Users could not see what they had paid. Only the admin revenue page existed, and that page estimates from current subscriptions. There was **no record of individual payments anywhere**, so this needed one new table.
 
@@ -365,9 +365,18 @@ Users could not see what they had paid. Only the admin revenue page existed, and
 - [x] Tests: 4 webhook tests (payment saved incl. IST→UTC time, retry creates no duplicate, failed saved as failed, non-payment events ignored) + 2 billing page tests (empty state, only own payments shown). Screenshots checked at desktop and 390px.
 - **Limitation, same as before:** payments only arrive through the Cashfree webhook, and that needs a public URL (ngrok or deployment). On plain localhost the history stays empty, even after a real sandbox checkout. Old payments made before this change are not back-filled, because there was no record of them.
 
+## Feature: Billing emails (cancelled + renewal reminder) and a Cashfree webhook fix (2026-09-30, not committed yet)
+
+- [x] **Bug fix, found while building this:** Cashfree's documented `SUBSCRIPTION_STATUS_CHANGED` payload (API version 2025-01-01) puts the id and status at `data.subscription_details.subscription_id` / `.subscription_status`. `CashfreeWebhookController` only looked at `data.subscription.*` and `data.subscription_id`, so a real status event would have been **ignored** ("no subscription id"). That means no pending → active switch and no purchase email. The documented path is now checked first, and the old paths are kept. Still to confirm against a real delivery once there's a public URL.
+- [x] **Renewal date is filled in now.** `subscriptions.current_period_end` used to be always null. It's now set to the payment time + 1 month on every `SUBSCRIPTION_PAYMENT_SUCCESS`, or to Cashfree's `next_schedule_date` when a status event carries one (no offset = IST, stored as UTC). The Billing page's "Renews ..." line and the purchase email already read this field.
+- [x] **`SubscriptionCancelled` email**: sent after a successful cancel on the Billing page (`BillingController::cancel`), and when Cashfree reports `CANCELLED` for a subscription that wasn't already cancelled (e.g. mandate revoked in the UPI app). Only for paid plans. A mail failure is logged and never breaks the cancel or the webhook.
+- [x] **`SubscriptionRenewalReminder` email** + command **`php artisan billing:renewal-reminders`** (in `routes/console.php`): emails every `active` paid subscription whose `current_period_end` is within the next 3 days, **once per renewal** (a cache key with the renewal date; on a mail failure the key is removed so the next day retries). Scheduled daily at **10:00 IST** (`30 4 * * *` UTC).
+- **The schedule only runs if `php artisan schedule:work` is running** as another long-running process (like `queue:work`). Without it, run the command by hand.
+- [x] Tests: `SubscriptionEmailsTest` (10 tests: both cancel paths, no double email, documented-shape activation, both renewal-date sources, reminder sent / sent once / skipped for far-away, cancelled or free, email text). Full suite 463 passed.
+
 ## Test status
 
-As of 2026-09-30: `php artisan test` (from `backend/`): **453 passed, 2074 assertions**. `npm test` (from `whatsapp-worker/`, Vitest): **68 passed** (8 files).
+As of 2026-09-30: `php artisan test` (from `backend/`): **463 passed, 2116 assertions**. `npm test` (from `whatsapp-worker/`, Vitest): **68 passed** (8 files).
 
 `vendor/bin/pint --test` currently reports **pre-existing** style issues in about 16 files (mostly Windows CRLF line endings, plus some import ordering) from earlier commits. They were left alone on purpose ("don't refactor unrelated code"). The new payment-history files are clean. The owner can run `vendor/bin/pint` once to fix them all if they want.
 
@@ -418,10 +427,10 @@ As of 2026-09-30: `php artisan test` (from `backend/`): **453 passed, 2074 asser
 
 ## Next step
 
-**Status as of 2026-09-30:** everything up to `8cdde47` is committed. **Payment history is built, tested and migrated on the dev DB, but not committed.**
+**Status as of 2026-09-30:** everything up to `de7c38e` (payment history) is committed. **Billing emails + the webhook fix are built and tested, but not committed.**
 
-Ideas the owner can choose from (suggested 2026-09-30, none started):
-1. **Two more billing emails**: "subscription cancelled" confirmation, and a "renews / expires in 3 days" reminder.
+Ideas the owner can choose from (suggested 2026-09-30):
+1. ~~Two more billing emails~~: done, see the section above.
 2. **Two-factor login (2FA).** Deferred by the owner earlier. Probably needs a package (ask before installing).
 3. Possibly a downloadable receipt per payment, on top of payment history.
 

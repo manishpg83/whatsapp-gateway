@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Payment;
 use App\Models\Subscription;
 use App\Notifications\SubscriptionActivated;
+use App\Notifications\SubscriptionCancelled;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
@@ -42,7 +43,11 @@ class CashfreeWebhookController extends Controller
             'payload' => $payload,
         ]);
 
-        $subscriptionId = data_get($payload, 'data.subscription.subscription_id')
+        // SUBSCRIPTION_STATUS_CHANGED nests it under data.subscription_details
+        // (Cashfree docs, API version 2025-01-01); payment events have it at
+        // data.subscription_id. data.subscription.* is kept for older shapes.
+        $subscriptionId = data_get($payload, 'data.subscription_details.subscription_id')
+            ?? data_get($payload, 'data.subscription.subscription_id')
             ?? data_get($payload, 'data.subscription_id');
 
         if (! $subscriptionId) {
@@ -59,7 +64,10 @@ class CashfreeWebhookController extends Controller
 
         $this->recordPayment($subscription, $payload);
 
-        $status = data_get($payload, 'data.subscription.subscription_status')
+        $this->recordNextRenewal($subscription, $payload);
+
+        $status = data_get($payload, 'data.subscription_details.subscription_status')
+            ?? data_get($payload, 'data.subscription.subscription_status')
             ?? data_get($payload, 'data.subscription_status');
 
         if ($status) {
@@ -71,6 +79,13 @@ class CashfreeWebhookController extends Controller
             // failed payment comes from past_due, so neither emails again.
             if ($previousStatus === 'pending' && $subscription->status === 'active') {
                 $this->sendSubscribedEmail($subscription);
+            }
+
+            // Cancelled on Cashfree's side (e.g. the customer revoked the
+            // mandate in their UPI / bank app). A cancel from our own
+            // Billing page emails from BillingController instead.
+            if ($previousStatus !== 'cancelled' && $subscription->status === 'cancelled') {
+                $this->sendCancelledEmail($subscription);
             }
         }
 
@@ -119,6 +134,52 @@ class CashfreeWebhookController extends Controller
                 'paid_at' => $paidAt,
             ]
         );
+
+        // Plans are monthly, so a successful payment covers one month from
+        // then. This is the date the renewal reminder email works from.
+        if ($status === 'paid') {
+            $subscription->update(['current_period_end' => $paidAt->copy()->addMonthNoOverflow()]);
+        }
+    }
+
+    /**
+     * Uses Cashfree's own next charge date when a status event carries one
+     * (it's often null). No offset in it means IST, Cashfree's timezone.
+     */
+    protected function recordNextRenewal(Subscription $subscription, array $payload): void
+    {
+        $next = data_get($payload, 'data.subscription_details.next_schedule_date');
+
+        if (! $next) {
+            return;
+        }
+
+        try {
+            $subscription->update([
+                'current_period_end' => Carbon::parse($next, 'Asia/Kolkata')->setTimezone(config('app.timezone')),
+            ]);
+        } catch (Throwable $e) {
+            Log::warning('Cashfree webhook: unreadable next_schedule_date', ['value' => $next]);
+        }
+    }
+
+    protected function sendCancelledEmail(Subscription $subscription): void
+    {
+        $plan = $subscription->planDetails();
+
+        if ($plan['price'] <= 0) {
+            return;
+        }
+
+        try {
+            $subscription->user->notify(new SubscriptionCancelled($plan['name']));
+        } catch (Throwable $e) {
+            // Never fail the webhook over an email — Cashfree would retry it.
+            Log::warning('Could not send subscription cancelled email', [
+                'subscription_id' => $subscription->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     protected function sendSubscribedEmail(Subscription $subscription): void
