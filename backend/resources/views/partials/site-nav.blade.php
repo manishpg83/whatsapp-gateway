@@ -11,9 +11,8 @@
 @endphp
 <nav class="landing navbar navbar-expand-lg lp-nav sticky-top {{ $onLanding ? '' : 'is-scrolled' }}" @if ($onLanding) data-lp-nav @endif>
     <div class="container">
-        <a class="navbar-brand lp-brand" href="{{ route('home') }}">
-            <span class="lp-brand-mark"><i class="bi bi-whatsapp"></i></span>
-            <span>{{ config('app.name') }}</span>
+        <a class="navbar-brand lp-brand" href="{{ route('home') }}" aria-label="{{ config('app.name') }} home">
+            <x-brand-logo />
         </a>
 
         <button class="navbar-toggler lp-nav-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#lpNavMenu"

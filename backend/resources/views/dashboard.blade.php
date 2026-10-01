@@ -15,7 +15,7 @@
     <div>
         <div class="text-muted">Welcome,</div>
         <h1 class="h3 mb-1">{{ $user->name }}</h1>
-        <p class="text-muted mb-0">Here is an overview of your WhatsApp Gateway account.</p>
+        <p class="text-muted mb-0">Here is an overview of your InstaMessage account.</p>
     </div>
 
     {{-- Little animated phone scene (decorative). --}}

@@ -1,4 +1,4 @@
-# Progress — WhatsApp Gateway SaaS
+# Progress — InstaMessage (WhatsApp Gateway SaaS)
 
 > Living checklist. Read this together with `CLAUDE.md` at the start of every session.
 > Update it at the end of every milestone (tick the box, add notes, set "Next step").

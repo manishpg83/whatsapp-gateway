@@ -5,10 +5,9 @@
     <div class="container">
         <div class="row gy-4">
             <div class="col-md-6">
-                <div class="d-flex align-items-center gap-2 text-white mb-2">
-                    <i class="bi bi-chat-dots-fill"></i>
-                    <span class="fw-semibold">{{ config('app.name') }}</span>
-                </div>
+                <a href="{{ route('home') }}" class="d-inline-flex text-decoration-none mb-3" aria-label="{{ config('app.name') }} home">
+                    <x-brand-logo theme="light" size="sm" />
+                </a>
                 <p class="small mb-0" style="max-width: 32rem;">
                     Connect your own WhatsApp number and send &amp; receive messages
                     through a simple REST API — built for developers who want WhatsApp

@@ -27,14 +27,13 @@
         {{-- Sidebar: a static column at md+, a slide-in offcanvas below it --}}
         <div class="offcanvas-md offcanvas-start sidebar-shell" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
             <div class="offcanvas-header d-md-none">
-                <h5 class="offcanvas-title text-white" id="sidebarMenuLabel">{{ config('app.name') }}</h5>
+                <h5 class="offcanvas-title mb-0" id="sidebarMenuLabel"><x-brand-logo theme="light" size="sm" /></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#sidebarMenu" aria-label="Close"></button>
             </div>
             <div class="offcanvas-body d-flex flex-column p-3">
                 {{-- Logo opens the public landing page (logged-in users can view it too). --}}
-                <a href="{{ route('home') }}" class="d-none d-md-flex align-items-center gap-2 text-white text-decoration-none mb-4" title="View website">
-                    <span class="sidebar-logo-badge"><i class="bi bi-chat-dots-fill"></i></span>
-                    <span class="fw-bold lh-sm">WhatsApp<br>Gateway</span>
+                <a href="{{ route('home') }}" class="d-none d-md-flex text-decoration-none mb-4 px-1" title="View website" aria-label="{{ config('app.name') }} website">
+                    <x-brand-logo theme="light" />
                 </a>
 
                 {{-- An admin account is a platform-management account, not a

@@ -17,9 +17,8 @@
     {{-- Left: the form --}}
     <div class="lp-auth-main">
         <header class="lp-auth-top">
-            <a class="lp-brand text-decoration-none" href="{{ route('home') }}">
-                <span class="lp-brand-mark"><i class="bi bi-whatsapp"></i></span>
-                <span>{{ config('app.name') }}</span>
+            <a class="lp-brand text-decoration-none" href="{{ route('home') }}" aria-label="{{ config('app.name') }} home">
+                <x-brand-logo />
             </a>
 
             @auth
@@ -47,7 +46,7 @@
         </div>
 
         <footer class="lp-auth-foot">
-            <span>&copy; {{ now()->year }} {{ config('app.name') }}</span>
+            <span class="d-flex align-items-center gap-2"><x-brand-logo size="sm" /> &copy; {{ now()->year }}</span>
             <span class="d-flex flex-wrap gap-3">
                 <a href="{{ route('contact') }}">Contact</a>
                 <a href="{{ route('terms') }}">Terms</a>

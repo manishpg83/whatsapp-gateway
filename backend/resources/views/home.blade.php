@@ -306,7 +306,7 @@
                         <div class="lp-laptop-screen">
                             <div class="lp-app">
                                 <div class="lp-app-side">
-                                    <span class="lp-app-logo"><i class="bi bi-whatsapp"></i></span>
+                                    <span class="lp-app-logo"><img src="{{ asset('images/brand/icon-192.png') }}" alt=""></span>
                                     <span class="active"><i class="bi bi-house-door"></i></span>
                                     <span><i class="bi bi-hdd-stack"></i></span>
                                     <span><i class="bi bi-chat-left-text"></i></span>

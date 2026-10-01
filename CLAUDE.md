@@ -1,4 +1,4 @@
-# CLAUDE.md — WhatsApp Gateway SaaS
+# CLAUDE.md — InstaMessage (WhatsApp Gateway SaaS)
 
 > This file is the standing instruction set for any AI coding assistant working in this
 > repository. Read it fully before doing anything. The rules in **Section 1 (Golden Rules)**
@@ -8,7 +8,7 @@
 
 ## 0. What we are building
 
-A multi-tenant **WhatsApp Gateway SaaS** (conceptually similar to WaTrend). A registered user can:
+**InstaMessage** — a multi-tenant **WhatsApp Gateway SaaS** (conceptually similar to WaTrend). A registered user can:
 
 1. Register / log in.
 2. Create a WhatsApp connection ("instance").

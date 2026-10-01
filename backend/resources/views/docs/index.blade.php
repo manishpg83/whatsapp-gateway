@@ -573,7 +573,7 @@
   -d '{
     "instance_id": "YOUR_INSTANCE_ID",
     "to": "919876543210",
-    "message": "Hello from my WhatsApp Gateway!"
+    "message": "Hello from InstaMessage!"
   }'</code></pre>
                     </div>
                     <div class="tab-pane fade" id="tab-js" role="tabpanel">
@@ -586,7 +586,7 @@
   body: JSON.stringify({
     instance_id: "YOUR_INSTANCE_ID",
     to: "919876543210",
-    message: "Hello from my WhatsApp Gateway!",
+    message: "Hello from InstaMessage!",
   }),
 });
 
@@ -604,7 +604,7 @@ curl_setopt_array($curl, [
     CURLOPT_POSTFIELDS => json_encode([
         'instance_id' => 'YOUR_INSTANCE_ID',
         'to' => '919876543210',
-        'message' => 'Hello from my WhatsApp Gateway!',
+        'message' => 'Hello from InstaMessage!',
     ]),
     CURLOPT_HTTPHEADER => [
         'Content-Type: application/json',
@@ -639,7 +639,7 @@ response = requests.post(
     json={
         "instance_id": "YOUR_INSTANCE_ID",
         "to": "919876543210",
-        "message": "Hello from my WhatsApp Gateway!",
+        "message": "Hello from InstaMessage!",
     },
 )
 
@@ -659,7 +659,7 @@ var payload = new
 {
     instance_id = "YOUR_INSTANCE_ID",
     to = "919876543210",
-    message = "Hello from my WhatsApp Gateway!"
+    message = "Hello from InstaMessage!"
 };
 
 var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
@@ -675,7 +675,7 @@ Console.WriteLine(data);</code></pre>
 String body = "{"
     + "\"instance_id\":\"YOUR_INSTANCE_ID\","
     + "\"to\":\"919876543210\","
-    + "\"message\":\"Hello from my WhatsApp Gateway!\""
+    + "\"message\":\"Hello from InstaMessage!\""
     + "}";
 
 HttpRequest request = HttpRequest.newBuilder()
