@@ -1,0 +1,358 @@
+/*
+ * Bulk messages (resources/views/bulk/). Header icon and count tiles reuse
+ * messages.css (ms-head-icon, ms-tile); the empty state reuses instances.css.
+ */
+
+.bk-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #5c6b66;
+    text-decoration: none;
+}
+
+.bk-back:hover {
+    color: var(--wa-primary);
+}
+
+/* ---- Campaign list */
+
+.bk-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+    padding: 1rem 1.25rem;
+}
+
+.bk-row-main {
+    flex: 1 1 260px;
+    min-width: 0;
+}
+
+.bk-row-progress {
+    flex: 1 1 260px;
+    max-width: 420px;
+}
+
+@media (max-width: 575.98px) {
+    .bk-row-progress {
+        max-width: none;
+    }
+}
+
+.bk-progress {
+    height: 8px;
+    background: #e9efec;
+    border-radius: 999px;
+}
+
+.bk-progress-lg {
+    height: 12px;
+}
+
+.bk-progress .progress-bar {
+    transition: width 0.6s ease;
+}
+
+/* ---- New campaign form */
+
+.bk-estimate {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.8rem;
+    font-size: 0.9rem;
+    color: #33413b;
+    background: var(--wa-primary-light);
+    border-radius: 10px;
+}
+
+.bk-estimate .bi {
+    color: var(--wa-primary);
+}
+
+.bk-types {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+}
+
+@media (max-width: 575.98px) {
+    .bk-types {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.bk-type {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.6rem 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #4a5a53;
+    cursor: pointer;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.bk-type:hover {
+    border-color: rgba(11, 132, 87, 0.45);
+}
+
+.btn-check:checked + .bk-type {
+    color: var(--wa-primary-dark);
+    background: var(--wa-primary-light);
+    border-color: var(--wa-primary);
+}
+
+.btn-check:focus-visible + .bk-type {
+    outline: 2px solid var(--wa-primary);
+    outline-offset: 2px;
+}
+
+.bk-drop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 150px;
+    padding: 1.25rem;
+    margin: 0;
+    text-align: center;
+    cursor: pointer;
+    background: #f8fbfa;
+    border: 2px dashed rgba(11, 132, 87, 0.3);
+    border-radius: 12px;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.bk-drop:hover,
+.bk-drop.is-dragging {
+    background: var(--wa-primary-light);
+    border-color: var(--wa-primary);
+}
+
+.bk-drop.is-invalid {
+    border-color: var(--bs-form-invalid-border-color);
+}
+
+.bk-drop > span {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.bk-drop .bi {
+    font-size: 2rem;
+    color: var(--wa-primary);
+}
+
+.bk-drop-preview img,
+.bk-drop-preview video {
+    max-width: 100%;
+    max-height: 220px;
+    border-radius: 8px;
+}
+
+.bk-consent {
+    padding: 0.85rem 0.85rem 0.85rem 2.4rem;
+    background: #f8fbfa;
+    border: 1px solid rgba(16, 35, 28, 0.08);
+    border-radius: 10px;
+}
+
+.bk-limit {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+    border-bottom: 1px dashed rgba(16, 35, 28, 0.12);
+}
+
+.bk-tips {
+    display: grid;
+    gap: 0.65rem;
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.88rem;
+    color: #4a5a53;
+}
+
+/* ---- Campaign page */
+
+.bk-bubble {
+    position: relative;
+    padding: 0.75rem 0.9rem;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    background: #d9fdd3;
+    border-radius: 12px 12px 4px 12px;
+}
+
+.bk-bubble-text {
+    white-space: pre-wrap;
+}
+
+.bk-bubble-media {
+    display: block;
+    width: 100%;
+    max-height: 320px;
+    object-fit: cover;
+    background: #000;
+    border-radius: 8px;
+}
+
+.bk-bubble-doc {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.6rem 0.75rem;
+    color: inherit;
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.65);
+    border-radius: 8px;
+}
+
+.bk-bubble-doc .bi {
+    font-size: 1.75rem;
+    color: var(--wa-primary);
+}
+
+.bk-table th {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    background: #f8fbfa;
+}
+
+.bk-table td,
+.bk-table th {
+    padding: 0.7rem 1rem;
+}
+
+.bk-live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 0.4rem;
+    background: #10b981;
+    border-radius: 50%;
+    animation: bk-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes bk-pulse {
+    50% { opacity: 0.3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bk-live-dot {
+        animation: none;
+    }
+}
+
+.bk-row-main .fw-semibold {
+    color: var(--wa-dark);
+}
+
+/* ---- Recipients: Paste / Upload CSV switch (B3) */
+
+.bk-seg {
+    display: inline-flex;
+    padding: 3px;
+    background: #eef3f1;
+    border-radius: 10px;
+}
+
+.bk-seg-btn {
+    padding: 0.3rem 0.8rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #5c6b66;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.btn-check:checked + .bk-seg-btn {
+    color: var(--wa-primary-dark);
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.1);
+}
+
+.btn-check:focus-visible + .bk-seg-btn {
+    outline: 2px solid var(--wa-primary);
+    outline-offset: 1px;
+}
+
+.bk-drop-sm {
+    min-height: 120px;
+}
+
+/* ---- {name} personalisation */
+
+.bk-insert code {
+    font-size: 0.8rem;
+}
+
+.bk-personal {
+    padding: 0.85rem;
+    background: #f8fbfa;
+    border: 1px solid rgba(16, 35, 28, 0.08);
+    border-radius: 10px;
+}
+
+.bk-personal .bk-bubble {
+    min-height: 2.4rem;
+}
+
+/* ---- Saved messages + scheduling (B4) */
+
+.bk-template-select {
+    width: auto;
+    max-width: 220px;
+}
+
+.bk-template-name {
+    width: auto;
+    min-width: 220px;
+}
+
+.bk-template-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    height: 100%;
+    padding: 1rem 1.1rem;
+    background: #fff;
+    border: 1px solid rgba(16, 35, 28, 0.08);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.bk-template-card .bk-bubble {
+    flex: 1;
+    max-height: 9.5rem;
+    overflow: hidden;
+    font-size: 0.88rem;
+}
+
+@media (max-width: 575.98px) {
+    .bk-template-select,
+    .bk-template-name {
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+    }
+}

@@ -16,6 +16,8 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\BulkCampaignController;
+use App\Http\Controllers\BulkTemplateController;
 use App\Http\Controllers\CashfreeWebhookController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
@@ -111,6 +113,24 @@ Route::middleware(['auth', 'not_suspended', 'verified'])->group(function () {
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
     // A received image / voice note / document — owner only.
     Route::get('/messages/{message}/media', [MessageMediaController::class, 'show'])->name('messages.media');
+
+    // Bulk messages — {campaign} is the public campaign_id (UUID).
+    Route::get('/bulk', [BulkCampaignController::class, 'index'])->name('bulk.index');
+    Route::get('/bulk/create', [BulkCampaignController::class, 'create'])->name('bulk.create');
+    Route::post('/bulk', [BulkCampaignController::class, 'store'])->name('bulk.store');
+    Route::get('/bulk/sample.csv', [BulkCampaignController::class, 'sampleCsv'])->name('bulk.sample');
+    // Saved messages — before /bulk/{campaign} so "templates" isn't read as a campaign id.
+    Route::get('/bulk/templates', [BulkTemplateController::class, 'index'])->name('bulk.templates.index');
+    Route::post('/bulk/templates', [BulkTemplateController::class, 'store'])->name('bulk.templates.store');
+    Route::get('/bulk/templates/{template}/edit', [BulkTemplateController::class, 'edit'])->whereNumber('template')->name('bulk.templates.edit');
+    Route::put('/bulk/templates/{template}', [BulkTemplateController::class, 'update'])->whereNumber('template')->name('bulk.templates.update');
+    Route::delete('/bulk/templates/{template}', [BulkTemplateController::class, 'destroy'])->whereNumber('template')->name('bulk.templates.destroy');
+    Route::get('/bulk/{campaign}', [BulkCampaignController::class, 'show'])->name('bulk.show');
+    Route::get('/bulk/{campaign}/status', [BulkCampaignController::class, 'status'])->name('bulk.status');
+    Route::get('/bulk/{campaign}/media', [BulkCampaignController::class, 'media'])->name('bulk.media');
+    Route::post('/bulk/{campaign}/pause', [BulkCampaignController::class, 'pause'])->name('bulk.pause');
+    Route::post('/bulk/{campaign}/resume', [BulkCampaignController::class, 'resume'])->name('bulk.resume');
+    Route::post('/bulk/{campaign}/cancel', [BulkCampaignController::class, 'cancel'])->name('bulk.cancel');
 
     Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
     Route::post('/billing/subscribe/{plan}', [BillingController::class, 'subscribe'])->name('billing.subscribe');

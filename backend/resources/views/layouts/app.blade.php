@@ -94,6 +94,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link sidebar-link {{ request()->routeIs('bulk.*') ? 'active' : '' }}" href="{{ route('bulk.index') }}">
+                                <i class="bi bi-megaphone me-2"></i>Bulk messages
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link sidebar-link {{ request()->routeIs('billing.*') ? 'active' : '' }}" href="{{ route('billing.index') }}">
                                 <i class="bi bi-credit-card me-2"></i>Billing
                             </a>

@@ -54,9 +54,11 @@ php artisan serve
 
 **Also needed for full functionality (separate terminals):**
 ```powershell
-php artisan queue:work
+php artisan queue:listen --tries=1
 ```
-Without this, incoming-message webhook deliveries just sit in the `jobs` table and never actually get delivered.
+Without this, incoming-message webhook deliveries just sit in the `jobs` table and never actually get delivered, and bulk campaigns never send.
+
+**While developing, use `queue:listen` (above), not `queue:work`.** `queue:listen` reloads the code for every job, so code and setting changes apply straight away. `queue:work` loads the app once and keeps running old code until you restart it (`Ctrl+C`, then run it again) — use `queue:work` only on a real server, where it is faster.
 
 ## 3. Worker (Node/Baileys)
 
@@ -92,7 +94,7 @@ You need **3 terminals running simultaneously**:
 php artisan serve
 
 # Terminal 2 — backend/
-php artisan queue:work
+php artisan queue:listen --tries=1
 
 # Terminal 3 — whatsapp-worker/
 npm run dev

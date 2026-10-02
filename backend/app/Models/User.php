@@ -51,6 +51,22 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * @return HasMany<BulkCampaign, $this>
+     */
+    public function bulkCampaigns(): HasMany
+    {
+        return $this->hasMany(BulkCampaign::class);
+    }
+
+    /**
+     * @return HasMany<BulkTemplate, $this>
+     */
+    public function bulkTemplates(): HasMany
+    {
+        return $this->hasMany(BulkTemplate::class);
+    }
+
+    /**
      * @return HasMany<Payment, $this>
      */
     public function payments(): HasMany
