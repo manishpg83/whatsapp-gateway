@@ -190,7 +190,7 @@ a:hover {
 
 /*
  * InstaMessage logo (components/brand-logo.blade.php): one image with the
- * icon, name and tagline. --brand-h is its height; max-width lets it shrink
+ * icon and name. --brand-h is its height; max-width lets it shrink
  * (keeping its shape) when the space is narrower, e.g. the sidebar.
  */
 .brand-logo {

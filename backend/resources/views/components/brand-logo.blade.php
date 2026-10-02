@@ -1,4 +1,4 @@
-{{-- The InstaMessage logo image (icon + name + tagline), from
+{{-- The InstaMessage logo image (icon + name), from
      public/images/brand/. Styles are in app.css (.brand-logo).
        theme: 'dark'  = dark "Insta" text, for light backgrounds (top bars)
               'light' = white "Insta" text, for dark backgrounds (sidebar, footer)
