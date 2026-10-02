@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Services\EmailTemplates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -27,13 +28,9 @@ class SubscriptionCancelled extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)
-            ->subject("Your {$this->planName} subscription has been cancelled")
-            ->greeting("Hi {$notifiable->name},")
-            ->line("Your {$this->planName} subscription has been cancelled. No further payments will be taken for it.")
-            ->line('Your account is now on the Free plan limits. Your instances, API tokens and message history are kept.')
-            ->line('Changed your mind? You can subscribe again anytime from the Billing page.')
-            ->action('Go to Billing', route('billing.index'))
-            ->line("If you didn't cancel this yourself, please contact us: ".route('contact', ['topic' => 'billing']));
+        return EmailTemplates::mail('subscription_cancelled', [
+            'name' => $notifiable->name,
+            'plan_name' => $this->planName,
+        ], route('billing.index'));
     }
 }

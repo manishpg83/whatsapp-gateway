@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\WhatsappSession;
+use App\Services\EmailTemplates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -28,15 +29,14 @@ class InstanceDisconnected extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $loggedOut = $this->instance->status === 'logged_out';
-
-        return (new MailMessage)
-            ->subject("WhatsApp instance \"{$this->instance->name}\" is offline")
-            ->line("Your WhatsApp instance \"{$this->instance->name}\"".($this->phoneNumber ? " ({$this->phoneNumber})" : '').' is no longer connected, so messages sent through the API will fail until it is back online.')
-            ->line($this->instance->last_disconnect_reason ?? 'The connection was lost.')
-            ->line($loggedOut
+        return EmailTemplates::mail('instance_disconnected', [
+            'name' => $notifiable->name,
+            'instance_name' => $this->instance->name,
+            'phone_number' => $this->phoneNumber ?? 'no number',
+            'disconnect_reason' => $this->instance->last_disconnect_reason ?? 'The connection was lost.',
+            'reconnect_hint' => $this->instance->status === 'logged_out'
                 ? 'The device was unlinked, so you will need to scan a new QR code.'
-                : 'Your phone is still linked, so reconnecting does not need a QR code.')
-            ->action('Open instance', route('instances.show', $this->instance));
+                : 'Your phone is still linked, so reconnecting does not need a QR code.',
+        ], route('instances.show', $this->instance));
     }
 }

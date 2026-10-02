@@ -66,7 +66,7 @@ class AccountController extends Controller
         DB::table('password_reset_tokens')->where('email', $oldEmail)->delete();
 
         $user->sendEmailVerificationNotification();
-        Notification::route('mail', $oldEmail)->notify(new EmailChanged($data['email']));
+        Notification::route('mail', $oldEmail)->notify(new EmailChanged($data['email'], $user->name));
 
         return redirect()->route('verification.notice')
             ->with('status', 'Your email address was changed. Please verify the new address to keep using your account.');

@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Services\EmailTemplates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -32,25 +33,13 @@ class UsageLimitWarning extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $resetsOn = now()->startOfMonth()->addMonthNoOverflow()->format('F j, Y');
-        $usage = number_format($this->used).' of '.number_format($this->limit);
-
-        if ($this->percent >= 100) {
-            return (new MailMessage)
-                ->subject("You've reached your monthly message limit")
-                ->greeting("Hi {$notifiable->name},")
-                ->line("You've used all {$usage} messages included in your {$this->planName} plan this month.")
-                ->line('New messages sent through the API will be refused until your limit resets on '.$resetsOn.'.')
-                ->line('Upgrade your plan to keep sending right away — the new limit applies immediately.')
-                ->action('Upgrade plan', route('billing.index'));
-        }
-
-        return (new MailMessage)
-            ->subject("You've used {$this->percent}% of your monthly messages")
-            ->greeting("Hi {$notifiable->name},")
-            ->line("You've sent {$usage} messages included in your {$this->planName} plan this month ({$this->percent}%).")
-            ->line('When you reach the limit, new messages will be refused until it resets on '.$resetsOn.'.')
-            ->line('If you expect to send more, upgrade now so nothing stops unexpectedly.')
-            ->action('View plans', route('billing.index'));
+        return EmailTemplates::mail($this->percent >= 100 ? 'usage_100' : 'usage_80', [
+            'name' => $notifiable->name,
+            'plan_name' => $this->planName,
+            'percent' => (string) $this->percent,
+            'used' => number_format($this->used),
+            'limit' => number_format($this->limit),
+            'reset_date' => now()->startOfMonth()->addMonthNoOverflow()->format('F j, Y'),
+        ], route('billing.index'));
     }
 }

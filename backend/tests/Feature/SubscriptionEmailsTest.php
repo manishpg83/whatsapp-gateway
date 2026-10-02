@@ -193,6 +193,6 @@ class SubscriptionEmailsTest extends TestCase
         $mail = (new SubscriptionRenewalReminder('Starter', 749, now()->setDate(2026, 10, 30)->setTime(5, 0)))->toMail($user);
 
         $this->assertSame('Your Starter plan renews on October 30, 2026', $mail->subject);
-        $this->assertStringContainsString('₹749 will be charged', implode(' ', $mail->introLines));
+        $this->assertStringContainsString('₹749 will be charged', (string) $mail->render());
     }
 }

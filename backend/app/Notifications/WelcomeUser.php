@@ -2,9 +2,11 @@
 
 namespace App\Notifications;
 
+use App\Services\EmailTemplates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Str;
 
 /**
  * Sent once, right after a new user verifies their email address — a
@@ -25,11 +27,13 @@ class WelcomeUser extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)
-            ->subject('Welcome to '.config('app.name').' — let\'s send your first message')
-            ->markdown('emails.welcome', [
-                'user' => $notifiable,
-                'plan' => $notifiable->subscription->planDetails(),
-            ]);
+        $plan = $notifiable->subscription->planDetails();
+
+        return EmailTemplates::mail('welcome', [
+            'name' => $notifiable->name,
+            'plan_name' => $plan['name'],
+            'instances' => $plan['instances'].' '.Str::plural('instance', $plan['instances']),
+            'messages_per_month' => number_format($plan['messages_per_month']),
+        ], route('dashboard'));
     }
 }

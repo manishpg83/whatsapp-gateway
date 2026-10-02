@@ -68,6 +68,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link sidebar-link {{ request()->routeIs('admin.email-templates.*') ? 'active' : '' }}" href="{{ route('admin.email-templates.index') }}">
+                                <i class="bi bi-envelope-paper me-2"></i>Email templates
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link sidebar-link {{ request()->routeIs('admin.audit-log.*') ? 'active' : '' }}" href="{{ route('admin.audit-log.index') }}">
                                 <i class="bi bi-journal-text me-2"></i>Audit log
                             </a>

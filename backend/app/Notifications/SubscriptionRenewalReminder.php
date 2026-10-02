@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Services\EmailTemplates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -32,15 +33,11 @@ class SubscriptionRenewalReminder extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $date = $this->renewsOn->copy()->timezone('Asia/Kolkata')->format('F j, Y');
-        $amount = '₹'.number_format($this->price);
-
-        return (new MailMessage)
-            ->subject("Your {$this->planName} plan renews on {$date}")
-            ->greeting("Hi {$notifiable->name},")
-            ->line("This is a reminder that your {$this->planName} plan renews automatically on {$date}.")
-            ->line("{$amount} will be charged through Cashfree using the payment method you set up. You don't need to do anything.")
-            ->line('Want to change or cancel your plan before then? You can do it anytime from the Billing page.')
-            ->action('Manage your plan', route('billing.index'));
+        return EmailTemplates::mail('renewal_reminder', [
+            'name' => $notifiable->name,
+            'plan_name' => $this->planName,
+            'amount' => '₹'.number_format($this->price),
+            'renew_date' => $this->renewsOn->copy()->timezone('Asia/Kolkata')->format('F j, Y'),
+        ], route('billing.index'));
     }
 }

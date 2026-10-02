@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Services\EmailTemplates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -15,7 +16,7 @@ class EmailChanged extends Notification
 {
     use Queueable;
 
-    public function __construct(public string $newEmail) {}
+    public function __construct(public string $newEmail, public string $name = '') {}
 
     /**
      * @return array<int, string>
@@ -27,12 +28,10 @@ class EmailChanged extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)
-            ->subject('Your email address was changed')
-            ->line('The email address on your '.config('app.name').' account was just changed to '.self::mask($this->newEmail).'.')
-            ->line('If you made this change, you can ignore this email.')
-            ->line('If you did NOT make this change, someone may have access to your account. Contact us right away so we can help you secure it.')
-            ->action('Contact support', route('contact', ['topic' => 'technical']));
+        return EmailTemplates::mail('email_changed', [
+            'name' => $this->name,
+            'new_email' => self::mask($this->newEmail),
+        ], route('contact', ['topic' => 'technical']));
     }
 
     /**

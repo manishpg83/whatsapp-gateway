@@ -33,6 +33,8 @@ class AdminAuditLog extends Model
         'plan.created' => 'Created plan',
         'plan.updated' => 'Updated plan',
         'plan.deleted' => 'Deleted plan',
+        'email_template.updated' => 'Edited email template',
+        'email_template.reset' => 'Reset email template',
     ];
 
     protected function casts(): array

@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin\AuditLogController as AdminAuditLogController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\InstanceController as AdminInstanceController;
+use App\Http\Controllers\Admin\EmailTemplateController as AdminEmailTemplateController;
 use App\Http\Controllers\Admin\PlanController as AdminPlanController;
 use App\Http\Controllers\Admin\RevenueController as AdminRevenueController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
@@ -153,6 +154,17 @@ Route::middleware(['auth', 'not_suspended', 'verified', 'admin'])->prefix('admin
     Route::get('/plans/{plan}/edit', [AdminPlanController::class, 'edit'])->name('plans.edit');
     Route::put('/plans/{plan}', [AdminPlanController::class, 'update'])->name('plans.update');
     Route::delete('/plans/{plan}', [AdminPlanController::class, 'destroy'])->name('plans.destroy');
+
+    // {key} is a key of config/email-templates.php (unknown keys → 404).
+    Route::get('/email-templates', [AdminEmailTemplateController::class, 'index'])->name('email-templates.index');
+    Route::get('/email-templates/{key}/edit', [AdminEmailTemplateController::class, 'edit'])->name('email-templates.edit');
+    Route::post('/email-templates/{key}', [AdminEmailTemplateController::class, 'update'])->name('email-templates.update');
+    Route::delete('/email-templates/{key}', [AdminEmailTemplateController::class, 'reset'])->name('email-templates.reset');
+    Route::match(['get', 'post'], '/email-templates/{key}/preview', [AdminEmailTemplateController::class, 'preview'])->name('email-templates.preview');
+    // Sends a real email each time, so only a few per minute.
+    Route::post('/email-templates/{key}/test', [AdminEmailTemplateController::class, 'sendTest'])
+        ->middleware('throttle:5,1')
+        ->name('email-templates.test');
 });
 
 // The 24-hour media download link sent in webhooks, for the customer's

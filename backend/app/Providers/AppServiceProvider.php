@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Services\EmailTemplates;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
@@ -26,6 +29,18 @@ class AppServiceProvider extends ServiceProvider
         // No Tailwind in this app (CLAUDE.md §3) — Laravel's pagination
         // views default to Tailwind, so switch to the Bootstrap 5 one.
         Paginator::useBootstrapFive();
+
+        // Laravel's own "verify email" and "reset password" emails use our
+        // admin-editable templates (Admin → Email Templates) like the rest.
+        VerifyEmail::toMailUsing(fn (object $notifiable, string $url) => EmailTemplates::mail('verify_email', [
+            'name' => $notifiable->name,
+            'expire_minutes' => (string) config('auth.verification.expire', 60),
+        ], $url));
+
+        ResetPassword::toMailUsing(fn (object $notifiable, string $token) => EmailTemplates::mail('password_reset', [
+            'name' => $notifiable->name,
+            'expire_minutes' => (string) config('auth.passwords.'.config('auth.defaults.passwords').'.expire'),
+        ], url(route('password.reset', ['token' => $token, 'email' => $notifiable->getEmailForPasswordReset()], false))));
 
         // The public messaging API can be used to spam real phone
         // numbers, so it gets its own (fairly generous, MVP) limit — by

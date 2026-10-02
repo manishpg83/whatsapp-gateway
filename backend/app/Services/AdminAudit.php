@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AdminAuditLog;
+use App\Models\EmailTemplate;
 use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -16,17 +17,23 @@ use Illuminate\Http\Request;
  */
 class AdminAudit
 {
-    public static function record(Request $request, string $action, User|Plan $target, array $details = []): void
+    public static function record(Request $request, string $action, User|Plan|EmailTemplate $target, array $details = []): void
     {
         $admin = $request->user();
+
+        [$targetType, $targetLabel] = match (true) {
+            $target instanceof User => ['user', "{$target->name} ({$target->email})"],
+            $target instanceof Plan => ['plan', $target->name],
+            $target instanceof EmailTemplate => ['email_template', EmailTemplates::definition($target->key)['label']],
+        };
 
         AdminAuditLog::create([
             'admin_id' => $admin->id,
             'admin_name' => $admin->name,
             'action' => $action,
-            'target_type' => $target instanceof User ? 'user' : 'plan',
+            'target_type' => $targetType,
             'target_id' => $target->id,
-            'target_label' => $target instanceof User ? "{$target->name} ({$target->email})" : $target->name,
+            'target_label' => $targetLabel,
             'details' => $details ?: null,
             'ip_address' => $request->ip(),
         ]);

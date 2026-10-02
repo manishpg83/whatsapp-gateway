@@ -13,6 +13,8 @@
         'plan.created' => ['green', 'bi-plus-circle'],
         'plan.updated' => ['purple', 'bi-pencil'],
         'plan.deleted' => ['red', 'bi-trash'],
+        'email_template.updated' => ['blue', 'bi-envelope-paper'],
+        'email_template.reset' => ['amber', 'bi-arrow-counterclockwise'],
     ];
 @endphp
 <div class="ad-table-wrap">
@@ -48,7 +50,7 @@
                             @else
                                 <span class="fw-semibold ad-break">{{ $log->target_label }}</span>
                             @endif
-                            <div class="text-muted small">{{ ucfirst($log->target_type) }}</div>
+                            <div class="text-muted small">{{ ucfirst(str_replace('_', ' ', $log->target_type)) }}</div>
                         </td>
                     @endif
                     <td data-label="Details" class="ad-cell-details">
