@@ -6,6 +6,7 @@ use App\Models\Plan;
 use App\Notifications\SubscriptionCancelled;
 use App\Services\CashfreeClient;
 use App\Services\PlanLimiter;
+use App\Support\Currency;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -39,6 +40,13 @@ class BillingController extends Controller
         $planRow = Plan::where('slug', $plan)->first();
 
         abort_if(! $planRow || $planRow->price <= 0, 404);
+
+        // Cashfree only charges INR, so the South African (.za, Rand) site
+        // has no online checkout — those customers contact us instead.
+        if (Currency::isZar()) {
+            return redirect()->route('billing.index')
+                ->withErrors(['plan' => "Online payment isn't available on our South African site yet. Please contact us to subscribe."]);
+        }
 
         $planDetails = $planRow->toArray();
 

@@ -227,7 +227,8 @@
                         your subscription at any time from your account's Billing page, or by
                         contacting us; cancellation stops future billing but does not refund amounts
                         already charged for the current period, except where required by law. Fees
-                        are shown in Indian Rupees (INR) and are exclusive of any taxes we're required
+                        are shown in Indian Rupees (INR) — or in South African Rand (ZAR) on our
+                        South African site — and are exclusive of any taxes we're required
                         to collect. We may change plan pricing going forward; we'll give you
                         reasonable notice before a price change applies to your existing subscription.
                     </p>

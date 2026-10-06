@@ -224,7 +224,7 @@
                             <div class="col-md-4">
                                 <label for="test-message-to" class="form-label small fw-semibold">To (phone number)</label>
                                 <input type="text" class="form-control @error('to') is-invalid @enderror"
-                                       id="test-message-to" name="to" placeholder="919876543210" value="{{ old('to') }}" required inputmode="numeric">
+                                       id="test-message-to" name="to" placeholder="{{ \App\Support\Site::samplePhone() }}" value="{{ old('to') }}" required inputmode="numeric">
                                 <div class="form-text">Country code first, digits only: no <code>+</code>, spaces or dashes. E.g. <code>+91 98665 48992</code> &rarr; <code>919866548992</code>.</div>
                                 @error('to')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -298,7 +298,7 @@
                             <div class="flex-grow-1">
                                 <label for="check-number-input" class="visually-hidden">Phone number to check</label>
                                 <input type="text" class="form-control @error('check_number') is-invalid @enderror"
-                                       id="check-number-input" name="check_number" placeholder="919876543210"
+                                       id="check-number-input" name="check_number" placeholder="{{ \App\Support\Site::samplePhone() }}"
                                        value="{{ old('check_number') }}" required inputmode="numeric">
                                 @error('check_number')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -497,7 +497,7 @@
 <pre class="bg-light rounded p-3 mb-0"><code>{
   "event": "message.received",
   "instance_id": "{{ $instance->instance_id }}",
-  "from": "919876543210",
+  "from": "{{ \App\Support\Site::samplePhone() }}",
   "type": "image",
   "message": "Here is the photo",
   "message_id": "3EB0A1B2C3D4E5F6",
@@ -523,7 +523,7 @@
   "instance_id": "{{ $instance->instance_id }}",
   "message_id": "3EB0A1B2C3D4E5F6",
   "status": "read",
-  "to": "919876543210",
+  "to": "{{ \App\Support\Site::samplePhone() }}",
   "timestamp": "2026-09-24T10:17:41+00:00"
 }</code></pre>
                         </details>

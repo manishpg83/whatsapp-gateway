@@ -4,6 +4,7 @@
 
 @section('content')
 @php
+    $onZar = \App\Support\Currency::isZar();
     $tierIcon = fn (string $slug) => match ($slug) {
         'free' => 'bi-gift',
         'starter' => 'bi-lightning-charge',
@@ -60,13 +61,27 @@
                 </div>
                 <div class="bl-plan-name">{{ $plan->name }}</div>
                 <p class="bl-plan-desc">{{ $plan->description }}</p>
+                {{-- Main price in this site's currency (Rand on .za), the other one below. --}}
                 <div class="bl-plan-price">
-                    @if ($plan->price > 0)
-                        &#8377;{{ number_format($plan->price) }}<span>/mo</span>
-                    @else
+                    @if ($plan->price <= 0)
                         Free
+                    @elseif ($onZar && $plan->price_zar === null)
+                        <span class="fs-5 text-muted">Rand price not set</span>
+                    @elseif ($onZar)
+                        R{{ number_format($plan->price_zar) }}<span>/mo</span>
+                    @else
+                        &#8377;{{ number_format($plan->price) }}<span>/mo</span>
                     @endif
                 </div>
+                @if ($plan->price > 0)
+                    <div class="small text-muted mb-2">
+                        @if ($onZar)
+                            India: &#8377;{{ number_format($plan->price) }}/mo
+                        @else
+                            South Africa: {{ $plan->price_zar !== null ? 'R'.number_format($plan->price_zar).'/mo' : 'not set (shows "Contact us")' }}
+                        @endif
+                    </div>
+                @endif
                 <ul class="bl-plan-list">
                     <li><i class="bi bi-check-lg"></i>{{ $plan->instances }} {{ Str::plural('instance', $plan->instances) }}</li>
                     <li><i class="bi bi-check-lg"></i>{{ number_format($plan->messages_per_month) }} messages/mo</li>

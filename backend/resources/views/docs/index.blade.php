@@ -334,7 +334,7 @@
   -H "Content-Type: application/json" \
   -d '{
     "instance_id": "YOUR_INSTANCE_ID",
-    "to": "919876543210",
+    "to": "{{ \App\Support\Site::samplePhone() }}",
     "type": "document",
     "media_url": "https://example.com/files/invoice-42.pdf",
     "file_name": "Invoice-42.pdf",
@@ -349,7 +349,7 @@
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
   -H "Accept: application/json" \
   -F "instance_id=YOUR_INSTANCE_ID" \
-  -F "to=919876543210" \
+  -F "to={{ \App\Support\Site::samplePhone() }}" \
   -F "type=image" \
   -F "message=Here is the photo" \
   -F "media=@/path/to/photo.jpg"</code></pre>
@@ -429,7 +429,7 @@
     "instance_id": "YOUR_INSTANCE_ID",
     "direction": "outgoing",
     "type": "text",
-    "to": "919876543210",
+    "to": "{{ \App\Support\Site::samplePhone() }}",
     "status": "read",
     "sent_via": "device",
     "fallback_status": null,
@@ -475,7 +475,7 @@
                         <td>array of strings</td>
                         <td>
                             1 to 20 phone numbers, same format as <code>to</code> when sending:
-                            country code first, digits only (e.g. <code>919876543210</code>).
+                            country code first, digits only (e.g. <code>{{ \App\Support\Site::samplePhone() }}</code>).
                         </td>
                     </tr>
                 </tbody>
@@ -526,7 +526,7 @@
   -H "Accept: application/json" \
   -d '{
     "instance_id": "YOUR_INSTANCE_ID",
-    "numbers": ["919876543210", "12499793168"]
+    "numbers": ["{{ \App\Support\Site::samplePhone() }}", "12499793168"]
   }'</code></pre>
                     </div>
                     <p class="small text-muted mt-2 mb-0">
@@ -542,7 +542,7 @@
 <pre><code>{
   "success": true,
   "results": [
-    { "number": "919876543210", "on_whatsapp": true,  "whatsapp_number": "919876543210" },
+    { "number": "{{ \App\Support\Site::samplePhone() }}", "on_whatsapp": true,  "whatsapp_number": "{{ \App\Support\Site::samplePhone() }}" },
     { "number": "12499793168",  "on_whatsapp": false, "whatsapp_number": null }
   ]
 }</code></pre>
@@ -591,7 +591,7 @@
   -H "Content-Type: application/json" \
   -d '{
     "instance_id": "YOUR_INSTANCE_ID",
-    "to": "919876543210",
+    "to": "{{ \App\Support\Site::samplePhone() }}",
     "message": "Hello from InstaMessage!"
   }'</code></pre>
                     </div>
@@ -604,7 +604,7 @@
   },
   body: JSON.stringify({
     instance_id: "YOUR_INSTANCE_ID",
-    to: "919876543210",
+    to: "{{ \App\Support\Site::samplePhone() }}",
     message: "Hello from InstaMessage!",
   }),
 });
@@ -622,7 +622,7 @@ curl_setopt_array($curl, [
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => json_encode([
         'instance_id' => 'YOUR_INSTANCE_ID',
-        'to' => '919876543210',
+        'to' => '{{ \App\Support\Site::samplePhone() }}',
         'message' => 'Hello from InstaMessage!',
     ]),
     CURLOPT_HTTPHEADER => [
@@ -657,7 +657,7 @@ response = requests.post(
     headers={"Authorization": "Bearer YOUR_ACCESS_TOKEN"},
     json={
         "instance_id": "YOUR_INSTANCE_ID",
-        "to": "919876543210",
+        "to": "{{ \App\Support\Site::samplePhone() }}",
         "message": "Hello from InstaMessage!",
     },
 )
@@ -677,7 +677,7 @@ client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bear
 var payload = new
 {
     instance_id = "YOUR_INSTANCE_ID",
-    to = "919876543210",
+    to = "{{ \App\Support\Site::samplePhone() }}",
     message = "Hello from InstaMessage!"
 };
 
@@ -693,7 +693,7 @@ Console.WriteLine(data);</code></pre>
 
 String body = "{"
     + "\"instance_id\":\"YOUR_INSTANCE_ID\","
-    + "\"to\":\"919876543210\","
+    + "\"to\":\"{{ \App\Support\Site::samplePhone() }}\","
     + "\"message\":\"Hello from InstaMessage!\""
     + "}";
 

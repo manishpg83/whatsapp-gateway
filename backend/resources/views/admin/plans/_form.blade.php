@@ -44,6 +44,19 @@
             </div>
             <div class="form-text">0 = free plan, no checkout involved.</div>
         </div>
+        <div class="col-md-4 {{ \App\Support\Currency::isZar() ? 'order-first' : '' }}">
+            <label for="price_zar" class="form-label">Price (ZAR/mo)</label>
+            <div class="input-group">
+                <span class="input-group-text">R</span>
+                <input type="number" min="0" step="1" class="form-control @error('price_zar') is-invalid @enderror"
+                       id="price_zar" name="price_zar" value="{{ old('price_zar', $plan->price_zar ?? '') }}" placeholder="Not set"
+                       data-preview="price_zar">
+                @error('price_zar')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+            <div class="form-text">Shown on .za sites. Blank = "Contact us" there.</div>
+        </div>
         <div class="col-md-4">
             <label for="instances" class="form-label">Instance limit</label>
             <input type="number" min="1" step="1" class="form-control @error('instances') is-invalid @enderror"

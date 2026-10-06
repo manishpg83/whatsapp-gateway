@@ -27,7 +27,7 @@ class SeoTest extends TestCase
     {
         $this->get('/')
             ->assertOk()
-            ->assertSee('<meta name="description" content="Connect your own WhatsApp number', escape: false)
+            ->assertSee('<meta name="description" content="Connect your WhatsApp number by QR code', escape: false)
             ->assertSee('<meta name="robots" content="index, follow">', escape: false)
             ->assertSee('<link rel="canonical" href="'.route('home').'">', escape: false)
             ->assertSee('<meta property="og:image" content="'.asset('images/og-image.png').'">', escape: false)

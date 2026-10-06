@@ -3,6 +3,9 @@
      script mirrors every [data-preview] input as the admin types. --}}
 @php
     $previewPrice = (int) old('price', $plan->price ?? 0);
+    // On a .za site the card shows the Rand price, like customers there see it.
+    $previewZar = \App\Support\Currency::isZar();
+    $previewPriceZar = old('price_zar', $plan->price_zar ?? '');
     $previewInstances = (int) old('instances', $plan->instances ?? 1);
     // Same tier icons as the pricing cards; new plans get a generic one.
     $previewIcon = match ($plan->slug ?? null) {
@@ -23,10 +26,14 @@
         <div class="bl-plan-name" data-pv-name>{{ old('name', $plan->name ?? '') ?: 'Plan name' }}</div>
         <p class="bl-plan-desc" data-pv-description>{{ old('description', $plan->description ?? '') ?: 'A one-line tagline' }}</p>
         <div class="bl-plan-price" data-pv-price>
-            @if ($previewPrice > 0)
-                &#8377;{{ number_format($previewPrice) }}<span>/mo</span>
-            @else
+            @if ($previewPrice <= 0)
                 Free
+            @elseif ($previewZar && $previewPriceZar === '')
+                <span class="fs-5">Contact us</span>
+            @elseif ($previewZar)
+                R{{ number_format((int) $previewPriceZar) }}<span>/mo</span>
+            @else
+                &#8377;{{ number_format($previewPrice) }}<span>/mo</span>
             @endif
         </div>
         <ul class="bl-plan-list mb-3">
@@ -39,12 +46,13 @@
         <span class="btn bl-plan-btn btn-outline-primary w-100 pe-none" aria-hidden="true">Choose plan</span>
     </div>
 
-    <p class="small text-muted mt-3 mb-0">This is how the card looks to customers on their Billing page.</p>
+    <p class="small text-muted mt-3 mb-0">This is how the card looks to customers on their Billing page{{ $previewZar ? ' on this South African site' : '' }}.</p>
 </div>
 
 <script>
 (function () {
     const card = document.querySelector('[data-pv-card]');
+    const onZar = @json($previewZar);
     const fmt = new Intl.NumberFormat('en-IN');
     const value = (key) => document.querySelector(`[data-preview="${key}"]`);
     const set = (key, text) => { card.querySelector(`[data-pv-${key}]`).textContent = text; };
@@ -54,9 +62,14 @@
         set('description', value('description').value.trim() || 'A one-line tagline');
 
         const price = Math.max(0, parseInt(value('price').value, 10) || 0);
-        card.querySelector('[data-pv-price]').innerHTML = price > 0
-            ? `&#8377;${fmt.format(price)}<span>/mo</span>`
-            : 'Free';
+        const zar = value('price_zar').value.trim();
+        card.querySelector('[data-pv-price]').innerHTML = price <= 0
+            ? 'Free'
+            : !onZar
+                ? `&#8377;${fmt.format(price)}<span>/mo</span>`
+                : zar === ''
+                    ? '<span class="fs-5">Contact us</span>'
+                    : `R${fmt.format(Math.max(0, parseInt(zar, 10) || 0))}<span>/mo</span>`;
 
         const instances = Math.max(0, parseInt(value('instances').value, 10) || 0);
         set('instances', `${instances} instance${instances === 1 ? '' : 's'}`);

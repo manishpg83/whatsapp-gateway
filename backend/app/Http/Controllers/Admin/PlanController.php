@@ -114,6 +114,8 @@ class PlanController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:500'],
             'price' => ['required', 'integer', 'min:0'],
+            // Rand price for .za sites; blank = "Contact us" there.
+            'price_zar' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'instances' => ['required', 'integer', 'min:1'],
             'messages_per_month' => ['required', 'integer', 'min:1'],
             // Always sent by the form; when missing, the plan keeps its value (0 for a new plan).

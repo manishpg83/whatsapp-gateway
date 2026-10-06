@@ -27,6 +27,12 @@
 <meta name="description" content="{{ $description }}">
 <meta name="robots" content="{{ $robots }}">
 <link rel="canonical" href="{{ $canonical }}">
+{{-- The same page on the Indian and South African sites (public pages only). --}}
+@unless (str_contains($robots, 'noindex'))
+    @foreach (\App\Support\Site::alternates() as $hreflang => $alternateUrl)
+<link rel="alternate" hreflang="{{ $hreflang }}" href="{{ $alternateUrl }}">
+    @endforeach
+@endunless
 <meta name="theme-color" content="#0b8457">
 <meta name="application-name" content="{{ $appName }}">
 <meta name="author" content="BriskBrain Technologies">
@@ -37,7 +43,7 @@
 {{-- Open Graph (WhatsApp, Facebook, LinkedIn link previews) --}}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{{ $appName }}">
-<meta property="og:locale" content="en_IN">
+<meta property="og:locale" content="{{ \App\Support\Site::locale() }}">
 <meta property="og:title" content="{{ $ogTitle }}">
 <meta property="og:description" content="{{ $description }}">
 <meta property="og:url" content="{{ $canonical }}">

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Currency;
 use Database\Factories\PlanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * fillable — they're derived/assigned explicitly in the controller
  * (see cashfreePlanId()), never taken directly from a form.
  */
-#[Fillable(['name', 'description', 'price', 'instances', 'messages_per_month', 'chatbot_entries', 'popular'])]
+#[Fillable(['name', 'description', 'price', 'price_zar', 'instances', 'messages_per_month', 'chatbot_entries', 'popular'])]
 class Plan extends Model
 {
     /** @use HasFactory<PlanFactory> */
@@ -28,6 +29,7 @@ class Plan extends Model
     {
         return [
             'price' => 'integer',
+            'price_zar' => 'integer',
             'instances' => 'integer',
             'messages_per_month' => 'integer',
             'chatbot_entries' => 'integer',
@@ -47,6 +49,28 @@ class Plan extends Model
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class, 'plan', 'slug');
+    }
+
+    /**
+     * A plan's monthly price in the visitor's currency (see Currency):
+     * `price` (INR) or `price_zar`. 0 = free everywhere. Null = no Rand
+     * price set yet — show "Contact us".
+     *
+     * @param  self|array<string, mixed>  $plan  a plan, or one as an array (planDetails())
+     */
+    public static function localPrice(self|array $plan, ?string $currency = null): ?int
+    {
+        if ($plan instanceof self) {
+            $plan = $plan->toArray();
+        }
+
+        if ((int) $plan['price'] === 0) {
+            return 0;
+        }
+
+        return ($currency ?? Currency::current()) === Currency::ZAR
+            ? (isset($plan['price_zar']) ? (int) $plan['price_zar'] : null)
+            : (int) $plan['price'];
     }
 
     /**

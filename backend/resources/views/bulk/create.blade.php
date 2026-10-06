@@ -164,7 +164,7 @@
 
                         <div data-bulk-source-panel="paste" @if ($source === 'csv') hidden @endif>
                             <textarea id="numbers" name="numbers" rows="8" @required($source !== 'csv')
-                                      placeholder="919876543210, Rahul&#10;919812345678, Priya&#10;14155550123"
+                                      placeholder="{{ \App\Support\Site::samplePhone() }}, {{ \App\Support\Site::sampleNames()[0] }}&#10;{{ \App\Support\Site::samplePhone2() }}, {{ \App\Support\Site::sampleNames()[1] }}&#10;14155550123"
                                       class="form-control font-monospace @error('numbers') is-invalid @enderror" data-bulk-numbers>{{ old('numbers') }}</textarea>
                             @error('numbers') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             <div class="form-text">

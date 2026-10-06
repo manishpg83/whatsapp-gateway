@@ -42,6 +42,10 @@
     </div>
 </div>
 
+@error('plan')
+    <div class="alert alert-warning db-in">{{ $message }} <a href="{{ route('contact') }}" class="alert-link">Contact us</a></div>
+@enderror
+
 <div class="row g-4 mb-5">
     {{-- Current plan --}}
     <div class="col-lg-5">
@@ -60,7 +64,7 @@
             <div class="bl-current-name">{{ $current['name'] }}</div>
             <div class="bl-current-price">
                 @if ($current['price'] > 0)
-                    &#8377;{{ number_format($current['price']) }}<span>/month</span>
+                    <x-plan-price :plan="$current" per="/month" />
                 @else
                     Free<span> forever</span>
                 @endif
@@ -164,11 +168,7 @@
                 <div class="bl-plan-name">{{ $plan['name'] }}</div>
                 <p class="bl-plan-desc">{{ $plan['description'] }}</p>
                 <div class="bl-plan-price">
-                    @if ($plan['price'] > 0)
-                        &#8377;{{ number_format($plan['price']) }}<span>/mo</span>
-                    @else
-                        Free
-                    @endif
+                    <x-plan-price :plan="$plan" />
                 </div>
                 <ul class="bl-plan-list">
                     <li><i class="bi bi-check-lg"></i>{{ $plan['instances'] }} instance{{ $plan['instances'] > 1 ? 's' : '' }}</li>
@@ -181,6 +181,11 @@
                 <div class="mt-auto">
                     @if ($isCurrent)
                         <button class="btn bl-plan-btn btn-outline-secondary w-100" disabled><i class="bi bi-check2 me-1"></i>Your current plan</button>
+                    @elseif ($plan['price'] > 0 && \App\Support\Currency::isZar())
+                        {{-- Online payment is through Cashfree, in INR only. --}}
+                        <a href="{{ route('contact') }}" class="btn bl-plan-btn {{ $isPopular ? 'btn-primary' : 'btn-outline-primary' }} w-100">
+                            Contact us to subscribe <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
                     @elseif ($plan['price'] > 0)
                         <button type="button" class="btn bl-plan-btn {{ $isPopular ? 'btn-primary' : 'btn-outline-primary' }} w-100"
                                 data-bs-toggle="modal" data-bs-target="#upgradeModal"

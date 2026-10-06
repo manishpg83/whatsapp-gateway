@@ -92,7 +92,7 @@
                         <span class="lp-path">/api/v1/messages/send</span>
                         <span class="lp-ok">200</span>
                     </div>
-<pre class="lp-code"><span class="k">"to"</span>: <span class="s">"919876543210"</span>,
+<pre class="lp-code"><span class="k">"to"</span>: <span class="s">"{{ \App\Support\Site::samplePhone() }}"</span>,
 <span class="k">"message"</span>: <span class="s">"Yes! It's on the way&hellip;"</span></pre>
                 </div>
 

@@ -11,6 +11,7 @@ use App\Services\MessageSender;
 use App\Services\PlanLimiter;
 use App\Services\WebhookDispatcher;
 use App\Services\WorkerClient;
+use App\Support\Site;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -299,7 +300,7 @@ class InstanceController extends Controller
         $data = $request->validate([
             'check_number' => ['required', 'regex:/^\d{7,15}$/'],
         ], [
-            'check_number.regex' => 'Digits only with country code, e.g. 919876543210.',
+            'check_number.regex' => 'Digits only with country code, e.g. '.Site::samplePhone().'.',
         ]);
 
         if ($whatsappSession->status !== 'connected') {

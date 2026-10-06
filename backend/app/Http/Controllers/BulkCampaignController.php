@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\WhatsappSession;
 use App\Services\MediaFetcher;
 use App\Services\PlanLimiter;
+use App\Support\Site;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -128,7 +129,7 @@ class BulkCampaignController extends Controller
         if ($invalid) {
             throw ValidationException::withMessages([$listField => 'These are not valid phone numbers: '
                 .implode(', ', array_slice($invalid, 0, 5)).(count($invalid) > 5 ? ' and '.(count($invalid) - 5).' more' : '')
-                .'. Use the full number with country code, digits only (e.g. 919876543210).']);
+                .'. Use the full number with country code, digits only (e.g. '.Site::samplePhone().').']);
         }
 
         if (! $recipients) {
@@ -339,7 +340,9 @@ class BulkCampaignController extends Controller
      */
     public function sampleCsv(): Response
     {
-        return response("phone,name\n919876543210,Rahul\n919812345678,Priya\n", 200, [
+        [$name1, $name2] = Site::sampleNames();
+
+        return response("phone,name\n".Site::samplePhone().",{$name1}\n".Site::samplePhone2().",{$name2}\n", 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="bulk-numbers-sample.csv"',
         ]);

@@ -1,18 +1,19 @@
 @extends('layouts.landing')
 
-@section('title', 'WhatsApp API for Developers')
+@section('title', 'WhatsApp REST API Without Business Verification')
 @section('og_title', 'WhatsApp API for Developers — Send & Receive Messages via REST API')
-@section('meta_description', 'Connect your own WhatsApp number by QR code and send & receive WhatsApp messages, media and webhooks through a simple REST API. Free plan, live in minutes, no Business API approval.')
+@section('meta_description', 'Connect your WhatsApp number by QR code and send messages, media & webhooks via REST API. Free plan, no Meta approval. Live in minutes.')
 
 @push('structured_data')
 @php
     // Structured data (schema.org) for search engines: who runs the site,
     // the site itself, and the product with its real plan prices.
-    $offers = $plans->map(fn ($plan) => [
+    // In the visitor's currency; plans with no price there are left out.
+    $offers = $plans->filter(fn ($plan) => \App\Models\Plan::localPrice($plan) !== null)->map(fn ($plan) => [
         '@type' => 'Offer',
         'name' => $plan->name,
-        'price' => (string) $plan->price,
-        'priceCurrency' => 'INR',
+        'price' => (string) \App\Models\Plan::localPrice($plan),
+        'priceCurrency' => \App\Support\Currency::current(),
         'description' => $plan->instances.' '.Str::plural('instance', $plan->instances).', '.number_format($plan->messages_per_month).' messages/month',
         'url' => route('home').'#pricing',
     ])->values()->all();
@@ -32,7 +33,7 @@
                     'contactType' => 'customer support',
                     'email' => 'briskbraintechnologies@gmail.com',
                     'url' => route('contact'),
-                    'areaServed' => 'IN',
+                    'areaServed' => \App\Support\Site::country(),
                     'availableLanguage' => ['English'],
                 ],
             ],
@@ -41,7 +42,7 @@
                 '@id' => route('home').'#website',
                 'name' => config('app.name'),
                 'url' => route('home'),
-                'inLanguage' => 'en-IN',
+                'inLanguage' => \App\Support\Site::language(),
                 'publisher' => ['@id' => route('home').'#organization'],
             ],
             [
@@ -180,7 +181,7 @@
                             <span class="lp-path">/api/v1/messages/send</span>
                             <span class="lp-ok">200</span>
                         </div>
-<pre class="lp-code"><span class="k">"to"</span>: <span class="s">"919876543210"</span>,
+<pre class="lp-code"><span class="k">"to"</span>: <span class="s">"{{ \App\Support\Site::samplePhone() }}"</span>,
 <span class="k">"message"</span>: <span class="s">"Yes! It's on the way&hellip;"</span></pre>
                     </div>
 
@@ -306,7 +307,7 @@
                         <div class="lp-laptop-screen">
                             <div class="lp-app">
                                 <div class="lp-app-side">
-                                    <span class="lp-app-logo"><img src="{{ asset('images/brand/icon-192.png') }}" alt=""></span>
+                                    <span class="lp-app-logo"><img src="{{ asset('images/brand/icon-192.png') }}" alt="{{ config('app.name') }} logo"></span>
                                     <span class="active"><i class="bi bi-house-door"></i></span>
                                     <span><i class="bi bi-hdd-stack"></i></span>
                                     <span><i class="bi bi-chat-left-text"></i></span>
@@ -379,11 +380,7 @@
                         <div class="lp-price-name">{{ $plan['name'] }}</div>
                         <p class="lp-price-desc">{{ $plan['description'] }}</p>
                         <div class="lp-price-amount">
-                            @if ($plan['price'] > 0)
-                                &#8377;{{ number_format($plan['price']) }}<span>/mo</span>
-                            @else
-                                Free
-                            @endif
+                            <x-plan-price :plan="$plan" />
                         </div>
                         <ul class="lp-price-list">
                             <li><i class="bi bi-check-lg"></i>{{ $plan['instances'] }} instance{{ $plan['instances'] > 1 ? 's' : '' }}</li>

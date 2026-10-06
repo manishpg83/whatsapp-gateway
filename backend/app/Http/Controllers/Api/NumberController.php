@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\WhatsappSession;
 use App\Services\WorkerClient;
+use App\Support\Site;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -31,7 +32,7 @@ class NumberController extends Controller
             'numbers.*' => ['required', 'string', 'regex:/^\d{7,15}$/'],
         ], [
             'numbers.max' => 'You can check at most '.self::MAX_NUMBERS.' numbers per request.',
-            'numbers.*.regex' => 'Each number must be digits only with country code, e.g. 919876543210.',
+            'numbers.*.regex' => 'Each number must be digits only with country code, e.g. '.Site::samplePhone().'.',
         ]);
 
         // Same defence-in-depth as sending (CLAUDE.md §5).
