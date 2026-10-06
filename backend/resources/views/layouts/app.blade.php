@@ -99,6 +99,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link sidebar-link {{ request()->routeIs('chatbot.*') ? 'active' : '' }}" href="{{ route('chatbot.index') }}">
+                                <i class="bi bi-robot me-2"></i>Chatbot
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link sidebar-link {{ request()->routeIs('billing.*') ? 'active' : '' }}" href="{{ route('billing.index') }}">
                                 <i class="bi bi-credit-card me-2"></i>Billing
                             </a>

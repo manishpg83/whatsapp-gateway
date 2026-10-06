@@ -24,6 +24,7 @@ use Illuminate\Support\Str;
     'webhook_url',
     'webhook_secret',
     'fallback_enabled',
+    'chatbot_enabled',
     'cloud_phone_number_id',
     'cloud_access_token',
 ])]
@@ -51,6 +52,7 @@ class WhatsappSession extends Model
             'qr_updated_at' => 'datetime',
             'connected_at' => 'datetime',
             'fallback_enabled' => 'boolean',
+            'chatbot_enabled' => 'boolean',
             // The owner's Meta access token — encrypted at rest with APP_KEY.
             'cloud_access_token' => 'encrypted',
         ];
@@ -125,6 +127,16 @@ class WhatsappSession extends Model
     public function deleteMediaFiles(): void
     {
         Storage::disk('whatsapp_media')->deleteDirectory($this->instance_id);
+    }
+
+    /**
+     * Keyword → answer entries, oldest first (the order they're matched in).
+     *
+     * @return HasMany<ChatbotRule, $this>
+     */
+    public function chatbotRules(): HasMany
+    {
+        return $this->hasMany(ChatbotRule::class)->orderBy('id');
     }
 
     /**

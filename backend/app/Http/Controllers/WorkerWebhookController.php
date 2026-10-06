@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendChatbotReply;
 use App\Models\Message;
 use App\Models\WhatsappSession;
 use App\Notifications\InstanceDisconnected;
@@ -123,6 +124,9 @@ class WorkerWebhookController extends Controller
         $data = $request->validate([
             'instance_id' => ['required', 'uuid'],
             'from' => ['required', 'string'],
+            // true = `from` is a LID (private id), not a phone number. Older
+            // workers didn't send it, so a missing flag counts as "maybe a LID".
+            'from_is_lid' => ['sometimes', 'boolean'],
             // Older workers didn't send a type — they only ever sent text.
             'type' => ['sometimes', 'in:'.implode(',', array_keys(Message::TYPES))],
             // Text, caption or summary. May be empty (e.g. a photo with no caption).
@@ -167,6 +171,12 @@ class WorkerWebhookController extends Controller
             'media_file_name' => $media['file_name'] ?? null,
             'media_size' => $media['size'] ?? null,
         ]);
+
+        // Chatbot: matched and sent from the queue, so this callback stays
+        // fast. Never to a LID — it isn't a phone number we can reply to.
+        if ($session->chatbot_enabled && ! ($data['from_is_lid'] ?? true)) {
+            SendChatbotReply::dispatch($message->id);
+        }
 
         $this->webhookDispatcher->dispatch($session, [
             'event' => 'message.received',

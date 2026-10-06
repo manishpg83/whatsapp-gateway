@@ -19,6 +19,7 @@ use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BulkCampaignController;
 use App\Http\Controllers\BulkTemplateController;
 use App\Http\Controllers\CashfreeWebhookController;
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
@@ -133,6 +134,15 @@ Route::middleware(['auth', 'not_suspended', 'verified'])->group(function () {
     Route::post('/bulk/{campaign}/pause', [BulkCampaignController::class, 'pause'])->name('bulk.pause');
     Route::post('/bulk/{campaign}/resume', [BulkCampaignController::class, 'resume'])->name('bulk.resume');
     Route::post('/bulk/{campaign}/cancel', [BulkCampaignController::class, 'cancel'])->name('bulk.cancel');
+
+    // Chatbot — keyword → answer entries per instance ({instance} is the public UUID).
+    Route::get('/chatbot', [ChatbotController::class, 'index'])->name('chatbot.index');
+    Route::post('/chatbot/{instance}/rules', [ChatbotController::class, 'store'])->name('chatbot.rules.store');
+    Route::post('/chatbot/{instance}/toggle', [ChatbotController::class, 'toggle'])->name('chatbot.toggle');
+    Route::post('/chatbot/{instance}/test', [ChatbotController::class, 'test'])->name('chatbot.test');
+    Route::get('/chatbot/{instance}/rules/{rule}/edit', [ChatbotController::class, 'edit'])->whereNumber('rule')->name('chatbot.rules.edit');
+    Route::put('/chatbot/{instance}/rules/{rule}', [ChatbotController::class, 'update'])->whereNumber('rule')->name('chatbot.rules.update');
+    Route::delete('/chatbot/{instance}/rules/{rule}', [ChatbotController::class, 'destroy'])->whereNumber('rule')->name('chatbot.rules.destroy');
 
     Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
     Route::post('/billing/subscribe/{plan}', [BillingController::class, 'subscribe'])->name('billing.subscribe');

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\URL;
 #[Fillable([
     'whatsapp_session_id',
     'api_token_id',
+    'chatbot_rule_id',
     'direction',
     'type',
     'to_number',

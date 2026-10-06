@@ -38,6 +38,10 @@
     });
 @endphp
 
+@if ($message->chatbot_rule_id)
+    <span class="badge rounded-pill bg-wa-light text-primary border me-1 align-middle" title="Sent automatically by the chatbot"><i class="bi bi-robot me-1"></i>Bot</span>
+@endif
+
 @if ($message->type === 'text')
     <span @class(['d-inline-block text-truncate align-middle' => $compact]) style="{{ $compact ? 'max-width: 320px;' : 'white-space: pre-wrap;' }}" title="{{ $compact ? $message->body : '' }}">{{ $message->body }}</span>
 
