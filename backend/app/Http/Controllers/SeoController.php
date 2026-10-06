@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Guides;
 use Illuminate\Http\Response;
 
 /**
@@ -44,12 +45,18 @@ class SeoController extends Controller
             [route('register'), null, 'monthly', '0.8'],
             [route('pricing'), null, 'monthly', '0.9'],
             [route('docs.index'), null, 'monthly', '0.9'],
+            [route('guides.index'), Guides::UPDATED, 'monthly', '0.8'],
             [route('about'), null, 'yearly', '0.5'],
             [route('contact'), null, 'monthly', '0.6'],
             [route('login'), null, 'monthly', '0.5'],
             [route('terms'), TermsController::LAST_UPDATED, 'yearly', '0.3'],
             [route('privacy'), PrivacyController::LAST_UPDATED, 'yearly', '0.3'],
         ];
+
+        // Every tutorial under /guides.
+        foreach (array_keys(Guides::all()) as $slug) {
+            $pages[] = [route('guides.show', $slug), Guides::UPDATED, 'monthly', '0.7'];
+        }
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
         $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";

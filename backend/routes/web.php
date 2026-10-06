@@ -22,6 +22,7 @@ use App\Http\Controllers\CashfreeWebhookController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GuideController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InstanceController;
 use App\Http\Controllers\InternalSessionsController;
@@ -46,6 +47,9 @@ Route::get('/privacy', PrivacyController::class)->name('privacy');
 Route::get('/docs', ApiDocsController::class)->name('docs.index');
 Route::get('/pricing', PricingController::class)->name('pricing');
 Route::view('/about', 'about.index')->name('about');
+// Tutorials — the list is in App\Support\Guides.
+Route::get('/guides', [GuideController::class, 'index'])->name('guides.index');
+Route::get('/guides/{slug}', [GuideController::class, 'show'])->where('slug', '[a-z0-9-]+')->name('guides.show');
 
 // For search engines. public/robots.txt was removed so this route (which
 // knows the real domain for the Sitemap line) is what gets served.

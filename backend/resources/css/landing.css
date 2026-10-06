@@ -2185,3 +2185,23 @@ html:has(body.landing) {
         font-size: 0.85rem;
     }
 }
+
+/* /guides: tutorial cards and article text. */
+.gd-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gd-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.75rem 1.5rem rgba(16, 35, 28, 0.08) !important;
+}
+
+.gd-article {
+    font-size: 1.02rem;
+    line-height: 1.7;
+}
+
+.gd-article .dc-code pre {
+    font-size: 0.85rem;
+}
+

@@ -202,10 +202,10 @@
                         <td><code>to</code></td>
                         <td>string</td>
                         <td>
-                            Recipient's phone number, digits only with country code (e.g. <code>919866548992</code>), 7-15 digits.
+                            Recipient's phone number, digits only with country code (e.g. <code>{{ \App\Support\Site::samplePhone() }}</code>), 7-15 digits.
                             <div class="small text-muted mt-1">
                                 <i class="bi bi-info-circle me-1"></i>Country code first, then the number: no <code>+</code>, no spaces, no dashes, no leading <code>0</code>.
-                                For example India <code>+91 98665 48992</code> &rarr; <code>919866548992</code>, USA <code>+1 (249) 989-3170</code> &rarr; <code>12499893170</code>.
+                                For example @if (\App\Support\Site::isSouthAfrica())South Africa <code>+27 82 123 4567</code> &rarr; <code>27821234567</code>@else India <code>+91 98765 43210</code> &rarr; <code>919876543210</code>@endif, USA <code>+1 (249) 989-3170</code> &rarr; <code>12499893170</code>.
                             </div>
                         </td>
                     </tr>

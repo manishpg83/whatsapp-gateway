@@ -53,6 +53,7 @@
                     <li class="mb-1"><a href="{{ route('about') }}" class="link-light text-decoration-none">About us</a></li>
                     <li class="mb-1"><a href="{{ route('pricing') }}" class="link-light text-decoration-none">Pricing</a></li>
                     <li class="mb-1"><a href="{{ route('docs.index') }}" class="link-light text-decoration-none">API Docs</a></li>
+                    <li class="mb-1"><a href="{{ route('guides.index') }}" class="link-light text-decoration-none">Guides</a></li>
                     <li class="mb-1"><a href="{{ route('contact') }}" class="link-light text-decoration-none">Contact us</a></li>
                     <li class="mb-1"><a href="{{ route('terms') }}" class="link-light text-decoration-none">Terms of Service</a></li>
                     <li><a href="{{ route('privacy') }}" class="link-light text-decoration-none">Privacy Policy</a></li>
