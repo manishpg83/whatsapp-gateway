@@ -118,7 +118,8 @@ class EmailVerificationTest extends TestCase
     {
         $user = User::factory()->unverified()->create();
 
-        foreach (['dashboard', 'instances.index', 'messages.index', 'billing.index', 'docs.index', 'api-logs.index', 'account.edit'] as $route) {
+        // (The API docs are public, so they're not in this list.)
+        foreach (['dashboard', 'instances.index', 'messages.index', 'billing.index', 'api-logs.index', 'account.edit'] as $route) {
             $this->actingAs($user)->get(route($route))->assertRedirect(route('verification.notice'));
         }
     }

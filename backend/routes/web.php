@@ -41,6 +41,8 @@ Route::get('/', HomeController::class)->name('home');
 // register page before an account exists, and still read afterward.
 Route::get('/terms', TermsController::class)->name('terms');
 Route::get('/privacy', PrivacyController::class)->name('privacy');
+// Public so developers (and search engines) can read it before signing up.
+Route::get('/docs', ApiDocsController::class)->name('docs.index');
 
 // For search engines. public/robots.txt was removed so this route (which
 // knows the real domain for the Sitemap line) is what gets served.
@@ -150,8 +152,6 @@ Route::middleware(['auth', 'not_suspended', 'verified'])->group(function () {
     Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
     Route::post('/billing/subscribe/{plan}', [BillingController::class, 'subscribe'])->name('billing.subscribe');
     Route::post('/billing/cancel', [BillingController::class, 'cancel'])->name('billing.cancel');
-
-    Route::get('/docs', ApiDocsController::class)->name('docs.index');
 
     // A standalone module (not nested under one instance) — one flat log
     // across every instance the user owns, optionally filtered to one.

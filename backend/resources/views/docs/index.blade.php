@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
-@section('title', 'API Docs')
+@section('title', 'WhatsApp API Documentation')
+@section('meta_description', 'Send and receive WhatsApp messages with a REST API: endpoints, webhooks and copy-paste code in curl, JavaScript, PHP, Python, C# and Java.')
+{{-- Public: readable without an account, and by search engines. --}}
+@section('robots', 'index, follow')
 
 @section('content')
 @php
@@ -56,7 +59,11 @@
             </div>
 
             <div class="d-flex flex-wrap gap-2 mt-4">
-                <a href="{{ route('instances.index') }}" class="btn btn-light fw-semibold dc-btn-lift"><i class="bi bi-key me-1"></i>Get your token</a>
+                @auth
+                    <a href="{{ route('instances.index') }}" class="btn btn-light fw-semibold dc-btn-lift"><i class="bi bi-key me-1"></i>Get your token</a>
+                @else
+                    <a href="{{ route('register') }}" class="btn btn-light fw-semibold dc-btn-lift"><i class="bi bi-person-plus me-1"></i>Create a free account</a>
+                @endauth
                 <a href="#endpoint-send" class="btn btn-outline-light fw-semibold dc-btn-lift">Send your first message <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
         </header>
@@ -69,7 +76,12 @@
                     <div class="dc-step">
                         <span class="dc-step-num">1</span>
                         <p class="mb-0">
-                            <a href="{{ route('instances.create') }}">Create an instance</a> and scan its QR code with
+                            @auth
+                                <a href="{{ route('instances.create') }}">Create an instance</a>
+                            @else
+                                <a href="{{ route('register') }}">Sign up free</a>, create an instance,
+                            @endauth
+                            and scan its QR code with
                             WhatsApp on your phone until its status shows <span class="badge text-bg-success">Connected</span>.
                         </p>
                     </div>
@@ -291,7 +303,7 @@
                     <tr>
                         <td><span class="dc-http dc-http-warn">422</span></td>
                         <td><code>{"success": false, "error": "You've reached your plan's monthly message limit. Upgrade to send more."}</code></td>
-                        <td>Your <a href="{{ route('billing.index') }}">plan's</a> monthly message quota is used up.</td>
+                        <td>Your <a href="{{ auth()->check() ? route('billing.index') : route('home').'#pricing' }}">plan's</a> monthly message quota is used up.</td>
                     </tr>
                     <tr>
                         <td><span class="dc-http dc-http-warn">422</span></td>

@@ -26,6 +26,7 @@
                 <li class="nav-item"><a class="nav-link" href="{{ $anchor('how-it-works') }}">How it works</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ $anchor('pricing') }}">Pricing</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ $anchor('faq') }}">FAQ</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('docs.index') ? 'active' : '' }}" href="{{ route('docs.index') }}">API Docs</a></li>
             </ul>
             <div class="d-flex flex-column flex-lg-row gap-2 pt-3 pt-lg-0">
                 @if ($user && $user->hasVerifiedEmail())
