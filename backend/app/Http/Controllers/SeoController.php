@@ -44,6 +44,7 @@ class SeoController extends Controller
             [route('register'), null, 'monthly', '0.8'],
             [route('pricing'), null, 'monthly', '0.9'],
             [route('docs.index'), null, 'monthly', '0.9'],
+            [route('about'), null, 'yearly', '0.5'],
             [route('contact'), null, 'monthly', '0.6'],
             [route('login'), null, 'monthly', '0.5'],
             [route('terms'), TermsController::LAST_UPDATED, 'yearly', '0.3'],

@@ -45,6 +45,7 @@ Route::get('/privacy', PrivacyController::class)->name('privacy');
 // Public so developers (and search engines) can read it before signing up.
 Route::get('/docs', ApiDocsController::class)->name('docs.index');
 Route::get('/pricing', PricingController::class)->name('pricing');
+Route::view('/about', 'about.index')->name('about');
 
 // For search engines. public/robots.txt was removed so this route (which
 // knows the real domain for the Sitemap line) is what gets served.
