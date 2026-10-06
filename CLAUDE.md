@@ -19,8 +19,10 @@
 7. Later: receive incoming messages and get them via **webhooks**.
 
 **Integration approach:** unofficial WhatsApp Web / multi-device session via a Node.js
-WhatsApp-Web-compatible library (**Baileys**). We do **NOT** use the Meta WhatsApp Business
-Cloud API.
+WhatsApp-Web-compatible library (**Baileys**). The Meta WhatsApp Business Cloud API is used
+**only** as an optional per-instance **fallback** for text messages (decided 2026-10-06), with
+each user's **own** Meta credentials (phone number ID + access token, stored encrypted). It is
+never the main sending path.
 
 **Hard boundary — non-negotiable:** This is an unofficial device-session integration. We do
 **not** build, suggest, or install anything designed to bypass WhatsApp security, CAPTCHA,
@@ -83,6 +85,8 @@ WhatsApp Web / device session
 - **Node worker owns:** WhatsApp sessions, QR generation/refresh, connection state, auth
   state, sending/receiving messages, reconnects, WhatsApp-specific events.
 - **Laravel must NEVER talk to WhatsApp directly.** All WhatsApp interaction goes through the worker.
+  The one exception is the official Cloud API fallback (`App\Services\CloudApiClient`), which
+  Laravel calls over HTTPS, from `MessageSender` only.
 
 ---
 
@@ -334,7 +338,7 @@ npm test        # vitest
 
 ## 15. Never do (quick reference)
 
-- ❌ Use Meta WhatsApp Business Cloud API.
+- ❌ Use Meta WhatsApp Business Cloud API as the main sending path (it is an optional text-only fallback only).
 - ❌ Build anything that bypasses WhatsApp/platform enforcement.
 - ❌ Let Laravel talk to WhatsApp directly.
 - ❌ Use PostgreSQL or Tailwind.

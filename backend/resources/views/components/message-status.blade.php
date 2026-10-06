@@ -9,3 +9,11 @@
       @elseif ($message->delivered_at) title="Delivered {{ $message->delivered_at->format('Y-m-d H:i') }}" @endif>
     <i class="bi {{ $icon }}"></i> {{ $label }}
 </span>
+{{-- Plus the Cloud API fallback result, when one was attempted. --}}
+@if ($fallback = $message->fallbackBadge())
+    @php([$fbColor, $fbLabel, $fbIcon] = $fallback)
+    <span class="badge rounded-pill bg-{{ $fbColor }}-subtle text-{{ $fbColor }}-emphasis border border-{{ $fbColor }}-subtle"
+          @if ($message->fallback_error) title="{{ \Illuminate\Support\Str::limit($message->fallback_error, 200) }}" @endif>
+        <i class="bi {{ $fbIcon }}"></i> {{ $fbLabel }}
+    </span>
+@endif

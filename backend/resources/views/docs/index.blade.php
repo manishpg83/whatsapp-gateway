@@ -265,8 +265,13 @@
                 <tbody>
                     <tr>
                         <td><span class="dc-http dc-http-ok">200</span></td>
-                        <td><code>{"success": true, "message_id": "..."}</code></td>
-                        <td>Message sent.</td>
+                        <td><code>{"success": true, "message_id": "...", "sent_via": "device", "fallback_status": null}</code></td>
+                        <td>Message sent from your linked number.</td>
+                    </tr>
+                    <tr>
+                        <td><span class="dc-http dc-http-ok">200</span></td>
+                        <td><code>{"success": true, "message_id": "wamid...", "sent_via": "cloud_api", "fallback_status": "sent"}</code></td>
+                        <td>Your linked number couldn't send it, so it was sent through your <a href="#cloud-fallback">Cloud API fallback</a>.</td>
                     </tr>
                     <tr>
                         <td><span class="dc-http dc-http-bad">401</span></td>
@@ -281,7 +286,7 @@
                     <tr>
                         <td><span class="dc-http dc-http-warn">422</span></td>
                         <td><code>{"success": false, "error": "Instance is not connected"}</code></td>
-                        <td>The instance isn't currently connected to WhatsApp.</td>
+                        <td>The instance isn't currently connected to WhatsApp (and no Cloud API fallback is set up for this message).</td>
                     </tr>
                     <tr>
                         <td><span class="dc-http dc-http-warn">422</span></td>
@@ -298,11 +303,23 @@
                     </tr>
                     <tr>
                         <td><span class="dc-http dc-http-err">502</span></td>
-                        <td><code>{"success": false, "error": "Could not send message"}</code></td>
-                        <td>The message could not be delivered (e.g. invalid number).</td>
+                        <td><code>{"success": false, "error": "Could not send message", "fallback_status": null}</code></td>
+                        <td>
+                            The message could not be delivered (e.g. invalid number). <code>fallback_status</code> is
+                            <code>"failed"</code> if the Cloud API fallback was tried and failed too, otherwise <code>null</code>.
+                        </td>
                     </tr>
                 </tbody>
             </table>
+
+            <h3 class="dc-h3" id="cloud-fallback">Optional: Cloud API fallback</h3>
+            <p>
+                On your instance page you can add your own WhatsApp Business <strong>Cloud API</strong> phone number ID and
+                access token. Then, if a <strong>text</strong> message can't be sent from your linked number (including while the
+                instance is disconnected), it is retried through the Cloud API. Fallback messages come from your Cloud API
+                business number, and Meta bills them to your Meta account. Meta only accepts free-form text to people who messaged
+                that business number in the last 24 hours; other fallback sends end up as <code>"fallback_status": "failed"</code>.
+            </p>
 
             <p class="dc-limit-note">
                 <i class="bi bi-speedometer2"></i>Rate limit: 30 requests per minute per access token.
@@ -393,7 +410,7 @@
                         <li><span class="dc-sv">sent</span>handed over to WhatsApp successfully (✓).</li>
                         <li><span class="dc-sv">delivered</span>reached the recipient's phone (✓✓). <code>delivered_at</code> is set.</li>
                         <li><span class="dc-sv">read</span>the recipient opened it (blue ✓✓). <code>read_at</code> is set.</li>
-                        <li><span class="dc-sv">failed</span>could not be sent.</li>
+                        <li><span class="dc-sv">failed</span>could not be sent from your linked number. If <code>fallback_status</code> is <code>"sent"</code>, it went out through your Cloud API fallback instead (<code>sent_via</code> is <code>"cloud_api"</code>).</li>
                     </ul>
                     <p class="small text-muted mb-0">
                         <code>read</code> only appears if the recipient has read receipts turned on in WhatsApp.
@@ -414,6 +431,8 @@
     "type": "text",
     "to": "919876543210",
     "status": "read",
+    "sent_via": "device",
+    "fallback_status": null,
     "delivered_at": "2026-09-24T10:15:05+00:00",
     "read_at": "2026-09-24T10:17:41+00:00",
     "created_at": "2026-09-24T10:15:03+00:00",

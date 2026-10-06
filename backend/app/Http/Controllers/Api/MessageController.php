@@ -64,7 +64,11 @@ class MessageController extends Controller
             ], 422);
         }
 
-        if ($whatsappSession->status !== 'connected') {
+        // A disconnected instance can still send text through the Cloud API
+        // fallback (MessageSender), if the owner has set one up.
+        $canFallback = $type === 'text' && $whatsappSession->canUseFallback();
+
+        if ($whatsappSession->status !== 'connected' && ! $canFallback) {
             return response()->json(['success' => false, 'error' => 'Instance is not connected'], 422);
         }
 
@@ -87,17 +91,35 @@ class MessageController extends Controller
             }
         }
 
-        $message = $sender->send($whatsappSession, $data['to'], $body, $apiToken, $type, $media);
+        $message = $sender->send($whatsappSession, $data['to'], $body, $apiToken, $type, $media, allowFallback: true);
 
         // Tells LogRejectedApiRequests this call is already on API Logs as
         // a message row (even if the worker then failed to send it).
         $request->attributes->set('api_message_created', true);
 
-        if ($message->status === 'failed') {
-            return response()->json(['success' => false, 'error' => 'Could not send message'], 502);
+        if ($message->fallback_status === 'sent') {
+            return response()->json([
+                'success' => true,
+                'message_id' => $message->fallback_message_id,
+                'sent_via' => 'cloud_api',
+                'fallback_status' => 'sent',
+            ]);
         }
 
-        return response()->json(['success' => true, 'message_id' => $message->whatsapp_message_id]);
+        if ($message->status === 'failed') {
+            return response()->json([
+                'success' => false,
+                'error' => 'Could not send message',
+                'fallback_status' => $message->fallback_status,
+            ], 502);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message_id' => $message->whatsapp_message_id,
+            'sent_via' => 'device',
+            'fallback_status' => null,
+        ]);
     }
 
     /**
@@ -114,7 +136,9 @@ class MessageController extends Controller
 
         $message = $whatsappSession->messages()
             ->where('direction', 'outgoing')
-            ->where('whatsapp_message_id', $messageId)
+            // The id send() returned is the Cloud API one when the fallback sent it.
+            ->where(fn ($query) => $query->where('whatsapp_message_id', $messageId)
+                ->orWhere('fallback_message_id', $messageId))
             ->first();
 
         if (! $message) {
@@ -124,12 +148,14 @@ class MessageController extends Controller
         return response()->json([
             'success' => true,
             'message' => [
-                'message_id' => $message->whatsapp_message_id,
+                'message_id' => $message->fallback_message_id ?? $message->whatsapp_message_id,
                 'instance_id' => $whatsappSession->instance_id,
                 'direction' => $message->direction,
                 'type' => $message->type,
                 'to' => $message->to_number,
                 'status' => $message->status,
+                'sent_via' => $message->fallback_status === 'sent' ? 'cloud_api' : 'device',
+                'fallback_status' => $message->fallback_status,
                 'delivered_at' => $message->delivered_at?->toIso8601String(),
                 'read_at' => $message->read_at?->toIso8601String(),
                 'created_at' => $message->created_at->toIso8601String(),

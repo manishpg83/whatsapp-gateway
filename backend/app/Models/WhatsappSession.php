@@ -23,6 +23,9 @@ use Illuminate\Support\Str;
     'last_disconnect_reason',
     'webhook_url',
     'webhook_secret',
+    'fallback_enabled',
+    'cloud_phone_number_id',
+    'cloud_access_token',
 ])]
 class WhatsappSession extends Model
 {
@@ -47,8 +50,18 @@ class WhatsappSession extends Model
         return [
             'qr_updated_at' => 'datetime',
             'connected_at' => 'datetime',
+            'fallback_enabled' => 'boolean',
+            // The owner's Meta access token — encrypted at rest with APP_KEY.
+            'cloud_access_token' => 'encrypted',
         ];
     }
+
+    /**
+     * Never include the Meta access token if this model is ever serialised.
+     *
+     * @var list<string>
+     */
+    protected $hidden = ['cloud_access_token'];
 
     protected static function booted(): void
     {
@@ -91,6 +104,16 @@ class WhatsappSession extends Model
     {
         return in_array($this->status, self::WAITING_STATUSES, true)
             && $this->updated_at->lt(now()->subMinutes(self::STUCK_AFTER_MINUTES));
+    }
+
+    /**
+     * The Cloud API fallback is on AND has everything it needs to send.
+     */
+    public function canUseFallback(): bool
+    {
+        return $this->fallback_enabled
+            && $this->cloud_phone_number_id
+            && $this->cloud_access_token;
     }
 
     /**

@@ -106,6 +106,8 @@ Route::middleware(['auth', 'not_suspended', 'verified'])->group(function () {
         ->middleware('throttle:webhook-test')
         ->name('instances.webhook.test');
 
+    Route::post('/instances/{instance}/fallback', [InstanceController::class, 'updateFallback'])->name('instances.fallback.update');
+
     Route::post('/instances/{instance}/send-test-message', [InstanceController::class, 'sendTestMessage'])
         ->middleware('throttle:messages')
         ->name('instances.send-test-message');

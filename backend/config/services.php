@@ -41,4 +41,11 @@ return [
         'env' => env('CASHFREE_ENV', 'sandbox'),
     ],
 
+    // Meta WhatsApp Cloud API — optional per-instance fallback only. Each
+    // user enters their own phone number ID + token on the instance page;
+    // only the Graph API version is set here.
+    'whatsapp_cloud' => [
+        'graph_version' => env('WHATSAPP_CLOUD_GRAPH_VERSION', 'v26.0'),
+    ],
+
 ];

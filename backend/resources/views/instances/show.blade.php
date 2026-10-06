@@ -27,6 +27,7 @@
         'send-test' => $isConnected ? ['bi-send', 'Test message'] : null,
         'credentials' => ['bi-key', 'API credentials'],
         'webhook' => ['bi-diagram-3', 'Webhook'],
+        'fallback' => ['bi-cloud-arrow-up', 'Fallback'],
         'recent-messages' => ['bi-chat-left-text', 'Messages'],
         'connection-history' => ['bi-clock-history', 'History'],
     ]);
@@ -580,8 +581,80 @@
             </div>
         </div>
 
+        {{-- Cloud API fallback --}}
+        <div class="card shadow-sm ish-section db-in mb-4" id="fallback" style="--i: 7;">
+            <div class="card-body p-4">
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+                    <span class="section-icon" style="background-color: var(--wa-info-light); color: var(--wa-info);"><i class="bi bi-cloud-arrow-up"></i></span>
+                    <div class="flex-grow-1">
+                        <h2 class="h5 mb-0">Cloud API fallback <span class="badge text-bg-light border fw-normal small">Optional</span></h2>
+                        <div class="text-muted small">If this device can't send a text message, retry it through your own WhatsApp Business Cloud API number (Optional).</div>
+                    </div>
+                    @if ($instance->canUseFallback())
+                        <span class="badge rounded-pill bg-wa-light text-primary border px-3 py-2"><i class="bi bi-check-circle me-1"></i>Fallback is on</span>
+                    @elseif ($instance->cloud_phone_number_id)
+                        <span class="badge rounded-pill text-bg-light border px-3 py-2"><i class="bi bi-pause-circle me-1"></i>Fallback is off</span>
+                    @endif
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-lg-7">
+                        <form method="POST" action="{{ route('instances.fallback.update', $instance) }}">
+                            @csrf
+                            <div class="mb-3">
+                                <label for="cloud-phone-number-id" class="form-label small fw-semibold">Phone number ID</label>
+                                <input type="text" inputmode="numeric" class="form-control font-monospace @error('cloud_phone_number_id') is-invalid @enderror"
+                                       id="cloud-phone-number-id" name="cloud_phone_number_id" placeholder="e.g. 106540352242922"
+                                       value="{{ old('cloud_phone_number_id', $instance->cloud_phone_number_id) }}">
+                                @error('cloud_phone_number_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="mb-3">
+                                <label for="cloud-access-token" class="form-label small fw-semibold">Access token</label>
+                                <input type="password" autocomplete="off" class="form-control font-monospace @error('cloud_access_token') is-invalid @enderror"
+                                       id="cloud-access-token" name="cloud_access_token"
+                                       placeholder="{{ $instance->cloud_access_token ? '•••••••• saved — leave blank to keep it' : 'Your Meta permanent access token' }}">
+                                @error('cloud_access_token')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <div class="form-text">Stored encrypted and never shown again.</div>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input type="hidden" name="fallback_enabled" value="0">
+                                <input class="form-check-input" type="checkbox" role="switch" id="fallback-enabled" name="fallback_enabled" value="1"
+                                       @checked(old('fallback_enabled', $instance->fallback_enabled))>
+                                <label class="form-check-label" for="fallback-enabled">Use the Cloud API when this device can't send</label>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="submit" class="btn btn-primary">Save</button>
+                                @if ($instance->cloud_phone_number_id)
+                                    <button type="submit" name="remove" value="1" class="btn btn-outline-danger"
+                                            onclick="return confirm('Remove the Cloud API fallback settings?');">
+                                        <i class="bi bi-trash me-1"></i>Remove
+                                    </button>
+                                @endif
+                            </div>
+                        </form>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="bg-light rounded p-3 small">
+                            <div class="fw-semibold mb-2"><i class="bi bi-info-circle me-1"></i>Good to know</div>
+                            <ul class="mb-0 ps-3">
+                                <li>Uses <strong>your own</strong> Meta account. Meta bills you for these messages.</li>
+                                <li>Fallback messages come from your Cloud API business number, <strong>not</strong> this linked number.</li>
+                                <li>Text messages only. Meta accepts free-form text only to people who messaged your business number in the <strong>last 24 hours</strong>; other sends show as "Cloud API failed".</li>
+                                <li>Applies to API sends and test messages, also while this instance is disconnected. Bulk campaigns don't use it.</li>
+                                <li>Find both values in Meta for Developers → your app → WhatsApp → API Setup.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Recent messages --}}
-        <div class="card shadow-sm ish-section db-in" id="recent-messages" style="--i: 7;">
+        <div class="card shadow-sm ish-section db-in" id="recent-messages" style="--i: 8;">
             <div class="card-body p-4 pb-2">
                 <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
                     <span class="section-icon bg-wa-light text-primary"><i class="bi bi-chat-left-text"></i></span>

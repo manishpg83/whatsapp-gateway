@@ -158,6 +158,46 @@ class InstanceController extends Controller
     }
 
     /**
+     * Saves the optional Meta Cloud API fallback (the owner's OWN Meta
+     * phone number ID + access token). The token field is write-only: left
+     * blank it keeps the saved token, and it is never shown back. The
+     * "Remove" button (`remove=1`) clears everything.
+     */
+    public function updateFallback(Request $request, string $instance): RedirectResponse
+    {
+        $whatsappSession = $this->findOwnedInstance($request, $instance);
+        $back = redirect()->to(route('instances.show', $whatsappSession).'#fallback');
+
+        if ($request->boolean('remove')) {
+            $whatsappSession->update([
+                'fallback_enabled' => false,
+                'cloud_phone_number_id' => null,
+                'cloud_access_token' => null,
+            ]);
+
+            return $back->with('status', 'Cloud API fallback removed.');
+        }
+
+        $hasSavedToken = (bool) $whatsappSession->cloud_access_token;
+
+        $data = $request->validate([
+            'fallback_enabled' => ['boolean'],
+            'cloud_phone_number_id' => ['required', 'regex:/^\d{5,30}$/'],
+            'cloud_access_token' => [Rule::requiredIf(! $hasSavedToken), 'nullable', 'string', 'max:1000'],
+        ], [
+            'cloud_phone_number_id.regex' => 'The phone number ID is the long number from Meta (WhatsApp → API Setup), not the phone number itself.',
+        ]);
+
+        $whatsappSession->update(array_filter([
+            'fallback_enabled' => $request->boolean('fallback_enabled'),
+            'cloud_phone_number_id' => $data['cloud_phone_number_id'],
+            'cloud_access_token' => $data['cloud_access_token'] ?? null,
+        ], fn ($value) => $value !== null));
+
+        return $back->with('status', 'Cloud API fallback saved.');
+    }
+
+    /**
      * The "Send test webhook" button — one immediate signed request (no
      * queue), so the owner finds out right away whether their receiver
      * works. Recorded in the delivery log like any other delivery.
@@ -228,7 +268,17 @@ class InstanceController extends Controller
             }
         }
 
-        $message = $sender->send($whatsappSession, $data['to'], $body, null, $type, $media);
+        $message = $sender->send($whatsappSession, $data['to'], $body, null, $type, $media, allowFallback: true);
+
+        if ($message->fallback_status === 'sent') {
+            return redirect()->route('instances.show', $whatsappSession)
+                ->with('status', 'The linked device could not send it, so it was sent through the Cloud API fallback.');
+        }
+
+        if ($message->fallback_status === 'failed') {
+            return redirect()->route('instances.show', $whatsappSession)
+                ->with('error', 'Could not send message, and the Cloud API fallback failed too: '.Str::limit((string) $message->fallback_error, 200));
+        }
 
         return redirect()->route('instances.show', $whatsappSession)->with(
             $message->status === 'sent' ? 'status' : 'error',

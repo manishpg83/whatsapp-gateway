@@ -28,6 +28,9 @@ use Illuminate\Support\Facades\URL;
     'read_at',
     'whatsapp_message_id',
     'error',
+    'fallback_status',
+    'fallback_message_id',
+    'fallback_error',
 ])]
 class Message extends Model
 {
@@ -101,6 +104,20 @@ class Message extends Model
             'failed' => ['danger', 'Failed', 'bi-x'],
             'received' => ['primary', 'Received', 'bi-arrow-down-left'],
             default => ['secondary', ucfirst((string) $this->status), 'bi-dot'],
+        };
+    }
+
+    /**
+     * Badge for the Cloud API fallback, or null when none was attempted.
+     *
+     * @return array{0: string, 1: string, 2: string}|null
+     */
+    public function fallbackBadge(): ?array
+    {
+        return match ($this->fallback_status) {
+            'sent' => ['success', 'Sent via Cloud API', 'bi-cloud-check'],
+            'failed' => ['danger', 'Cloud API failed', 'bi-cloud-slash'],
+            default => null,
         };
     }
 
@@ -221,9 +238,13 @@ class Message extends Model
      */
     public function apiResponseExample(): array
     {
+        if ($this->fallback_status === 'sent') {
+            return ['status' => 200, 'body' => ['success' => true, 'message_id' => $this->fallback_message_id, 'sent_via' => 'cloud_api', 'fallback_status' => 'sent']];
+        }
+
         return match ($this->status) {
-            'sent', 'delivered', 'read' => ['status' => 200, 'body' => ['success' => true, 'message_id' => $this->whatsapp_message_id]],
-            'failed' => ['status' => 502, 'body' => ['success' => false, 'error' => 'Could not send message']],
+            'sent', 'delivered', 'read' => ['status' => 200, 'body' => ['success' => true, 'message_id' => $this->whatsapp_message_id, 'sent_via' => 'device', 'fallback_status' => null]],
+            'failed' => ['status' => 502, 'body' => ['success' => false, 'error' => 'Could not send message', 'fallback_status' => $this->fallback_status]],
             default => ['status' => 0, 'body' => ['success' => null, 'note' => 'still pending']],
         };
     }
