@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\ChatbotRule;
+use App\Models\User;
 use App\Support\Guides;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -95,5 +97,43 @@ class GuideTest extends TestCase
         }
 
         $this->get('http://localhost/')->assertSee('href="http://localhost/guides"', false);
+    }
+
+    public function test_the_chatbot_guide_uses_the_real_settings(): void
+    {
+        $this->get('http://localhost/guides/whatsapp-auto-reply-chatbot')
+            ->assertOk()
+            ->assertSee('at most once every 12 hours per person')
+            ->assertSee('twice within 2 minutes')
+            ->assertSee('10 automatic replies an hour')
+            ->assertSeeInOrder(['Chatbot entries', '5', '50', '200', '1,000']); // from the Plans table
+
+        // The dashboard's Chatbot page links to it.
+        $this->actingAs(User::factory()->create())
+            ->get('http://localhost/chatbot')
+            ->assertSee('href="http://localhost/guides/whatsapp-auto-reply-chatbot"', false);
+    }
+
+    public function test_the_chatbot_guide_examples_are_what_the_bot_really_does(): void
+    {
+        $rule = fn (array $keywords) => new ChatbotRule(['keywords' => $keywords]);
+
+        // "How keywords are matched" table.
+        $this->assertTrue($rule(['price'])->matches('What is the PRICE?'));
+        $this->assertTrue($rule(['sneaker'])->matches('Do you have sneakers?'));
+        $this->assertFalse($rule(['hi'])->matches('this is great'));
+        $this->assertFalse($rule(['price'])->matches('priceless'));
+        $this->assertFalse($rule(['price'])->matches('My order is late'));
+        $this->assertTrue($rule(['opening time'])->matches('opening times'));
+        $this->assertTrue($rule(['box'])->matches('boxes'));
+
+        // "When more than one entry matches" table (Shoes is higher in the list).
+        $shoes = $rule(['shoes', 'shoe', 'boot']);
+        $prices = $rule(['shoe', 'sneakers', 'price', 'cost']);
+        $rules = [$shoes, $prices];
+
+        $this->assertSame($prices, ChatbotRule::bestMatch($rules, 'what is the price of these shoes?'));
+        $this->assertSame($shoes, ChatbotRule::bestMatch($rules, 'do you have shoes?'));
+        $this->assertSame($shoes, ChatbotRule::bestMatch($rules, 'any boots?'));
     }
 }

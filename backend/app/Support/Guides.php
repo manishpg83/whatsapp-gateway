@@ -36,6 +36,12 @@ class Guides
                 'language' => 'Node.js',
                 'icon' => 'bi-filetype-js',
             ],
+            'whatsapp-auto-reply-chatbot' => [
+                'title' => 'Set Up a WhatsApp Auto-Reply Chatbot',
+                'description' => 'Answer customers on WhatsApp automatically with keywords: how matching works, business hours, pausing when you reply, and limits. No code needed.',
+                'language' => 'Chatbot',
+                'icon' => 'bi-robot',
+            ],
             'receive-whatsapp-messages-webhook' => [
                 'title' => 'Receive WhatsApp Messages with a Webhook',
                 'description' => 'Get incoming WhatsApp messages and delivery updates on your server: a verified webhook receiver in PHP, Node.js and Python, with retries explained.',

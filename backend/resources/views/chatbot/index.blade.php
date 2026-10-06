@@ -8,7 +8,12 @@
         <span class="ms-head-icon"><i class="bi bi-robot"></i></span>
         <div>
             <h1 class="h3 mb-0">Chatbot</h1>
-            <div class="text-muted small">Answer customers automatically when their message has one of your keywords. Other messages are left for you.</div>
+            <div class="text-muted small">
+                Answer customers automatically when their message has one of your keywords. Other messages are left for you.
+                <a href="{{ route('guides.show', 'whatsapp-auto-reply-chatbot') }}" target="_blank" rel="noopener" class="text-nowrap">
+                    <i class="bi bi-question-circle me-1"></i>How it works
+                </a>
+            </div>
         </div>
     </div>
 
