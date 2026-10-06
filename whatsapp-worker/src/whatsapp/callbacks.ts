@@ -32,6 +32,14 @@ export type WorkerEvent =
       } | null;
     }
   | {
+      // The owner wrote to a customer from their own phone (not via us).
+      event: "message.sent_from_phone";
+      instance_id: string;
+      to: string; // phone number digits — or a LID's digits when to_is_lid
+      to_is_lid: boolean;
+      whatsapp_message_id: string;
+    }
+  | {
       // A message we sent was delivered (✓✓) or read (blue ✓✓).
       event: "message.status";
       instance_id: string;

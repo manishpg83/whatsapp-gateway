@@ -77,17 +77,182 @@
         </div>
     </div>
 
+    {{-- Stats for this instance --}}
+    <div class="row g-3 mb-4">
+        @foreach ([
+            ['Answers sent · 7 days', $stats['answers_week'], 'bi-robot', 'green'],
+            ['"Closed" messages · 7 days', $stats['closed_week'], 'bi-moon-stars', 'purple'],
+            ['All bot replies · 30 days', $stats['month'], 'bi-graph-up', 'blue'],
+        ] as $i => [$label, $count, $icon, $tone])
+            <div class="col-12 col-sm-4">
+                <div class="ms-tile ms-tone-{{ $tone }} db-in" style="--i: {{ $i + 2 }};">
+                    <span class="ms-tile-icon"><i class="bi {{ $icon }}"></i></span>
+                    <span class="d-block" style="min-width: 0;">
+                        <span class="ms-tile-label">{{ $label }}</span>
+                        <span class="ms-tile-value">{{ number_format($count) }}</span>
+                    </span>
+                </div>
+            </div>
+        @endforeach
+    </div>
+
+    {{-- Business hours (collapsed until "Edit" is clicked, or a field has an error) --}}
+    @php
+        $hours = $selected->chatbotHours();
+        $hoursErrors = $errors->hasAny(['days', 'days.*', 'open', 'close', 'timezone', 'message']);
+        $oldDays = array_map('intval', old('days', $hours->days));
+    @endphp
+    <div id="hours" class="card shadow-sm mb-4 db-in" style="--i: 2;">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+                <div>
+                    <div class="fw-semibold">
+                        <i class="bi bi-clock me-1 text-primary"></i>Business hours
+                        @if ($hours->enabled)
+                            <span class="badge rounded-pill bg-wa-light text-primary border ms-1">ON</span>
+                        @else
+                            <span class="badge rounded-pill text-bg-light border ms-1">OFF</span>
+                        @endif
+                    </div>
+                    <div class="small text-muted">
+                        @if ($hours->enabled)
+                            Open {{ $hours->summary() }} ({{ $hours->timezone }}). Outside these hours, messages that match no entry get your "closed" message.
+                        @else
+                            Optional: send a "we're closed" message to people who write outside your working hours.
+                        @endif
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary flex-shrink-0" data-bs-toggle="collapse" data-bs-target="#hours-form"
+                        aria-expanded="{{ $hoursErrors ? 'true' : 'false' }}" aria-controls="hours-form">
+                    <i class="bi bi-pencil me-1"></i>Edit
+                </button>
+            </div>
+
+            <div id="hours-form" class="collapse {{ $hoursErrors ? 'show' : '' }}">
+                <form method="POST" action="{{ route('chatbot.hours.update', $selected->instance_id) }}" class="border-top mt-3 pt-3">
+                    @csrf
+                    @method('PUT')
+
+                    <div class="form-check form-switch mb-3">
+                        <input type="checkbox" class="form-check-input" role="switch" id="hours-enabled" name="hours_enabled" value="1"
+                               @checked(old('hours_enabled', $hours->enabled))>
+                        <label class="form-check-label" for="hours-enabled">Use business hours</label>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="form-label fw-semibold mb-1">Open days</div>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (\App\Support\ChatbotHours::DAYS as $number => $day)
+                                    <input type="checkbox" class="btn-check" id="day-{{ $number }}" name="days[]" value="{{ $number }}" autocomplete="off"
+                                           @checked(in_array($number, $oldDays, true))>
+                                    <label class="btn btn-sm btn-outline-primary" for="day-{{ $number }}">{{ $day }}</label>
+                                @endforeach
+                            </div>
+                            @error('days') <div class="small text-danger mt-1">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label for="hours-open" class="form-label fw-semibold">Opens at</label>
+                            <input type="time" id="hours-open" name="open" required value="{{ old('open', $hours->open) }}"
+                                   class="form-control @error('open') is-invalid @enderror">
+                            @error('open') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label for="hours-close" class="form-label fw-semibold">Closes at</label>
+                            <input type="time" id="hours-close" name="close" required value="{{ old('close', $hours->close) }}"
+                                   class="form-control @error('close') is-invalid @enderror">
+                            @error('close') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label for="hours-timezone" class="form-label fw-semibold">Timezone</label>
+                            <select id="hours-timezone" name="timezone" class="form-select @error('timezone') is-invalid @enderror">
+                                @foreach (\DateTimeZone::listIdentifiers() as $tz)
+                                    <option value="{{ $tz }}" @selected(old('timezone', $hours->timezone) === $tz)>{{ $tz }}</option>
+                                @endforeach
+                            </select>
+                            @error('timezone') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-12">
+                            <div class="form-text mt-0">Closing earlier than opening means overnight — e.g. 20:00 to 02:00.</div>
+                        </div>
+                        <div class="col-12">
+                            <label for="hours-message" class="form-label fw-semibold">"We're closed" message</label>
+                            <textarea id="hours-message" name="message" rows="3" maxlength="1000"
+                                      class="form-control @error('message') is-invalid @enderror">{{ old('message', $hours->message) }}</textarea>
+                            @error('message') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            <div class="form-text">Sent at most once every {{ \App\Models\ChatbotRule::CLOSED_MESSAGE_WAIT_HOURS }} hours to the same person. Messages that match an entry still get that entry's answer.</div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-check-lg me-1"></i>Save hours</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Pause when the owner replies by hand --}}
+    <div id="pause" class="card shadow-sm mb-4 db-in" style="--i: 2;">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                <div>
+                    <div class="fw-semibold"><i class="bi bi-person-raised-hand me-1 text-primary"></i>Pause when you reply yourself</div>
+                    <div class="small text-muted">When you answer a customer from your phone, the bot stays quiet in that chat so it doesn't interrupt you.</div>
+                </div>
+                <form method="POST" action="{{ route('chatbot.pause.update', $selected->instance_id) }}" class="d-flex gap-2 flex-shrink-0">
+                    @csrf
+                    @method('PUT')
+                    <label for="pause-minutes" class="visually-hidden">Pause for</label>
+                    <select id="pause-minutes" name="pause_minutes" class="form-select form-select-sm">
+                        @foreach (\App\Models\ChatbotPause::DURATIONS as $minutes => $label)
+                            <option value="{{ $minutes }}" @selected($selected->chatbot_pause_minutes === $minutes)>{{ $minutes > 0 ? "Pause for {$label}" : $label }}</option>
+                        @endforeach
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
+                </form>
+            </div>
+
+            @if ($pauses->isNotEmpty())
+                <div class="border-top mt-3 pt-3">
+                    <div class="small fw-semibold mb-2">Paused right now</div>
+                    <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+                        @foreach ($pauses as $pause)
+                            <li class="d-flex flex-wrap align-items-center justify-content-between gap-2 small">
+                                <span><i class="bi bi-pause-circle text-muted me-1"></i><span class="fw-medium">+{{ $pause->phone }}</span> <span class="text-muted">· answers again {{ $pause->paused_until->diffForHumans() }}</span></span>
+                                <form method="POST" action="{{ route('chatbot.pauses.destroy', [$selected->instance_id, $pause->id]) }}">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-link p-0">Resume now</button>
+                                </form>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+        </div>
+    </div>
+
     <div class="row g-4">
         {{-- New entry --}}
         <div class="col-lg-4">
             <div class="card shadow-sm db-in" style="--i: 2;">
                 <div class="card-body">
                     <h2 class="h6 fw-semibold mb-1"><i class="bi bi-plus-circle me-1 text-primary"></i>New entry</h2>
-                    <div class="small text-muted mb-3 text-break">For {{ $selected->name }} · {{ $rules->count() }} / {{ $max }} used</div>
+                    <div class="small text-muted mb-3 text-break">
+                        For {{ $selected->name }} · {{ number_format($planUsed) }} / {{ number_format($planLimit) }} entries used on your plan
+                    </div>
+                    @if ($planLimit === 0)
+                        <div class="alert alert-warning small py-2">
+                            The chatbot isn't included in your plan. <a href="{{ route('billing.index') }}" class="alert-link">Upgrade</a> to use it.
+                        </div>
+                    @elseif ($planUsed >= $planLimit)
+                        <div class="alert alert-warning small py-2">
+                            You've used all your plan's chatbot entries. <a href="{{ route('billing.index') }}" class="alert-link">Upgrade</a> to add more.
+                        </div>
+                    @endif
                     <form method="POST" action="{{ route('chatbot.rules.store', $selected->instance_id) }}">
                         @csrf
                         @include('chatbot._fields', ['rule' => null])
-                        <button type="submit" class="btn btn-primary w-100 mt-3" @disabled($rules->count() >= $max)>
+                        <button type="submit" class="btn btn-primary w-100 mt-3" @disabled($rules->count() >= $max || $planUsed >= $planLimit)>
                             <i class="bi bi-plus-lg me-1"></i>Add entry
                         </button>
                     </form>
@@ -175,6 +340,14 @@
                                     @endforeach
                                 </div>
                                 <div class="bk-bubble bk-bubble-text">{{ $rule->answer }}</div>
+                                <div class="small text-muted">
+                                    <i class="bi bi-bar-chart me-1"></i>
+                                    @if ($rule->replies_total > 0)
+                                        Replied {{ number_format($rule->replies_total) }} {{ Str::plural('time', $rule->replies_total) }} · {{ number_format($rule->replies_week) }} in 7 days · last {{ \Illuminate\Support\Carbon::parse($rule->last_reply_at)->diffForHumans() }}
+                                    @else
+                                        Not used yet
+                                    @endif
+                                </div>
                                 <div class="d-flex gap-2">
                                     <a href="{{ route('chatbot.rules.edit', [$selected->instance_id, $rule->id]) }}" class="btn btn-sm btn-outline-primary flex-grow-1">
                                         <i class="bi bi-pencil me-1"></i>Edit

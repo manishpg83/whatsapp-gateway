@@ -106,7 +106,7 @@ class PlanController extends Controller
     }
 
     /**
-     * @return array{name: string, description: string, price: int, instances: int, messages_per_month: int, popular: bool}
+     * @return array{name: string, description: string, price: int, instances: int, messages_per_month: int, chatbot_entries?: int, popular: bool}
      */
     private function validated(Request $request): array
     {
@@ -116,6 +116,8 @@ class PlanController extends Controller
             'price' => ['required', 'integer', 'min:0'],
             'instances' => ['required', 'integer', 'min:1'],
             'messages_per_month' => ['required', 'integer', 'min:1'],
+            // Always sent by the form; when missing, the plan keeps its value (0 for a new plan).
+            'chatbot_entries' => ['sometimes', 'integer', 'min:0'],
             'popular' => ['sometimes', 'boolean'],
         ]);
 

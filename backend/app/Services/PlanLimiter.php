@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ChatbotRule;
 use App\Models\Message;
 use App\Models\User;
 
@@ -21,6 +22,25 @@ class PlanLimiter
     public function messageLimit(User $user): int
     {
         return $user->subscription->planDetails()['messages_per_month'];
+    }
+
+    /**
+     * Chatbot entries allowed across all the user's instances. 0 = the
+     * chatbot isn't included in their plan.
+     */
+    public function chatbotEntryLimit(User $user): int
+    {
+        return (int) ($user->subscription->planDetails()['chatbot_entries'] ?? 0);
+    }
+
+    public function chatbotEntriesUsed(User $user): int
+    {
+        return ChatbotRule::whereHas('whatsappSession', fn ($query) => $query->where('user_id', $user->id))->count();
+    }
+
+    public function canAddChatbotEntry(User $user): bool
+    {
+        return $this->chatbotEntriesUsed($user) < $this->chatbotEntryLimit($user);
     }
 
     public function canCreateInstance(User $user): bool

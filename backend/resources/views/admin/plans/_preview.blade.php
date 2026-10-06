@@ -32,6 +32,7 @@
         <ul class="bl-plan-list mb-3">
             <li><i class="bi bi-check-lg"></i><span data-pv-instances>{{ $previewInstances }} {{ Str::plural('instance', $previewInstances) }}</span></li>
             <li><i class="bi bi-check-lg"></i><span data-pv-messages>{{ number_format((int) old('messages_per_month', $plan->messages_per_month ?? 50)) }} messages/mo</span></li>
+            <li><i class="bi bi-check-lg"></i><span data-pv-chatbot>{{ \App\Models\Plan::chatbotLabel((int) old('chatbot_entries', $plan->chatbot_entries ?? 0)) }}</span></li>
             <li><i class="bi bi-check-lg"></i>Full REST API access</li>
             <li><i class="bi bi-check-lg"></i>Webhook delivery</li>
         </ul>
@@ -62,6 +63,9 @@
 
         const messages = Math.max(0, parseInt(value('messages').value, 10) || 0);
         set('messages', `${fmt.format(messages)} messages/mo`);
+
+        const chatbot = Math.max(0, parseInt(value('chatbot').value, 10) || 0);
+        set('chatbot', chatbot > 0 ? `${fmt.format(chatbot)} chatbot ${chatbot === 1 ? 'entry' : 'entries'}` : 'No chatbot');
 
         const popular = value('popular').checked;
         card.classList.toggle('bl-plan-popular', popular);

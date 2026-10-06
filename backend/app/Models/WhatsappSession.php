@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ChatbotHours;
 use Database\Factories\WhatsappSessionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -25,6 +26,8 @@ use Illuminate\Support\Str;
     'webhook_secret',
     'fallback_enabled',
     'chatbot_enabled',
+    'chatbot_hours',
+    'chatbot_pause_minutes',
     'cloud_phone_number_id',
     'cloud_access_token',
 ])]
@@ -53,6 +56,8 @@ class WhatsappSession extends Model
             'connected_at' => 'datetime',
             'fallback_enabled' => 'boolean',
             'chatbot_enabled' => 'boolean',
+            'chatbot_hours' => 'array',
+            'chatbot_pause_minutes' => 'integer',
             // The owner's Meta access token — encrypted at rest with APP_KEY.
             'cloud_access_token' => 'encrypted',
         ];
@@ -127,6 +132,21 @@ class WhatsappSession extends Model
     public function deleteMediaFiles(): void
     {
         Storage::disk('whatsapp_media')->deleteDirectory($this->instance_id);
+    }
+
+    public function chatbotHours(): ChatbotHours
+    {
+        return new ChatbotHours($this->chatbot_hours);
+    }
+
+    /**
+     * Chats where the owner replied by hand, so the bot stays quiet there.
+     *
+     * @return HasMany<ChatbotPause, $this>
+     */
+    public function chatbotPauses(): HasMany
+    {
+        return $this->hasMany(ChatbotPause::class);
     }
 
     /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { WAMessage } from "baileys";
-import { parseIncomingMessage } from "../src/whatsapp/incomingMessage.js";
+import { parseIncomingMessage, parseOwnMessage } from "../src/whatsapp/incomingMessage.js";
 
 // A minimal WAMessage builder — only the fields parseIncomingMessage()
 // actually reads, cast to WAMessage since real messages carry many more
@@ -215,5 +215,31 @@ describe("parseIncomingMessage — LID senders", () => {
 
     expect(result?.from).toBe("919999999999");
     expect(result?.fromIsLid).toBe(false);
+  });
+});
+
+describe("parseOwnMessage — the owner replying from their phone", () => {
+  it("reports who the owner wrote to", () => {
+    expect(parseOwnMessage(buildMessage({ fromMe: true, message: { conversation: "I'll call you" } }))).toEqual({
+      to: "919999999999",
+      toIsLid: false,
+      whatsappMessageId: "WA-ID-1",
+    });
+  });
+
+  it("uses the phone number behind a LID chat when given", () => {
+    const result = parseOwnMessage(
+      buildMessage({ fromMe: true, remoteJid: "248600000000055@lid", remoteJidAlt: "919999999999@s.whatsapp.net" })
+    );
+
+    expect(result?.to).toBe("919999999999");
+    expect(result?.toIsLid).toBe(false);
+  });
+
+  it("ignores incoming messages, groups, status and protocol noise", () => {
+    expect(parseOwnMessage(buildMessage({ fromMe: false }))).toBeNull();
+    expect(parseOwnMessage(buildMessage({ fromMe: true, remoteJid: "123-group@g.us" }))).toBeNull();
+    expect(parseOwnMessage(buildMessage({ fromMe: true, remoteJid: "status@broadcast" }))).toBeNull();
+    expect(parseOwnMessage(buildMessage({ fromMe: true, message: { reactionMessage: { text: "👍" } } }))).toBeNull();
   });
 });

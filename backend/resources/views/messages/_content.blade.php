@@ -38,7 +38,7 @@
     });
 @endphp
 
-@if ($message->chatbot_rule_id)
+@if ($message->bot_reply)
     <span class="badge rounded-pill bg-wa-light text-primary border me-1 align-middle" title="Sent automatically by the chatbot"><i class="bi bi-robot me-1"></i>Bot</span>
 @endif
 

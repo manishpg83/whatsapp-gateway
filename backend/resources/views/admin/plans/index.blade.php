@@ -70,6 +70,7 @@
                 <ul class="bl-plan-list">
                     <li><i class="bi bi-check-lg"></i>{{ $plan->instances }} {{ Str::plural('instance', $plan->instances) }}</li>
                     <li><i class="bi bi-check-lg"></i>{{ number_format($plan->messages_per_month) }} messages/mo</li>
+                    <li><i class="bi bi-check-lg"></i>{{ \App\Models\Plan::chatbotLabel($plan->chatbot_entries) }}</li>
                 </ul>
 
                 <div class="ad-plan-subs">

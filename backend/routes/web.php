@@ -139,6 +139,9 @@ Route::middleware(['auth', 'not_suspended', 'verified'])->group(function () {
     Route::get('/chatbot', [ChatbotController::class, 'index'])->name('chatbot.index');
     Route::post('/chatbot/{instance}/rules', [ChatbotController::class, 'store'])->name('chatbot.rules.store');
     Route::post('/chatbot/{instance}/toggle', [ChatbotController::class, 'toggle'])->name('chatbot.toggle');
+    Route::put('/chatbot/{instance}/hours', [ChatbotController::class, 'updateHours'])->name('chatbot.hours.update');
+    Route::put('/chatbot/{instance}/pause', [ChatbotController::class, 'updatePause'])->name('chatbot.pause.update');
+    Route::delete('/chatbot/{instance}/pauses/{pause}', [ChatbotController::class, 'resume'])->whereNumber('pause')->name('chatbot.pauses.destroy');
     Route::post('/chatbot/{instance}/test', [ChatbotController::class, 'test'])->name('chatbot.test');
     Route::get('/chatbot/{instance}/rules/{rule}/edit', [ChatbotController::class, 'edit'])->whereNumber('rule')->name('chatbot.rules.edit');
     Route::put('/chatbot/{instance}/rules/{rule}', [ChatbotController::class, 'update'])->whereNumber('rule')->name('chatbot.rules.update');

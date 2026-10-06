@@ -62,6 +62,16 @@
                 <div class="invalid-feedback">{{ $message }}</div>
             @enderror
         </div>
+        <div class="col-md-4">
+            <label for="chatbot_entries" class="form-label">Chatbot entries</label>
+            <input type="number" min="0" step="1" class="form-control @error('chatbot_entries') is-invalid @enderror"
+                   id="chatbot_entries" name="chatbot_entries" value="{{ old('chatbot_entries', $plan->chatbot_entries ?? 0) }}" required
+                   data-preview="chatbot">
+            @error('chatbot_entries')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+            <div class="form-text">Across all instances. 0 = no chatbot.</div>
+        </div>
     </div>
 </div>
 

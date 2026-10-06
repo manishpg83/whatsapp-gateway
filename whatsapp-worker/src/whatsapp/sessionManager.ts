@@ -7,7 +7,7 @@ import type { FastifyBaseLogger } from "fastify";
 import type { Config } from "../config.js";
 import { notifyLaravel } from "./callbacks.js";
 import { decideOnClose } from "./closeReason.js";
-import { jidDigits, parseIncomingMessage } from "./incomingMessage.js";
+import { jidDigits, parseIncomingMessage, parseOwnMessage } from "./incomingMessage.js";
 import type { IncomingMedia } from "./incomingMessage.js";
 import { MediaTooLargeError, mediaFileName, saveMediaStream } from "./media.js";
 import { parseStatusUpdate } from "./statusUpdate.js";
@@ -243,12 +243,42 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
 
     // "notify" = a genuinely new, real-time message. "append" (history
     // sync on first link, etc.) is replayed old messages — not something
-    // to forward as if it just arrived.
+    // to forward as if it just arrived. Messages this worker sends itself
+    // (API / bot replies) are also "append", so they never get here.
     if (type !== "notify") {
       return;
     }
 
     for (const msg of messages) {
+      // The owner replied to a customer from their phone: tell Laravel, so
+      // the chatbot can pause for that chat.
+      if (msg.key.fromMe) {
+        const own = parseOwnMessage(msg);
+
+        if (own) {
+          if (own.toIsLid && msg.key.remoteJid) {
+            const phone = await phoneForLid(socket, msg.key.remoteJid, instanceId, logger);
+            if (phone) {
+              own.to = phone;
+              own.toIsLid = false;
+            }
+          }
+
+          await notifyLaravel(
+            config,
+            {
+              event: "message.sent_from_phone",
+              instance_id: instanceId,
+              to: own.to,
+              to_is_lid: own.toIsLid,
+              whatsapp_message_id: own.whatsappMessageId,
+            },
+            logger
+          );
+        }
+        continue;
+      }
+
       const parsed = parseIncomingMessage(msg);
 
       if (!parsed) {
@@ -263,14 +293,10 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
       // LID -> phone-number store. If that doesn't know either, the message
       // is still forwarded, flagged so Laravel never replies to the LID.
       if (parsed.fromIsLid && msg.key.remoteJid) {
-        try {
-          const pnJid = await socket.signalRepository.lidMapping.getPNForLID(msg.key.remoteJid);
-          if (pnJid?.includes("@s.whatsapp.net")) {
-            parsed.from = jidDigits(pnJid);
-            parsed.fromIsLid = false;
-          }
-        } catch (err) {
-          logger.warn({ instanceId, err }, "Could not look up the phone number for a LID sender");
+        const phone = await phoneForLid(socket, msg.key.remoteJid, instanceId, logger);
+        if (phone) {
+          parsed.from = phone;
+          parsed.fromIsLid = false;
         }
       }
 
@@ -307,6 +333,25 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
       );
     }
   });
+}
+
+/**
+ * The phone number (digits) behind a LID, from Baileys' own LID -> phone
+ * store, or null if it doesn't know. Never throws.
+ */
+async function phoneForLid(
+  socket: ReturnType<typeof makeWASocket>,
+  lidJid: string,
+  instanceId: string,
+  logger: FastifyBaseLogger
+): Promise<string | null> {
+  try {
+    const pnJid = await socket.signalRepository.lidMapping.getPNForLID(lidJid);
+    return pnJid?.includes("@s.whatsapp.net") ? jidDigits(pnJid) : null;
+  } catch (err) {
+    logger.warn({ instanceId, err }, "Could not look up the phone number for a LID");
+    return null;
+  }
 }
 
 /**

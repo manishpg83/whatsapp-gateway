@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\URL;
     'whatsapp_session_id',
     'api_token_id',
     'chatbot_rule_id',
+    'bot_reply',
     'direction',
     'type',
     'to_number',

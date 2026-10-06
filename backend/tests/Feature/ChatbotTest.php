@@ -5,11 +5,14 @@ namespace Tests\Feature;
 use App\Jobs\SendChatbotReply;
 use App\Models\ChatbotRule;
 use App\Models\Message;
+use App\Models\Plan;
 use App\Models\User;
 use App\Models\WhatsappSession;
 use App\Services\MessageSender;
 use App\Services\PlanLimiter;
+use App\Support\ChatbotHours;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -210,13 +213,74 @@ class ChatbotTest extends TestCase
     public function test_entries_are_limited_per_instance(): void
     {
         $instance = WhatsappSession::factory()->create();
+        $instance->user->subscription->update(['plan' => 'business']); // 1000 entries, so the plan isn't what stops it
         for ($i = 0; $i < ChatbotRule::MAX_PER_INSTANCE; $i++) {
             $instance->chatbotRules()->create(['question' => "Q{$i}", 'keywords' => ["k{$i}"], 'answer' => 'A']);
         }
 
         $this->actingAs($instance->user)->post("/chatbot/{$instance->instance_id}/rules", $this->form())
-            ->assertSessionHasErrors('question');
+            ->assertSessionHasErrors(['question' => 'This instance already has '.ChatbotRule::MAX_PER_INSTANCE.' entries. Delete one first.']);
         $this->assertDatabaseCount('chatbot_rules', ChatbotRule::MAX_PER_INSTANCE);
+    }
+
+    // --- Plan limits ------------------------------------------------------------------
+
+    public function test_entries_are_limited_by_plan_across_all_instances(): void
+    {
+        // Free plan: 5 chatbot entries.
+        $first = WhatsappSession::factory()->create();
+        $second = WhatsappSession::factory()->for($first->user)->create();
+        for ($i = 0; $i < 3; $i++) {
+            $first->chatbotRules()->create(['question' => "Q{$i}", 'keywords' => ["k{$i}"], 'answer' => 'A']);
+        }
+
+        $this->actingAs($first->user)->get('/chatbot?instance='.$second->instance_id)->assertSee('3 / 5 entries used on your plan');
+
+        $url = "/chatbot/{$second->instance_id}/rules";
+        $this->actingAs($first->user)->post($url, $this->form(['question' => 'Four']))->assertSessionHasNoErrors();
+        $this->actingAs($first->user)->post($url, $this->form(['question' => 'Five']))->assertSessionHasNoErrors();
+        $this->actingAs($first->user)->post($url, $this->form(['question' => 'Six']))
+            ->assertSessionHasErrors(['question' => 'Your plan allows 5 chatbot entries. Upgrade to add more.']);
+
+        $this->assertDatabaseCount('chatbot_rules', 5);
+        $this->actingAs($first->user)->get('/chatbot')->assertSee("You've used all your plan's chatbot entries.", false);
+    }
+
+    public function test_a_plan_without_the_chatbot(): void
+    {
+        Http::fake();
+        $plan = Plan::factory()->create(['chatbot_entries' => 0]);
+        $instance = $this->botInstance();
+        $instance->user->subscription->update(['plan' => $plan->slug]);
+
+        $this->actingAs($instance->user)->get('/chatbot')->assertSee("The chatbot isn't included in your plan.", false);
+        $this->actingAs($instance->user)->post("/chatbot/{$instance->instance_id}/rules", $this->form())->assertSessionHasErrors('question');
+        $this->actingAs($instance->user)->post("/chatbot/{$instance->instance_id}/toggle", ['enabled' => 1])->assertSessionHasErrors('enabled');
+
+        // Already ON from before a downgrade: it stops replying.
+        $this->receive($instance, 'price?');
+        Http::assertNothingSent();
+    }
+
+    public function test_plan_cards_show_the_chatbot_limit(): void
+    {
+        $this->actingAs(User::factory()->create())->get('/billing')->assertSee('5 chatbot entries')->assertSee('1,000 chatbot entries');
+        $this->assertSame('No chatbot', Plan::chatbotLabel(0));
+        $this->assertSame('1 chatbot entry', Plan::chatbotLabel(1));
+    }
+
+    public function test_admins_can_set_a_plans_chatbot_limit(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $plan = Plan::where('slug', 'starter')->sole();
+
+        $this->actingAs($admin)->put(route('admin.plans.update', $plan), [
+            'name' => $plan->name, 'description' => $plan->description, 'price' => $plan->price,
+            'instances' => $plan->instances, 'messages_per_month' => $plan->messages_per_month, 'chatbot_entries' => 75,
+        ])->assertRedirect(route('admin.plans.index'));
+
+        $this->assertSame(75, $plan->fresh()->chatbot_entries);
+        $this->actingAs($admin)->get(route('admin.plans.edit', $plan))->assertSee('Chatbot entries');
     }
 
     // --- Step 3: switch + real replies ---------------------------------------------
@@ -392,5 +456,223 @@ class ChatbotTest extends TestCase
 
         $this->assertSame(50, $this->outgoingCount());
         Http::assertNothingSent();
+    }
+
+    // --- Business hours ----------------------------------------------------------------
+
+    private function hours(array $overrides = []): array
+    {
+        // Mon–Sat, 10:00–19:00 India time.
+        return array_merge(ChatbotHours::DEFAULTS, ['enabled' => true, 'message' => 'We are closed.'], $overrides);
+    }
+
+    private function at(string $indiaTime): void
+    {
+        $this->travelTo(Carbon::parse($indiaTime, 'Asia/Kolkata'));
+    }
+
+    public function test_business_hours_open_and_closed_times(): void
+    {
+        $hours = new ChatbotHours($this->hours());
+
+        // 2026-10-05 is a Monday, 2026-10-11 a Sunday.
+        $this->assertTrue($hours->isOpen(Carbon::parse('2026-10-05 10:00', 'Asia/Kolkata')));
+        $this->assertTrue($hours->isOpen(Carbon::parse('2026-10-05 18:59', 'Asia/Kolkata')));
+        $this->assertFalse($hours->isOpen(Carbon::parse('2026-10-05 19:00', 'Asia/Kolkata')));
+        $this->assertFalse($hours->isOpen(Carbon::parse('2026-10-05 09:59', 'Asia/Kolkata')));
+        $this->assertFalse($hours->isOpen(Carbon::parse('2026-10-11 12:00', 'Asia/Kolkata')));
+        // The same moment in UTC (12:00 India = 06:30 UTC).
+        $this->assertTrue($hours->isOpen(Carbon::parse('2026-10-05 06:30', 'UTC')));
+
+        // Overnight: Friday 20:00 → Saturday 02:00 only.
+        $night = new ChatbotHours($this->hours(['days' => [5], 'open' => '20:00', 'close' => '02:00']));
+        $this->assertTrue($night->isOpen(Carbon::parse('2026-10-09 23:00', 'Asia/Kolkata')));
+        $this->assertTrue($night->isOpen(Carbon::parse('2026-10-10 01:30', 'Asia/Kolkata')));
+        $this->assertFalse($night->isOpen(Carbon::parse('2026-10-10 03:00', 'Asia/Kolkata')));
+        $this->assertFalse($night->isOpen(Carbon::parse('2026-10-10 23:00', 'Asia/Kolkata')));
+
+        // Off = always open.
+        $this->assertTrue((new ChatbotHours(null))->isOpen(Carbon::parse('2026-10-11 03:00', 'Asia/Kolkata')));
+
+        $this->assertSame('Mon–Sat, 10:00–19:00', $hours->summary());
+        $this->assertSame('Mon, Wed, 10:00–19:00', (new ChatbotHours($this->hours(['days' => [3, 1]])))->summary());
+    }
+
+    public function test_business_hours_can_be_saved(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $url = "/chatbot/{$instance->instance_id}/hours";
+
+        $this->actingAs($instance->user)->put($url, [
+            'hours_enabled' => 1, 'days' => ['1', '2', '3'], 'open' => '09:00', 'close' => '18:00',
+            'timezone' => 'Asia/Dubai', 'message' => 'Closed now.',
+        ])->assertSessionHas('status', 'Business hours saved.');
+
+        $hours = $instance->fresh()->chatbotHours();
+        $this->assertTrue($hours->enabled);
+        $this->assertSame([1, 2, 3], $hours->days);
+        $this->assertSame('Asia/Dubai', $hours->timezone);
+        $this->assertSame('Closed now.', $hours->message);
+
+        $this->actingAs($instance->user)->get('/chatbot')->assertSee('Open Mon–Wed, 09:00–18:00 (Asia/Dubai)');
+
+        $this->actingAs($instance->user)->put($url, ['hours_enabled' => 1, 'open' => '09:00', 'close' => '09:00', 'timezone' => 'Mars/Base', 'message' => ''])
+            ->assertSessionHasErrors(['days', 'close', 'timezone', 'message']);
+
+        $this->actingAs(User::factory()->create())->put($url, ['open' => '09:00', 'close' => '18:00', 'timezone' => 'UTC'])->assertNotFound();
+    }
+
+    public function test_outside_hours_an_unmatched_message_gets_the_closed_message_once(): void
+    {
+        Http::fake(['*' => Http::response(['message_id' => 'x'], 200)]);
+        $instance = $this->botInstance();
+        $instance->update(['chatbot_hours' => $this->hours()]);
+
+        $this->at('2026-10-05 22:00'); // Monday night — closed
+        $this->receive($instance, 'Hello, is anyone there?');
+
+        $reply = Message::where('direction', 'outgoing')->sole();
+        $this->assertSame('We are closed.', $reply->body);
+        $this->assertSame('closed', $reply->bot_reply);
+
+        // Not again for the same person within 12 hours…
+        $this->at('2026-10-06 09:00');
+        $this->receive($instance, 'Hello?');
+        $this->assertSame(1, $this->outgoingCount());
+
+        // …and a keyword is still answered while closed.
+        $this->receive($instance, 'price?');
+        $this->assertSame('Plans start at ₹499.', Message::where('direction', 'outgoing')->latest('id')->first()->body);
+    }
+
+    public function test_inside_hours_an_unmatched_message_gets_nothing(): void
+    {
+        Http::fake();
+        $instance = $this->botInstance();
+        $instance->update(['chatbot_hours' => $this->hours()]);
+
+        $this->at('2026-10-05 12:00'); // Monday noon — open
+        $this->receive($instance, 'Hello, is anyone there?');
+
+        Http::assertNothingSent();
+    }
+
+    // --- Pause when the owner replies by hand ------------------------------------------
+
+    /**
+     * The worker reporting that the owner wrote to $to from their phone.
+     */
+    private function ownerReplies(WhatsappSession $instance, string $to = '919999999999', array $extra = []): void
+    {
+        config(['worker.secret' => self::SECRET]);
+
+        $this->postJson('/internal/worker/events', array_merge([
+            'event' => 'message.sent_from_phone',
+            'instance_id' => $instance->instance_id,
+            'to' => $to,
+            'to_is_lid' => false,
+            'whatsapp_message_id' => 'WA-PHONE-'.uniqid(),
+        ], $extra), ['X-Internal-Secret' => self::SECRET])->assertNoContent();
+    }
+
+    public function test_the_bot_pauses_in_a_chat_after_the_owner_replies_there(): void
+    {
+        Http::fake(['*' => Http::response(['message_id' => 'x'], 200)]);
+        $instance = $this->botInstance(); // default pause: 30 minutes
+
+        $this->ownerReplies($instance);
+
+        // Paused in that chat…
+        $this->receive($instance, 'price?');
+        $this->assertSame(0, $this->outgoingCount());
+
+        // …but not in another one.
+        $this->receive($instance, 'price?', ['from' => '918888888888']);
+        $this->assertSame(1, $this->outgoingCount());
+
+        $this->actingAs($instance->user)->get('/chatbot')->assertSee('Paused right now')->assertSee('+919999999999');
+
+        // Answers again once the 30 minutes are over.
+        $this->travel(31)->minutes();
+        $this->receive($instance, 'price?');
+        $this->assertSame(2, $this->outgoingCount());
+    }
+
+    public function test_each_owner_reply_moves_the_pause_forward(): void
+    {
+        $this->freezeSecond(); // the database stores whole seconds
+        $instance = $this->botInstance();
+
+        $this->ownerReplies($instance);
+        $this->travel(20)->minutes();
+        $this->ownerReplies($instance);
+
+        $this->assertDatabaseCount('chatbot_pauses', 1);
+        $this->assertTrue($instance->chatbotPauses()->sole()->paused_until->equalTo(now()->addMinutes(30)));
+    }
+
+    public function test_no_pause_for_our_own_messages_a_lid_or_when_switched_off(): void
+    {
+        $instance = $this->botInstance();
+        Message::factory()->for($instance, 'whatsappSession')->create(['whatsapp_message_id' => 'WA-OURS']);
+
+        $this->ownerReplies($instance, extra: ['whatsapp_message_id' => 'WA-OURS']); // sent by the API / bot
+        $this->ownerReplies($instance, '248600000000055', ['to_is_lid' => true]);
+
+        $instance->update(['chatbot_pause_minutes' => 0]);
+        $this->ownerReplies($instance);
+
+        $this->assertDatabaseCount('chatbot_pauses', 0);
+    }
+
+    public function test_the_pause_length_can_be_changed_and_a_pause_ended_early(): void
+    {
+        $instance = $this->botInstance();
+
+        $this->actingAs($instance->user)->put("/chatbot/{$instance->instance_id}/pause", ['pause_minutes' => 120])
+            ->assertSessionHas('status', 'The bot will pause for 2 hours after you reply yourself.');
+        $this->assertSame(120, $instance->fresh()->chatbot_pause_minutes);
+
+        $this->actingAs($instance->user)->put("/chatbot/{$instance->instance_id}/pause", ['pause_minutes' => 7])
+            ->assertSessionHasErrors('pause_minutes');
+
+        $this->ownerReplies($instance);
+        $pause = $instance->chatbotPauses()->sole();
+
+        $this->actingAs(User::factory()->create())->delete("/chatbot/{$instance->instance_id}/pauses/{$pause->id}")->assertNotFound();
+        $this->actingAs($instance->user)->delete("/chatbot/{$instance->instance_id}/pauses/{$pause->id}")
+            ->assertSessionHas('status', 'The bot is answering in that chat again.');
+        $this->assertDatabaseCount('chatbot_pauses', 0);
+    }
+
+    // --- Stats -----------------------------------------------------------------------
+
+    public function test_the_page_shows_reply_stats(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $used = $instance->chatbotRules()->create(['question' => 'Prices', 'keywords' => ['price'], 'answer' => 'A']);
+        $instance->chatbotRules()->create(['question' => 'Unused', 'keywords' => ['x'], 'answer' => 'B']);
+        $reply = fn (array $attributes) => Message::factory()->for($instance, 'whatsappSession')->create($attributes);
+
+        $reply(['chatbot_rule_id' => $used->id, 'bot_reply' => 'answer', 'status' => 'sent']);
+        $reply(['chatbot_rule_id' => $used->id, 'bot_reply' => 'answer', 'status' => 'read']);
+        $reply(['chatbot_rule_id' => $used->id, 'bot_reply' => 'answer', 'status' => 'failed']); // not counted
+        $reply(['chatbot_rule_id' => $used->id, 'bot_reply' => 'answer', 'status' => 'sent', 'created_at' => now()->subDays(10)]);
+        $reply(['bot_reply' => 'closed', 'status' => 'sent']);
+        $reply(['status' => 'sent']); // not a bot reply
+
+        $this->actingAs($instance->user)->get('/chatbot')->assertOk()
+            ->assertSeeInOrder(['Answers sent · 7 days', '2', '"Closed" messages · 7 days', '1', 'All bot replies · 30 days', '4'])
+            ->assertSee('Replied 3 times · 2 in 7 days')
+            ->assertSee('Not used yet');
+    }
+
+    public function test_hours_alone_let_the_bot_be_switched_on(): void
+    {
+        $instance = WhatsappSession::factory()->create(['chatbot_hours' => $this->hours()]);
+
+        $this->actingAs($instance->user)->post("/chatbot/{$instance->instance_id}/toggle", ['enabled' => 1]);
+
+        $this->assertTrue($instance->fresh()->chatbot_enabled);
     }
 }

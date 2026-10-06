@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * fillable — they're derived/assigned explicitly in the controller
  * (see cashfreePlanId()), never taken directly from a form.
  */
-#[Fillable(['name', 'description', 'price', 'instances', 'messages_per_month', 'popular'])]
+#[Fillable(['name', 'description', 'price', 'instances', 'messages_per_month', 'chatbot_entries', 'popular'])]
 class Plan extends Model
 {
     /** @use HasFactory<PlanFactory> */
@@ -30,6 +30,7 @@ class Plan extends Model
             'price' => 'integer',
             'instances' => 'integer',
             'messages_per_month' => 'integer',
+            'chatbot_entries' => 'integer',
             'popular' => 'boolean',
             'price_version' => 'integer',
         ];
@@ -46,6 +47,14 @@ class Plan extends Model
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class, 'plan', 'slug');
+    }
+
+    /**
+     * The pricing-card line for a plan's chatbot limit.
+     */
+    public static function chatbotLabel(int $entries): string
+    {
+        return $entries > 0 ? number_format($entries).' chatbot '.($entries === 1 ? 'entry' : 'entries') : 'No chatbot';
     }
 
     /**

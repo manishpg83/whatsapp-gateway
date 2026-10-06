@@ -388,6 +388,7 @@
                         <ul class="lp-price-list">
                             <li><i class="bi bi-check-lg"></i>{{ $plan['instances'] }} instance{{ $plan['instances'] > 1 ? 's' : '' }}</li>
                             <li><i class="bi bi-check-lg"></i>{{ number_format($plan['messages_per_month']) }} messages/mo</li>
+                            <li><i class="bi bi-check-lg"></i>{{ \App\Models\Plan::chatbotLabel($plan['chatbot_entries'] ?? 0) }}</li>
                             <li><i class="bi bi-check-lg"></i>Full REST API access</li>
                             <li><i class="bi bi-check-lg"></i>Webhook delivery</li>
                         </ul>

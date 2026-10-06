@@ -142,6 +142,45 @@ export function parseIncomingMessage(msg: WAMessage): ParsedIncomingMessage | nu
   }
 }
 
+export type ParsedOwnMessage = {
+  // The customer the owner wrote to (phone digits — or a LID's digits when toIsLid).
+  to: string;
+  toIsLid: boolean;
+  whatsappMessageId: string;
+};
+
+/**
+ * A message the OWNER typed on their phone (or WhatsApp Web) to a
+ * customer — so Laravel can pause the chatbot for that chat. Only call this
+ * for "notify" upserts: messages this worker sends itself arrive as
+ * "append" and must never count as the owner replying.
+ *
+ * Returns null for anything else: incoming messages, groups, the status
+ * feed, and protocol noise (reactions, edits, deletes...).
+ */
+export function parseOwnMessage(msg: WAMessage): ParsedOwnMessage | null {
+  if (!msg.key.fromMe || !msg.message || !msg.key.id) {
+    return null;
+  }
+
+  const remoteJid = msg.key.remoteJid ?? "";
+
+  if (!remoteJid || remoteJid.endsWith("@g.us") || remoteJid === "status@broadcast") {
+    return null;
+  }
+
+  const content = normalizeMessageContent(msg.message);
+  const contentType = getContentType(content);
+
+  if (!content || !contentType || IGNORED_CONTENT_TYPES.has(contentType)) {
+    return null;
+  }
+
+  const recipient = senderOf(remoteJid, msg.key.remoteJidAlt);
+
+  return { to: recipient.from, toIsLid: recipient.fromIsLid, whatsappMessageId: msg.key.id };
+}
+
 function build(
   msg: WAMessage,
   remoteJid: string,

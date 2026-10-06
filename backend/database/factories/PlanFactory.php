@@ -28,6 +28,7 @@ class PlanFactory extends Factory
             'price' => $price,
             'instances' => fake()->numberBetween(1, 10),
             'messages_per_month' => fake()->numberBetween(100, 10000),
+            'chatbot_entries' => fake()->numberBetween(0, 500),
             'popular' => false,
             'cashfree_plan_id' => Plan::cashfreePlanId($slug, 1),
             'price_version' => 1,

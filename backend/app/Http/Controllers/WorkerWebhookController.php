@@ -29,6 +29,7 @@ class WorkerWebhookController extends Controller
             'connection.updated' => $this->handleConnectionUpdated($request),
             'message.received' => $this->handleMessageReceived($request),
             'message.status' => $this->handleMessageStatus($request),
+            'message.sent_from_phone' => $this->handleSentFromPhone($request),
             default => response('Unknown event', 422),
         };
     }
@@ -243,6 +244,41 @@ class WorkerWebhookController extends Controller
             'to' => $message->to_number,
             'timestamp' => now()->toIso8601String(),
         ]);
+
+        return response()->noContent();
+    }
+
+    /**
+     * The owner replied to a customer from their own phone: pause the
+     * chatbot in that chat for the instance's chatbot_pause_minutes, so
+     * it doesn't talk over them. Each reply moves the pause forward.
+     *
+     * Ignored when it's a message we sent ourselves (API / bot — the worker
+     * already filters these, this is a second check), when `to` is a LID
+     * (incoming messages are matched by real phone number), or when the
+     * owner chose "Don't pause".
+     */
+    protected function handleSentFromPhone(Request $request): Response
+    {
+        $data = $request->validate([
+            'instance_id' => ['required', 'uuid'],
+            'to' => ['required', 'string', 'max:32'],
+            'to_is_lid' => ['sometimes', 'boolean'],
+            'whatsapp_message_id' => ['required', 'string'],
+        ]);
+
+        $session = $this->findByInstanceId($data['instance_id']);
+
+        $ours = $session->messages()->where('whatsapp_message_id', $data['whatsapp_message_id'])->exists();
+
+        if (($data['to_is_lid'] ?? true) || $ours || $session->chatbot_pause_minutes <= 0) {
+            return response()->noContent();
+        }
+
+        $session->chatbotPauses()->updateOrCreate(
+            ['phone' => $data['to']],
+            ['paused_until' => now()->addMinutes($session->chatbot_pause_minutes)],
+        );
 
         return response()->noContent();
     }

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * One chatbot entry for an instance: when a received message contains one
@@ -30,6 +31,10 @@ class ChatbotRule extends Model
     // bots answering each other can't loop forever.
     public const MAX_REPLIES_PER_CONTACT_PER_HOUR = 10;
 
+    // Outside business hours, one person gets the "we're closed" message at
+    // most once in this many hours.
+    public const CLOSED_MESSAGE_WAIT_HOURS = 12;
+
     // Received message types whose text (or caption) the bot reads.
     public const REPLY_TO_TYPES = ['text', 'image', 'video'];
 
@@ -46,6 +51,16 @@ class ChatbotRule extends Model
     public function whatsappSession(): BelongsTo
     {
         return $this->belongsTo(WhatsappSession::class);
+    }
+
+    /**
+     * The bot replies this entry sent (for its stats).
+     *
+     * @return HasMany<Message, $this>
+     */
+    public function replies(): HasMany
+    {
+        return $this->hasMany(Message::class);
     }
 
     /**
