@@ -8,6 +8,7 @@ import { parseIncomingMessage } from "../src/whatsapp/incomingMessage.js";
 function buildMessage(overrides: {
   fromMe?: boolean;
   remoteJid?: string;
+  remoteJidAlt?: string;
   id?: string | null;
   message?: Record<string, unknown> | null;
   messageTimestamp?: number;
@@ -16,6 +17,7 @@ function buildMessage(overrides: {
     key: {
       fromMe: overrides.fromMe ?? false,
       remoteJid: overrides.remoteJid ?? "919999999999@s.whatsapp.net",
+      remoteJidAlt: overrides.remoteJidAlt,
       id: overrides.id === undefined ? "WA-ID-1" : overrides.id,
     },
     message: overrides.message === undefined ? { conversation: "Hello" } : overrides.message,
@@ -54,6 +56,7 @@ describe("parseIncomingMessage — text", () => {
   it("parses a plain text message", () => {
     expect(parseIncomingMessage(buildMessage({ message: { conversation: "Hello" } }))).toEqual({
       from: "919999999999",
+      fromIsLid: false,
       type: "text",
       text: "Hello",
       media: null,
@@ -185,5 +188,32 @@ describe("parseIncomingMessage — other types", () => {
 
     expect(result?.type).toBe("unsupported");
     expect(result?.text).toBe("[Unsupported message type: pollCreationMessage]");
+  });
+});
+
+describe("parseIncomingMessage — LID senders", () => {
+  it("uses the phone number Baileys gives alongside a LID", () => {
+    const result = parseIncomingMessage(
+      buildMessage({ remoteJid: "248600000000055@lid", remoteJidAlt: "919999999999:3@s.whatsapp.net" })
+    );
+
+    expect(result?.from).toBe("919999999999");
+    expect(result?.fromIsLid).toBe(false);
+  });
+
+  it("flags a LID sender when no phone number is known", () => {
+    const result = parseIncomingMessage(buildMessage({ remoteJid: "248600000000055@lid" }));
+
+    expect(result?.from).toBe("248600000000055");
+    expect(result?.fromIsLid).toBe(true);
+  });
+
+  it("ignores remoteJidAlt for a normal phone-number chat", () => {
+    const result = parseIncomingMessage(
+      buildMessage({ remoteJid: "919999999999@s.whatsapp.net", remoteJidAlt: "248600000000055@lid" })
+    );
+
+    expect(result?.from).toBe("919999999999");
+    expect(result?.fromIsLid).toBe(false);
   });
 });

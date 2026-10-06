@@ -7,7 +7,7 @@ import type { FastifyBaseLogger } from "fastify";
 import type { Config } from "../config.js";
 import { notifyLaravel } from "./callbacks.js";
 import { decideOnClose } from "./closeReason.js";
-import { parseIncomingMessage } from "./incomingMessage.js";
+import { jidDigits, parseIncomingMessage } from "./incomingMessage.js";
 import type { IncomingMedia } from "./incomingMessage.js";
 import { MediaTooLargeError, mediaFileName, saveMediaStream } from "./media.js";
 import { parseStatusUpdate } from "./statusUpdate.js";
@@ -259,12 +259,27 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
         continue;
       }
 
+      // A LID sender with no phone number on the message: ask Baileys' own
+      // LID -> phone-number store. If that doesn't know either, the message
+      // is still forwarded, flagged so Laravel never replies to the LID.
+      if (parsed.fromIsLid && msg.key.remoteJid) {
+        try {
+          const pnJid = await socket.signalRepository.lidMapping.getPNForLID(msg.key.remoteJid);
+          if (pnJid?.includes("@s.whatsapp.net")) {
+            parsed.from = jidDigits(pnJid);
+            parsed.fromIsLid = false;
+          }
+        } catch (err) {
+          logger.warn({ instanceId, err }, "Could not look up the phone number for a LID sender");
+        }
+      }
+
       // Download the file first, so Laravel gets told where it is.
       const mediaResult = parsed.media
         ? await downloadMedia(msg, parsed.media, parsed.whatsappMessageId, instanceId, socket, config, logger)
         : null;
 
-      logger.info({ instanceId, from: parsed.from, type: parsed.type }, "Forwarding incoming message to Laravel");
+      logger.info({ instanceId, from: parsed.from, fromIsLid: parsed.fromIsLid, type: parsed.type }, "Forwarding incoming message to Laravel");
 
       await notifyLaravel(
         config,
@@ -272,6 +287,7 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
           event: "message.received",
           instance_id: instanceId,
           from: parsed.from,
+          from_is_lid: parsed.fromIsLid,
           type: parsed.type,
           message: parsed.text,
           whatsapp_message_id: parsed.whatsappMessageId,

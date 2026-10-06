@@ -17,7 +17,8 @@ export type WorkerEvent =
   | {
       event: "message.received";
       instance_id: string;
-      from: string;
+      from: string; // phone number digits — or a LID's digits when from_is_lid
+      from_is_lid: boolean;
       type: IncomingType;
       message: string; // text, caption or summary — may be ""
       whatsapp_message_id: string;

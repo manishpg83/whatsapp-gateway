@@ -21,7 +21,11 @@ export type IncomingMedia = {
 };
 
 export type ParsedIncomingMessage = {
+  // The sender's phone number (digits). When WhatsApp hides it behind a
+  // LID (a private id) and gives no phone number, this is the LID's digits
+  // instead and fromIsLid is true — never reply to it as a phone number.
   from: string;
+  fromIsLid: boolean;
   type: IncomingType;
   // Message text, the media caption, or a readable summary (location,
   // contact, unsupported). May be "" — e.g. a photo with no caption.
@@ -145,14 +149,38 @@ function build(
   text: string,
   mediaInfo: IncomingMedia | null
 ): ParsedIncomingMessage {
+  const sender = senderOf(remoteJid, msg.key.remoteJidAlt);
+
   return {
-    from: remoteJid.split(/[:@]/)[0],
+    from: sender.from,
+    fromIsLid: sender.fromIsLid,
     type,
     text,
     media: mediaInfo,
     whatsappMessageId: msg.key.id!,
     timestamp: new Date(Number(msg.messageTimestamp ?? 0) * 1000).toISOString(),
   };
+}
+
+/**
+ * "919999999999:9@s.whatsapp.net" -> "919999999999". For a LID chat
+ * ("123…@lid"), Baileys 7 usually also gives the phone-number JID in
+ * key.remoteJidAlt — use that when it's there.
+ */
+export function senderOf(remoteJid: string, remoteJidAlt?: string | null): { from: string; fromIsLid: boolean } {
+  if (!remoteJid.endsWith("@lid")) {
+    return { from: jidDigits(remoteJid), fromIsLid: false };
+  }
+
+  if (remoteJidAlt?.endsWith("@s.whatsapp.net")) {
+    return { from: jidDigits(remoteJidAlt), fromIsLid: false };
+  }
+
+  return { from: jidDigits(remoteJid), fromIsLid: true };
+}
+
+export function jidDigits(jid: string): string {
+  return jid.split(/[:@]/)[0];
 }
 
 function media(
