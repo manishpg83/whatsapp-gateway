@@ -2162,3 +2162,26 @@ html:has(body.landing) {
         display: none;
     }
 }
+
+/* /pricing comparison table: on phones the plan columns scroll sideways
+   while the feature column stays put. */
+.pr-compare {
+    min-width: 560px;
+}
+
+.pr-compare th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    width: 150px;
+    min-width: 150px;
+    max-width: 150px;
+    background: var(--bs-table-bg, #fff);
+    box-shadow: inset -1px 0 0 rgba(16, 35, 28, 0.08);
+}
+
+@media (max-width: 575.98px) {
+    .pr-compare {
+        font-size: 0.85rem;
+    }
+}

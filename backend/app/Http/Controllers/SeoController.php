@@ -42,6 +42,7 @@ class SeoController extends Controller
         $pages = [
             [route('home'), null, 'weekly', '1.0'],
             [route('register'), null, 'monthly', '0.8'],
+            [route('pricing'), null, 'monthly', '0.9'],
             [route('docs.index'), null, 'monthly', '0.9'],
             [route('contact'), null, 'monthly', '0.6'],
             [route('login'), null, 'monthly', '0.5'],

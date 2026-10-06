@@ -27,6 +27,7 @@ use App\Http\Controllers\InstanceController;
 use App\Http\Controllers\InternalSessionsController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MessageMediaController;
+use App\Http\Controllers\PricingController;
 use App\Http\Controllers\PrivacyController;
 use App\Http\Controllers\SeoController;
 use App\Http\Controllers\TermsController;
@@ -43,6 +44,7 @@ Route::get('/terms', TermsController::class)->name('terms');
 Route::get('/privacy', PrivacyController::class)->name('privacy');
 // Public so developers (and search engines) can read it before signing up.
 Route::get('/docs', ApiDocsController::class)->name('docs.index');
+Route::get('/pricing', PricingController::class)->name('pricing');
 
 // For search engines. public/robots.txt was removed so this route (which
 // knows the real domain for the Sitemap line) is what gets served.

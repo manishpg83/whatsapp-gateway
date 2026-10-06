@@ -3,7 +3,7 @@
      landing.css; the `landing` class on the <nav> itself gives it the
      landing colours and font on any page.
      $onLanding (default false): section links are plain #anchors on the
-     landing page, and point back to it (/#pricing) everywhere else. --}}
+     home page, and point back to it (/#features) everywhere else. --}}
 @php
     $onLanding = $onLanding ?? false;
     $anchor = fn (string $id) => $onLanding ? '#'.$id : route('home').'#'.$id;
@@ -24,7 +24,7 @@
             <ul class="navbar-nav mx-lg-auto gap-lg-2">
                 <li class="nav-item"><a class="nav-link" href="{{ $anchor('features') }}">Features</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ $anchor('how-it-works') }}">How it works</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ $anchor('pricing') }}">Pricing</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('pricing') ? 'active' : '' }}" href="{{ route('pricing') }}">Pricing</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ $anchor('faq') }}">FAQ</a></li>
                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('docs.index') ? 'active' : '' }}" href="{{ route('docs.index') }}">API Docs</a></li>
             </ul>

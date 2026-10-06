@@ -19,7 +19,7 @@
     @vite(['resources/css/app.css', 'resources/css/landing.css', 'resources/js/app.js', 'resources/js/landing.js'])
 </head>
 <body class="landing d-flex flex-column min-vh-100">
-    @include('partials.site-nav', ['onLanding' => true])
+    @include('partials.site-nav', ['onLanding' => request()->routeIs('home')])
 
     <main class="flex-grow-1">
         @if (session('status') || session('error'))
