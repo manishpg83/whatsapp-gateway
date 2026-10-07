@@ -96,6 +96,26 @@ class SeoTest extends TestCase
             ->assertSee('Sitemap: '.route('sitemap'));
     }
 
+    public function test_robots_txt_never_blocks_a_page_in_the_sitemap(): void
+    {
+        $robots = $this->get('/robots.txt')->getContent();
+        preg_match_all('/^Disallow: (\S+)$/m', $robots, $disallowed);
+
+        preg_match_all('#<loc>([^<]+)</loc>#', $this->get('/sitemap.xml')->getContent(), $locs);
+        $this->assertNotEmpty($locs[1]);
+
+        foreach ($locs[1] as $url) {
+            $path = parse_url($url, PHP_URL_PATH) ?: '/';
+
+            foreach ($disallowed[1] as $rule) {
+                $this->assertFalse(str_starts_with($path, $rule), "robots.txt \"Disallow: {$rule}\" blocks {$path}, which is in the sitemap.");
+            }
+        }
+
+        // The public API docs in particular must be crawlable.
+        $this->assertStringNotContainsString('Disallow: /docs', $robots);
+    }
+
     public function test_sitemap_lists_only_public_pages(): void
     {
         $this->get('/sitemap.xml')

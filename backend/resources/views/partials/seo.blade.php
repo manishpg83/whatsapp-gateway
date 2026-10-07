@@ -41,7 +41,10 @@
 <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
 
 {{-- Open Graph (WhatsApp, Facebook, LinkedIn link previews) --}}
-<meta property="og:type" content="website">
+{{-- "website" by default; a page can set @section('og_type', 'article') and
+     @push('og_meta') extra tags (the guides do). --}}
+<meta property="og:type" content="@yield('og_type', 'website')">
+@stack('og_meta')
 <meta property="og:site_name" content="{{ $appName }}">
 <meta property="og:locale" content="{{ \App\Support\Site::locale() }}">
 <meta property="og:title" content="{{ $ogTitle }}">

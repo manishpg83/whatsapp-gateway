@@ -16,6 +16,26 @@ class GuideTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_guides_are_marked_as_articles_with_their_own_dates(): void
+    {
+        foreach (Guides::all() as $slug => $guide) {
+            $this->get('/guides/'.$slug)->assertOk()
+                ->assertSee('<meta property="og:type" content="article">', false)
+                ->assertSee('<meta property="article:published_time" content="'.$guide['published'].'">', false)
+                ->assertSee('<meta property="article:modified_time" content="'.$guide['updated'].'">', false)
+                ->assertSee('"datePublished":"'.$guide['published'].'"', false)
+                ->assertSee('"dateModified":"'.$guide['updated'].'"', false)
+                ->assertSee('"author":{"@type":"Organization"', false);
+        }
+
+        // Every other page stays a "website".
+        foreach (['/', '/guides', '/pricing', '/docs'] as $path) {
+            $this->get($path)->assertOk()
+                ->assertSee('<meta property="og:type" content="website">', false)
+                ->assertDontSee('article:published_time', false);
+        }
+    }
+
     public function test_the_guides_index_lists_every_guide(): void
     {
         $response = $this->get('http://localhost/guides')

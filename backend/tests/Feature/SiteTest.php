@@ -46,7 +46,10 @@ class SiteTest extends TestCase
             $this->get($site.'/')
                 ->assertSee('<title>WhatsApp REST API Without Business Verification - InstaMessage</title>', false)
                 ->assertSee('<meta name="description" content="Connect your WhatsApp number by QR code and send messages, media &amp; webhooks via REST API. Free plan, no Meta approval. Live in minutes.">', false)
-                ->assertSee('alt="InstaMessage logo"', false)
+                // Link previews (WhatsApp, Facebook, X) use the same title as the page.
+                ->assertSee('<meta property="og:title" content="WhatsApp REST API Without Business Verification - InstaMessage">', false)
+                ->assertSee('<meta name="twitter:title" content="WhatsApp REST API Without Business Verification - InstaMessage">', false)
+                ->assertSee('alt="InstaMessage dashboard icon"', false)
                 ->assertSee('"@type":"FAQPage"', false);
         }
     }

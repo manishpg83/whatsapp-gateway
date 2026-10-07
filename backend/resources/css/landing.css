@@ -2462,3 +2462,320 @@ html:has(body.landing) {
         margin-top: 1.25rem;
     }
 }
+
+/* ---------------------------------------------------- Guides index (/guides)
+ * All guides in one horizontal scroller (snaps to each card; prev/next
+ * buttons in landing.js), so a 5th or 6th guide never sits alone on a row.
+ */
+
+.gd-scroller {
+    position: relative;
+}
+
+.gd-scroller-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.gd-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--lp-muted);
+}
+
+.gd-arrows {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.gd-arrow {
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--lp-navy);
+    background: #fff;
+    border: 1px solid var(--lp-border);
+    border-radius: 50%;
+    box-shadow: var(--lp-shadow-sm);
+    transition: background-color 0.2s, color 0.2s, transform 0.2s var(--lp-ease), opacity 0.2s;
+}
+
+.gd-arrow:hover:not(:disabled) {
+    color: #fff;
+    background: var(--lp-green);
+    transform: translateY(-2px);
+}
+
+.gd-arrow:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+/* Hidden scrollbar; cards snap into place. The padding leaves room for the
+   card shadows and hover lift; the negative margin keeps the cards lined
+   up with the page edge. */
+.gd-track {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: calc((100% - 3 * 24px) / 3.25);
+    gap: 24px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    padding: 10px 4px 28px;
+    margin: -10px -4px -28px;
+    /* Snap cards to just inside that padding, so the start is scrollLeft 0. */
+    scroll-padding-inline: 4px;
+    /* Soft fade on the right edge hints that there is more to scroll. */
+    mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent);
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent);
+}
+
+.gd-track::-webkit-scrollbar {
+    display: none;
+}
+
+.gd-track:focus-visible {
+    outline: 2px solid var(--lp-green-2);
+    outline-offset: 4px;
+    border-radius: var(--lp-radius);
+}
+
+/* Once scrolled to the end, no fade. */
+.gd-scroller.is-end .gd-track {
+    mask-image: none;
+    -webkit-mask-image: none;
+}
+
+/* ---- Guide card */
+
+.gd-tile {
+    --gd: var(--lp-green);
+    --gd-soft: rgba(16, 185, 129, 0.12);
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: inherit;
+    text-decoration: none;
+    background: #fff;
+    border: 1px solid var(--lp-border);
+    border-radius: var(--lp-radius);
+    box-shadow: var(--lp-shadow-sm);
+    transition: transform 0.35s var(--lp-ease), box-shadow 0.35s var(--lp-ease), border-color 0.35s;
+}
+
+.gd-tile:hover {
+    color: inherit;
+    transform: translateY(-6px);
+    border-color: color-mix(in srgb, var(--gd) 35%, transparent);
+    box-shadow: var(--lp-shadow);
+}
+
+.gd-tone-green { --gd: #0b8457; --gd-soft: rgba(16, 185, 129, 0.12); }
+.gd-tone-blue { --gd: #2563eb; --gd-soft: rgba(59, 130, 246, 0.12); }
+.gd-tone-purple { --gd: #7c3aed; --gd-soft: rgba(139, 92, 246, 0.12); }
+.gd-tone-teal { --gd: #0d9488; --gd-soft: rgba(14, 165, 164, 0.13); }
+.gd-tone-amber { --gd: #c2410c; --gd-soft: rgba(245, 158, 11, 0.15); }
+
+/* Coloured band at the top with the language badge. */
+.gd-tile-band {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    height: 112px;
+    padding: 18px 20px;
+    background:
+        radial-gradient(220px 120px at 100% 0%, rgba(255, 255, 255, 0.7), transparent 70%),
+        linear-gradient(135deg, var(--gd-soft), color-mix(in srgb, var(--gd-soft) 40%, #fff));
+}
+
+.gd-tile-badge {
+    width: 60px;
+    height: 60px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background: var(--gd);
+    border-radius: 18px;
+    box-shadow: 0 12px 24px -12px var(--gd);
+    transition: transform 0.4s var(--lp-ease);
+}
+
+.gd-tile-badge .bi {
+    font-size: 1.6rem;
+}
+
+.gd-tile:hover .gd-tile-badge {
+    transform: rotate(-6deg) scale(1.05);
+}
+
+.gd-tile-tag {
+    padding: 0.25rem 0.65rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--gd);
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid color-mix(in srgb, var(--gd) 20%, transparent);
+    border-radius: 999px;
+}
+
+.gd-tile-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 18px 20px 20px;
+}
+
+.gd-tile-lang {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--gd);
+}
+
+.gd-tile-title {
+    font-size: 1.08rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--lp-navy);
+    margin: 0.35rem 0 0.5rem;
+}
+
+/* Three lines at most, so every card is the same height. */
+.gd-tile-text {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--lp-muted);
+    margin-bottom: 1.1rem;
+}
+
+.gd-tile-go {
+    margin-top: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--gd);
+}
+
+.gd-tile-go .bi {
+    transition: transform 0.25s var(--lp-ease);
+}
+
+.gd-tile:hover .gd-tile-go .bi {
+    transform: translateX(4px);
+}
+
+/* ---- "Using another language?" call-out */
+
+.gd-more {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2.5rem;
+    padding: 1.1rem 1.25rem;
+    background: var(--lp-ice);
+    border: 1px solid var(--lp-border);
+    border-radius: var(--lp-radius);
+}
+
+.gd-more-icon {
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: var(--lp-blue);
+    background: rgba(59, 130, 246, 0.12);
+    border-radius: 14px;
+}
+
+.gd-more-text {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.92rem;
+    color: var(--lp-muted);
+}
+
+.gd-more-title {
+    font-weight: 700;
+    color: var(--lp-navy);
+}
+
+@media (max-width: 1199.98px) {
+    .gd-track {
+        grid-auto-columns: calc((100% - 2 * 24px) / 2.4);
+    }
+}
+
+@media (max-width: 767.98px) {
+    .gd-track {
+        grid-auto-columns: calc((100% - 24px) / 1.6);
+    }
+}
+
+@media (max-width: 575.98px) {
+    /* Phones: one card and a peek of the next; swipe to scroll. */
+    .gd-track {
+        grid-auto-columns: 82%;
+        gap: 14px;
+    }
+
+    .gd-arrow {
+        width: 36px;
+        height: 36px;
+    }
+
+    .gd-tile-band {
+        height: 92px;
+        padding: 14px 16px;
+    }
+
+    .gd-tile-badge {
+        width: 50px;
+        height: 50px;
+        font-size: 1.05rem;
+        border-radius: 15px;
+    }
+
+    .gd-tile-body {
+        padding: 14px 16px 16px;
+    }
+
+    .gd-more {
+        flex-wrap: wrap;
+    }
+
+    .gd-more .lp-btn {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gd-track {
+        scroll-behavior: auto;
+    }
+}

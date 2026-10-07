@@ -125,3 +125,12 @@ php artisan tinker
 >>> $u = App\Models\User::where('email', 'admin@admin.com')->first();
 >>> $u->is_admin = true;
 >>> $u->save();
+
+In Live server 
+------------------------------------------------------------------
+To run npm from backend directory and if permission issue comes
+cd /var/www/html/projects/whatsapp-gateway
+sudo su
+Password: root
+npm ci
+npm run dev

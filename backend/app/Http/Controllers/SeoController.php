@@ -24,7 +24,7 @@ class SeoController extends Controller
             'Disallow: /messages',
             'Disallow: /billing',
             'Disallow: /account',
-            'Disallow: /docs',
+            // Not /docs: the API docs are public and meant to be found.
             'Disallow: /api-logs',
             'Disallow: /api/',
             'Disallow: /internal/',
@@ -54,8 +54,8 @@ class SeoController extends Controller
         ];
 
         // Every tutorial under /guides.
-        foreach (array_keys(Guides::all()) as $slug) {
-            $pages[] = [route('guides.show', $slug), Guides::UPDATED, 'monthly', '0.7'];
+        foreach (Guides::all() as $slug => $guide) {
+            $pages[] = [route('guides.show', $slug), $guide['updated'], 'monthly', '0.7'];
         }
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";

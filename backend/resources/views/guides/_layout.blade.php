@@ -4,10 +4,20 @@
 
 @section('title', $guide['title'])
 @section('meta_description', $guide['description'])
+@section('og_type', 'article')
 
 @php
-    $updated = \Illuminate\Support\Carbon::parse(\App\Support\Guides::UPDATED);
+    $published = \Illuminate\Support\Carbon::parse($guide['published']);
+    $updated = \Illuminate\Support\Carbon::parse($guide['updated']);
 @endphp
+
+{{-- Open Graph article details (shown in link previews; read by search engines). --}}
+@push('og_meta')
+<meta property="article:published_time" content="{{ $published->toDateString() }}">
+<meta property="article:modified_time" content="{{ $updated->toDateString() }}">
+<meta property="article:section" content="Guides">
+<meta property="article:author" content="{{ config('company.website') }}">
+@endpush
 
 @push('structured_data')
 <script type="application/ld+json">{!! json_encode([
@@ -19,7 +29,7 @@
             'description' => $guide['description'],
             'url' => url()->current(),
             'inLanguage' => \App\Support\Site::language(),
-            'datePublished' => $updated->toDateString(),
+            'datePublished' => $published->toDateString(),
             'dateModified' => $updated->toDateString(),
             'proficiencyLevel' => 'Beginner',
             'author' => ['@type' => 'Organization', 'name' => config('company.name'), 'url' => config('company.website')],

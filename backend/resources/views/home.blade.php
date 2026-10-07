@@ -1,7 +1,7 @@
 @extends('layouts.landing')
 
 @section('title', 'WhatsApp REST API Without Business Verification')
-@section('og_title', 'WhatsApp API for Developers — Send & Receive Messages via REST API')
+{{-- No og_title here: link previews use the same title as the page, so they never drift apart. --}}
 @section('meta_description', 'Connect your WhatsApp number by QR code and send messages, media & webhooks via REST API. Free plan, no Meta approval. Live in minutes.')
 
 @push('structured_data')
@@ -317,7 +317,7 @@
                         <div class="lp-laptop-screen">
                             <div class="lp-app">
                                 <div class="lp-app-side">
-                                    <span class="lp-app-logo"><img src="{{ asset('images/brand/icon-192.png') }}" alt="{{ config('app.name') }} logo"></span>
+                                    <span class="lp-app-logo"><img src="{{ asset('images/brand/icon-192.png') }}" alt="{{ config('app.name') }} dashboard icon"></span>
                                     <span class="active"><i class="bi bi-house-door"></i></span>
                                     <span><i class="bi bi-hdd-stack"></i></span>
                                     <span><i class="bi bi-chat-left-text"></i></span>

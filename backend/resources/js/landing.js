@@ -76,3 +76,32 @@ if (reduceMotion || !('IntersectionObserver' in window)) {
 
     counters.forEach((element) => countObserver.observe(element));
 }
+
+// ---- Guides scroller (/guides): prev/next buttons scroll by one card and
+// switch themselves off at either end. Swiping / trackpad work natively.
+document.querySelectorAll('[data-gd-scroller]').forEach((scroller) => {
+    const track = scroller.querySelector('[data-gd-track]');
+    const prev = scroller.querySelector('[data-gd-prev]');
+    const next = scroller.querySelector('[data-gd-next]');
+
+    const step = () => {
+        const card = track.firstElementChild;
+        const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+        return card ? card.getBoundingClientRect().width + gap : track.clientWidth;
+    };
+
+    const sync = () => {
+        const atStart = track.scrollLeft <= 2;
+        const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
+        prev.disabled = atStart;
+        next.disabled = atEnd;
+        scroller.classList.toggle('is-end', atEnd);
+    };
+
+    const scrollBy = (direction) => track.scrollBy({ left: direction * step(), behavior: reduceMotion ? 'auto' : 'smooth' });
+    prev.addEventListener('click', () => scrollBy(-1));
+    next.addEventListener('click', () => scrollBy(1));
+    track.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync);
+    sync();
+});

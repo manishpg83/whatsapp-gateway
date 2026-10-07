@@ -49,6 +49,25 @@
     </table>
 </div>
 
+<h3 class="h5 fw-bold mt-4" id="attachments">Send a file with an answer</h3>
+<p>
+    An entry can include <strong>one file</strong>: a menu photo, a product video, or a PDF price list. Choose it under
+    <strong>Attach a file</strong> when you add or edit the entry. The customer gets the file, with your answer as its caption.
+</p>
+<ul>
+    <li class="mb-1"><strong>Photos</strong> (JPG, PNG, WEBP) up to 5 MB are sent as an image.</li>
+    <li class="mb-1"><strong>Videos</strong> (MP4, 3GP) up to 16 MB are sent as a video.</li>
+    <li class="mb-1">Anything else &mdash; <strong>PDF, Excel, Word</strong> &mdash; up to 100 MB is sent as a document, with its own file name.</li>
+    <li>To change the file, choose a new one. Tick <strong>Remove</strong> to go back to a text-only answer.</li>
+</ul>
+
+<h3 class="h5 fw-bold mt-4" id="on-off">Switch one entry off</h3>
+<p class="mb-0">
+    Every entry has its own <strong>on/off button</strong>. An entry that's switched off keeps its keywords, file and
+    stats, but the chatbot skips it &mdash; handy for an offer that has ended. It shows an <strong>OFF</strong> badge
+    until you switch it back on.
+</p>
+
 <h2 class="h4 fw-bold mt-5 mb-3" id="matching">How keywords are matched</h2>
 <ul>
     <li class="mb-2"><strong>Capital letters don't matter.</strong> <code>price</code> matches "PRICE" and "Price".</li>
@@ -102,7 +121,8 @@
 <h2 class="h4 fw-bold mt-5 mb-3" id="test">Step 2: Test it before going live</h2>
 <p class="mb-0">
     Use the <strong>Test bot</strong> box on the Chatbot page. Type a message as if you were a customer and it shows
-    which entry would answer and which keywords it found &mdash; or that the bot would stay silent.
+    which entry would answer and which keywords it found &mdash; or that the bot would stay silent. If an entry that's
+    switched off would have matched, it tells you that too.
     <strong>Nothing is sent on WhatsApp</strong>, so you can try as many messages as you like.
 </p>
 
@@ -149,6 +169,38 @@
     The Chatbot page shows how many answers and "closed" messages were sent in the last 7 days, and every entry shows how
     often it has replied. An entry marked <strong>Not used yet</strong> may need better keywords.
 </p>
+
+<h3 class="h5 fw-bold mt-4" id="unanswered">Unanswered questions</h3>
+<p class="mb-0">
+    At the bottom of the Chatbot page, <strong>Unanswered questions</strong> lists recent messages (last 7 days) that none
+    of your entries would answer &mdash; the same question asked several times is shown once, with a count. Click
+    <strong>Add as entry</strong> to turn one into a new entry: the question is filled in for you, so you only add the
+    keywords and the answer. Once an entry matches it, the question disappears from the list.
+</p>
+
+<h2 class="h4 fw-bold mt-5 mb-3" id="csv">Import and export with Excel</h2>
+<p>
+    The <strong>Import / export</strong> card saves you typing when you have many entries. <strong>Export</strong>
+    downloads your entries as a CSV file you can open in Excel; with no entries yet it downloads an empty template.
+    Edit the file, then <strong>Import</strong> it &mdash; into the same number or another one.
+</p>
+<div class="table-responsive">
+    <table class="table table-bordered align-middle small">
+        <thead class="table-light">
+            <tr><th>question</th><th>keywords</th><th>answer</th><th>status</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Prices</td><td>price, cost, rate</td><td>Our sneakers start at {{ \App\Support\Currency::symbol() }}{{ \App\Support\Currency::isZar() ? '499' : '999' }}.</td><td>on</td></tr>
+            <tr><td>Diwali offer</td><td>offer, discount</td><td>20% off until Sunday!</td><td>off</td></tr>
+        </tbody>
+    </table>
+</div>
+<ul class="mb-0">
+    <li class="mb-1">The first row must name the columns. <strong>status</strong> is optional: <code>on</code> or <code>off</code>.</li>
+    <li class="mb-1">A row with the <strong>same question</strong> as an existing entry updates that entry; other rows are added at the bottom.</li>
+    <li class="mb-1">It's <strong>all or nothing</strong>: if any row has a problem, nothing is imported and you see which rows to fix.</li>
+    <li>Files saved by any version of Excel work. Attached files aren't part of the CSV &mdash; add those on the Chatbot page.</li>
+</ul>
 
 <h2 class="h4 fw-bold mt-5 mb-3" id="limits">Limits and plans</h2>
 <ul>
