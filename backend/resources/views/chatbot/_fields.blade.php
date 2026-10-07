@@ -24,6 +24,12 @@
     @error('answer') <div class="invalid-feedback">{{ $message }}</div> @enderror
     <div class="form-text">Sent to the customer when their message has one of the keywords. With a file attached, this is its caption.</div>
 </div>
+<div class="form-check mt-3">
+    <input type="checkbox" class="form-check-input" id="cb-in-menu" name="in_menu" value="1"
+           @checked(old('in_menu', $rule?->in_menu))>
+    <label class="form-check-label" for="cb-in-menu">Show in the numbered menu</label>
+    <div class="form-text mt-0">Its question becomes a numbered option, e.g. "1. {{ $rule?->question ?: 'What are your prices?' }}".</div>
+</div>
 <div class="mt-3">
     <label for="cb-media" class="form-label fw-semibold">Attach a file <span class="fw-normal text-muted">(optional)</span></label>
 

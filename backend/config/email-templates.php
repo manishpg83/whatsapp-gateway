@@ -260,4 +260,24 @@ HTML,
 HTML,
     ],
 
+    'chatbot_handoff' => [
+        'label' => 'Customer wants a person',
+        'sent_when' => 'A customer replies "0" (talk to a person) to the chatbot menu.',
+        'icon' => 'bi-person-raised-hand',
+        'placeholders' => [
+            'customer_phone' => ['The customer\'s WhatsApp number', '+919876543210'],
+            'instance_name' => ['The instance they wrote to', 'Support'],
+            'pause_time' => ['How long the bot stays quiet in that chat', '1 hour'],
+        ],
+        'subject' => 'A customer wants to talk to you on WhatsApp ({customer_phone})',
+        'button_text' => 'Open messages',
+        'body' => <<<'HTML'
+<p>Hi {name},</p>
+<p>A customer on <strong>"{instance_name}"</strong> chose <strong>"Talk to a person"</strong> in your chatbot menu and is waiting for a reply.</p>
+<blockquote>Customer: <strong>{customer_phone}</strong></blockquote>
+<p>Reply to them from your phone (or WhatsApp Web). The chatbot stays quiet in that chat for {pause_time}, so it won't talk over you.</p>
+<p>{button}</p>
+HTML,
+    ],
+
 ];

@@ -587,8 +587,8 @@
                 <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
                     <span class="section-icon" style="background-color: var(--wa-info-light); color: var(--wa-info);"><i class="bi bi-cloud-arrow-up"></i></span>
                     <div class="flex-grow-1">
-                        <h2 class="h5 mb-0">Cloud API fallback <span class="badge text-bg-light border fw-normal small">Optional</span></h2>
-                        <div class="text-muted small">If this device can't send a text message, retry it through your own WhatsApp Business Cloud API number (Optional).</div>
+                        <h2 class="h5 mb-0">WhatsApp Business Cloud API fallback <span class="badge text-bg-light border fw-normal small">Optional</span></h2>
+                        <div class="text-muted small">If this device can't send a text message, retry it through your own WhatsApp Business Cloud API number.</div>
                     </div>
                     @if ($instance->canUseFallback())
                         <span class="badge rounded-pill bg-wa-light text-primary border px-3 py-2"><i class="bi bi-check-circle me-1"></i>Fallback is on</span>

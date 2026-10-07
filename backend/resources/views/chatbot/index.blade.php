@@ -195,6 +195,103 @@
         </div>
     </div>
 
+    {{-- Numbered menu (collapsed until "Edit" is clicked, or a field has an error) --}}
+    @php
+        $menu = $selected->chatbotMenu();
+        $menuOptions = \App\Support\ChatbotMenu::options($rules);
+        $menuErrors = $errors->hasAny(['menu_enabled', 'intro', 'menu_keywords', 'human_reply']);
+    @endphp
+    <div id="menu" class="card shadow-sm mb-4 db-in" style="--i: 2;">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+                <div>
+                    <div class="fw-semibold">
+                        <i class="bi bi-list-ol me-1 text-primary"></i>Numbered menu
+                        @if ($menu->enabled)
+                            <span class="badge rounded-pill bg-wa-light text-primary border ms-1">ON</span>
+                        @else
+                            <span class="badge rounded-pill text-bg-light border ms-1">OFF</span>
+                        @endif
+                    </div>
+                    <div class="small text-muted">
+                        @if ($menu->enabled)
+                            When a customer sends <strong>{{ implode(', ', $menu->keywords) }}</strong>, they get a numbered list and reply with a number.
+                            {{ $menuOptions->count() }} {{ Str::plural('option', $menuOptions->count()) }}{{ $menu->humanOption ? ' + "Talk to a person"' : '' }}.
+                        @else
+                            Optional: customers type "menu" and pick an answer by number — "Reply 1 for prices, 2 for timings".
+                        @endif
+                    </div>
+                    @error('menu_enabled') <div class="small text-danger mt-1">{{ $message }}</div> @enderror
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary flex-shrink-0" data-bs-toggle="collapse" data-bs-target="#menu-form"
+                        aria-expanded="{{ $menuErrors ? 'true' : 'false' }}" aria-controls="menu-form">
+                    <i class="bi bi-pencil me-1"></i>Edit
+                </button>
+            </div>
+
+            <div id="menu-form" class="collapse {{ $menuErrors ? 'show' : '' }}">
+                <div class="row g-4 border-top mt-3 pt-1">
+                    <div class="col-lg-7">
+                        <form method="POST" action="{{ route('chatbot.menu.update', $selected->instance_id) }}">
+                            @csrf
+                            @method('PUT')
+
+                            <div class="form-check form-switch mb-3">
+                                <input type="checkbox" class="form-check-input" role="switch" id="menu-enabled" name="menu_enabled" value="1"
+                                       @checked(old('menu_enabled', $menu->enabled))>
+                                <label class="form-check-label" for="menu-enabled">Use the numbered menu</label>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="menu-intro" class="form-label fw-semibold">First line</label>
+                                <input type="text" id="menu-intro" name="intro" maxlength="500" required value="{{ old('intro', $menu->intro) }}"
+                                       class="form-control @error('intro') is-invalid @enderror">
+                                @error('intro') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                <div class="form-text">Shown above the numbered options, e.g. "Welcome to ABC Shoes! Reply with a number:".</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="menu-keywords" class="form-label fw-semibold">Menu words</label>
+                                <input type="text" id="menu-keywords" name="menu_keywords" maxlength="500" required
+                                       value="{{ old('menu_keywords', implode(', ', $menu->keywords)) }}"
+                                       class="form-control @error('menu_keywords') is-invalid @enderror">
+                                @error('menu_keywords') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                <div class="form-text">Separate with commas. A message with one of these gets the menu — before any entry's keywords, so don't use a word an entry needs.</div>
+                            </div>
+
+                            <div class="form-check form-switch mb-2">
+                                <input type="checkbox" class="form-check-input" role="switch" id="menu-human" name="human_option" value="1"
+                                       @checked(old('human_option', $menu->humanOption))>
+                                <label class="form-check-label" for="menu-human">Add <strong>"0. Talk to a person"</strong></label>
+                            </div>
+                            <div class="mb-1">
+                                <label for="menu-human-reply" class="form-label small fw-semibold mb-1">Reply when they choose 0</label>
+                                <textarea id="menu-human-reply" name="human_reply" rows="2" maxlength="1000"
+                                          class="form-control @error('human_reply') is-invalid @enderror">{{ old('human_reply', $menu->humanReply) }}</textarea>
+                                @error('human_reply') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                <div class="form-text">Then the bot stays quiet in that chat ({{ $selected->chatbot_pause_minutes > 0 ? \App\Models\ChatbotPause::DURATIONS[$selected->chatbot_pause_minutes] ?? $selected->chatbot_pause_minutes.' minutes' : '1 hour' }}) and you get an email so you can reply.</div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-check-lg me-1"></i>Save menu</button>
+                        </form>
+                    </div>
+
+                    <div class="col-lg-5">
+                        <div class="small fw-semibold mb-2">What customers see</div>
+                        <div class="bk-bubble bk-bubble-text">{{ $menu->text($menuOptions) }}</div>
+                        <div class="small text-muted mt-2">
+                            @if ($menuOptions->isEmpty())
+                                <i class="bi bi-exclamation-circle text-warning me-1"></i>No options yet — tick <strong>"Show in the numbered menu"</strong> on the entries you want listed.
+                            @else
+                                Options are the entries ticked <strong>"Show in the numbered menu"</strong>, in your list order (max {{ \App\Support\ChatbotMenu::MAX_OPTIONS }}). Customers reply with a number within {{ \App\Support\ChatbotMenu::VALID_MINUTES }} minutes.
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Pause when the owner replies by hand --}}
     <div id="pause" class="card shadow-sm mb-4 db-in" style="--i: 2;">
         <div class="card-body">
@@ -338,7 +435,26 @@
 
                         @if ($test)
                             <div class="mt-3 pt-3 border-top">
-                                @if ($testRule)
+                                @if (array_key_exists('menu_choice', $test))
+                                    {{-- The numbered menu handles this message (it's checked before keywords). --}}
+                                    @if ($test['menu_text'] !== null)
+                                        <div class="small text-success fw-semibold mb-2"><i class="bi bi-list-ol me-1"></i>Menu word — the bot sends the numbered menu:</div>
+                                        <div class="bk-bubble bk-bubble-text">{{ $test['menu_text'] }}</div>
+                                    @elseif ($test['handoff'])
+                                        <div class="small text-success fw-semibold mb-2"><i class="bi bi-person-raised-hand me-1"></i>Option 0 — Talk to a person:</div>
+                                        <div class="bk-bubble bk-bubble-text">{{ $selected->chatbotMenu()->humanReply }}</div>
+                                        <div class="small text-muted mt-2">The bot then stays quiet in that chat and you get an email.</div>
+                                    @elseif ($testRule)
+                                        <div class="small text-success fw-semibold mb-2"><i class="bi bi-check-circle me-1"></i>Option {{ $test['menu_choice'] }} — {{ $testRule->question }}</div>
+                                        <div class="bk-bubble bk-bubble-text">{{ $testRule->answer }}</div>
+                                        @include('chatbot._attachment', ['rule' => $testRule])
+                                    @else
+                                        <div class="small text-muted"><i class="bi bi-arrow-repeat me-1"></i>{{ $test['menu_choice'] }} isn't on the menu — the bot sends the menu again.</div>
+                                    @endif
+                                    @if ($test['menu_text'] === null)
+                                        <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>A number only counts within {{ \App\Support\ChatbotMenu::VALID_MINUTES }} minutes of the customer getting the menu; otherwise it's matched like any other message.</div>
+                                    @endif
+                                @elseif ($testRule)
                                     <div class="small text-success fw-semibold mb-2">
                                         <i class="bi bi-check-circle me-1"></i>Matched entry {{ $rules->search(fn ($r) => $r->id === $testRule->id) + 1 }}: {{ $testRule->question }}
                                     </div>
@@ -377,6 +493,9 @@
                                 <div class="d-flex justify-content-between align-items-start gap-2">
                                     <div class="fw-semibold text-break">
                                         {{ $loop->iteration }}. {{ $rule->question }}
+                                        @if ($rule->in_menu)
+                                            <span class="badge rounded-pill bg-wa-light text-primary border ms-1" title="Shown in the numbered menu"><i class="bi bi-list-ol me-1"></i>Menu</span>
+                                        @endif
                                         @unless ($rule->enabled)
                                             <span class="badge rounded-pill text-bg-light border ms-1"><i class="bi bi-pause-circle me-1"></i>OFF</span>
                                         @endunless

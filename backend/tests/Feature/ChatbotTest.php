@@ -776,6 +776,243 @@ class ChatbotTest extends TestCase
         $this->actingAs(User::factory()->create())->get($url)->assertNotFound();
     }
 
+    // --- Numbered menu ---------------------------------------------------------------
+
+    /**
+     * A connected bot with three entries, two of them in the menu, and the
+     * menu switched on.
+     */
+    private function menuInstance(array $menu = []): WhatsappSession
+    {
+        Http::fake(['*' => Http::response(['message_id' => 'WA-BOT'], 200)]);
+        $instance = WhatsappSession::factory()->connected()->create([
+            'chatbot_enabled' => true,
+            'chatbot_menu' => ['enabled' => true, 'intro' => 'Welcome! Reply with a number:', 'keywords' => ['menu', 'start'], ...$menu],
+        ]);
+        $instance->chatbotRules()->create(['position' => 1, 'question' => 'Prices', 'keywords' => ['price'], 'answer' => 'From 499.', 'in_menu' => true]);
+        $instance->chatbotRules()->create(['position' => 2, 'question' => 'Secret', 'keywords' => ['secret'], 'answer' => 'Not listed.', 'in_menu' => false]);
+        $instance->chatbotRules()->create(['position' => 3, 'question' => 'Timings', 'keywords' => ['open'], 'answer' => '10 to 7.', 'in_menu' => true]);
+
+        return $instance;
+    }
+
+    private function lastReply(): ?Message
+    {
+        return Message::where('direction', 'outgoing')->latest('id')->first();
+    }
+
+    public function test_a_menu_word_gets_the_numbered_menu(): void
+    {
+        $instance = $this->menuInstance();
+
+        $this->receive($instance, 'Menu please');
+
+        $this->assertSame("Welcome! Reply with a number:\n1. Prices\n2. Timings\n0. Talk to a person", $this->lastReply()->body);
+        $this->assertSame('menu', $this->lastReply()->bot_reply);
+        $this->assertSame(
+            $instance->chatbotRules()->whereIn('question', ['Prices', 'Timings'])->orderBy('position')->pluck('id')->all(),
+            $instance->chatbotMenuStates()->sole()->rule_ids,
+        );
+    }
+
+    public function test_a_number_after_the_menu_gets_that_answer(): void
+    {
+        $instance = $this->menuInstance();
+        $this->receive($instance, 'menu');
+
+        $this->receive($instance, ' 2. ');
+
+        $this->assertSame('10 to 7.', $this->lastReply()->body);
+        $this->assertSame('answer', $this->lastReply()->bot_reply);
+        $this->assertSame($instance->chatbotRules()->where('question', 'Timings')->value('id'), $this->lastReply()->chatbot_rule_id);
+
+        // The menu stays open, so another option can be picked.
+        $this->receive($instance, '1');
+        $this->assertSame('From 499.', $this->lastReply()->body);
+    }
+
+    public function test_numbers_keep_their_meaning_if_the_list_is_reordered(): void
+    {
+        $instance = $this->menuInstance();
+        $this->receive($instance, 'menu');
+
+        // The owner moves Timings to the top after the menu was sent.
+        $instance->chatbotRules()->where('question', 'Timings')->update(['position' => 0]);
+
+        $this->receive($instance, '1');
+        $this->assertSame('From 499.', $this->lastReply()->body);
+    }
+
+    public function test_a_number_not_on_the_menu_sends_the_menu_again(): void
+    {
+        $instance = $this->menuInstance();
+        $this->receive($instance, 'menu');
+
+        $this->receive($instance, '7');
+
+        $this->assertSame('menu', $this->lastReply()->bot_reply);
+        $this->assertSame(2, Message::where('bot_reply', 'menu')->count());
+    }
+
+    public function test_a_number_without_an_open_menu_is_an_ordinary_message(): void
+    {
+        $instance = $this->menuInstance();
+
+        $this->receive($instance, '1');
+        $this->assertSame(0, $this->outgoingCount());
+
+        // ...and so is one after the menu has expired.
+        $this->receive($instance, 'menu');
+        $this->travel(\App\Support\ChatbotMenu::VALID_MINUTES + 1)->minutes();
+        $this->receive($instance, '1');
+        $this->assertSame(1, $this->outgoingCount());
+    }
+
+    public function test_keywords_still_work_with_the_menu_on(): void
+    {
+        $instance = $this->menuInstance();
+
+        $this->receive($instance, 'what is the price?');
+
+        $this->assertSame('From 499.', $this->lastReply()->body);
+    }
+
+    public function test_zero_hands_the_chat_to_a_person_and_emails_the_owner(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+        $instance = $this->menuInstance();
+        $instance->update(['chatbot_pause_minutes' => 30]);
+        $this->receive($instance, 'menu');
+
+        $this->receive($instance, '0');
+
+        $this->assertSame(\App\Support\ChatbotMenu::DEFAULTS['human_reply'], $this->lastReply()->body);
+        $this->assertSame('handoff', $this->lastReply()->bot_reply);
+        $this->assertSame(0, $instance->chatbotMenuStates()->count());
+
+        $pause = $instance->chatbotPauses()->sole();
+        $this->assertSame('919999999999', $pause->phone);
+        $this->assertEqualsWithDelta(now()->addMinutes(30)->timestamp, $pause->paused_until->timestamp, 5);
+
+        \Illuminate\Support\Facades\Notification::assertSentTo($instance->user, \App\Notifications\ChatbotHandoff::class,
+            fn ($notification) => $notification->customerPhone === '919999999999' && $notification->pauseTime === '30 minutes');
+
+        // The bot is quiet in that chat now.
+        $this->receive($instance, 'what is the price?');
+        $this->assertSame('handoff', $this->lastReply()->bot_reply);
+    }
+
+    public function test_zero_pauses_for_an_hour_when_the_owner_chose_dont_pause(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+        $instance = $this->menuInstance();
+        $instance->update(['chatbot_pause_minutes' => 0]);
+        $this->receive($instance, 'menu');
+
+        $this->receive($instance, '0');
+
+        $this->assertEqualsWithDelta(now()->addHour()->timestamp, $instance->chatbotPauses()->sole()->paused_until->timestamp, 5);
+    }
+
+    public function test_the_handoff_email_uses_the_template(): void
+    {
+        $instance = WhatsappSession::factory()->create(['name' => 'Support']);
+        $mail = (new \App\Notifications\ChatbotHandoff($instance, '919812345678', '1 hour'))->toMail($instance->user);
+
+        $this->assertSame('A customer wants to talk to you on WhatsApp (+919812345678)', $mail->subject);
+        $this->assertStringContainsString('"Support"', (string) $mail->render());
+        $this->assertStringContainsString('+919812345678', (string) $mail->render());
+    }
+
+    public function test_without_the_zero_option_it_is_left_out(): void
+    {
+        $instance = $this->menuInstance(['human_option' => false]);
+        $this->receive($instance, 'menu');
+
+        $this->assertStringNotContainsString('0. Talk to a person', $this->lastReply()->body);
+
+        $this->receive($instance, '0');
+        $this->assertSame('menu', $this->lastReply()->bot_reply); // not on the menu: sent again
+    }
+
+    public function test_with_the_menu_off_menu_words_are_ordinary_messages(): void
+    {
+        $instance = $this->menuInstance(['enabled' => false]);
+
+        $this->receive($instance, 'menu');
+
+        $this->assertSame(0, $this->outgoingCount());
+    }
+
+    public function test_menu_settings_can_be_saved_and_shown(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $instance->chatbotRules()->create(['question' => 'Prices', 'keywords' => ['price'], 'answer' => 'A', 'in_menu' => true]);
+
+        $this->actingAs($instance->user)->put("/chatbot/{$instance->instance_id}/menu", [
+            'menu_enabled' => 1, 'intro' => 'Hello! Pick one:', 'menu_keywords' => 'Menu,  OPTIONS', 'human_option' => 1, 'human_reply' => 'Hold on!',
+        ])->assertRedirect(route('chatbot.index', ['instance' => $instance->instance_id]).'#menu');
+
+        $menu = $instance->fresh()->chatbotMenu();
+        $this->assertTrue($menu->enabled);
+        $this->assertSame(['menu', 'options'], $menu->keywords);
+        $this->assertSame('Hold on!', $menu->humanReply);
+
+        $this->actingAs($instance->user)->get('/chatbot')->assertOk()
+            ->assertSee('Numbered menu')
+            ->assertSee("Hello! Pick one:\n1. Prices\n0. Talk to a person", false);
+    }
+
+    public function test_the_menu_cant_be_switched_on_empty(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+
+        $this->actingAs($instance->user)->put("/chatbot/{$instance->instance_id}/menu", [
+            'menu_enabled' => 1, 'intro' => 'Hi', 'menu_keywords' => 'menu',
+        ])->assertSessionHasErrors('menu_enabled');
+
+        $this->assertNull($instance->fresh()->chatbot_menu);
+    }
+
+    public function test_another_users_menu_cant_be_changed(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+
+        $this->actingAs(User::factory()->create())->put("/chatbot/{$instance->instance_id}/menu", [
+            'menu_enabled' => 0, 'intro' => 'Hi', 'menu_keywords' => 'menu',
+        ])->assertNotFound();
+    }
+
+    public function test_show_in_menu_is_saved_with_the_entry(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $base = "/chatbot/{$instance->instance_id}/rules";
+
+        $this->actingAs($instance->user)->post($base, $this->form(['in_menu' => 1]));
+        $rule = ChatbotRule::sole();
+        $this->assertTrue($rule->in_menu);
+
+        $this->actingAs($instance->user)->put("{$base}/{$rule->id}", $this->form());
+        $this->assertFalse($rule->fresh()->in_menu);
+    }
+
+    public function test_the_test_box_shows_the_menu_and_its_options(): void
+    {
+        $instance = $this->menuInstance();
+        $url = "/chatbot/{$instance->instance_id}/test";
+
+        $this->actingAs($instance->user)->followingRedirects()->post($url, ['test_message' => 'menu'])
+            ->assertSee('the bot sends the numbered menu', false)
+            ->assertSee("1. Prices\n2. Timings", false);
+
+        $this->actingAs($instance->user)->followingRedirects()->post($url, ['test_message' => '2'])
+            ->assertSee('Option 2 — Timings')
+            ->assertSee('10 to 7.');
+
+        $this->actingAs($instance->user)->followingRedirects()->post($url, ['test_message' => '0'])
+            ->assertSee('Option 0 — Talk to a person');
+    }
+
     // --- CSV import / export ---------------------------------------------------------
 
     private function importCsv(WhatsappSession $instance, string $csv)

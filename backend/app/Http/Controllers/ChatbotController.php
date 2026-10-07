@@ -11,6 +11,7 @@ use App\Services\MediaFetcher;
 use App\Services\PlanLimiter;
 use App\Support\ChatbotCsv;
 use App\Support\ChatbotHours;
+use App\Support\ChatbotMenu;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -361,6 +362,51 @@ class ChatbotController extends Controller
     }
 
     /**
+     * The numbered menu's settings (see App\Support\ChatbotMenu). Its
+     * options are the entries ticked "Show in menu".
+     */
+    public function updateMenu(Request $request, string $instance): RedirectResponse
+    {
+        $whatsappSession = $this->findOwnedInstance($request, $instance);
+        $enabled = $request->boolean('menu_enabled');
+        $humanOption = $request->boolean('human_option');
+
+        $data = $request->validate([
+            'intro' => ['required', 'string', 'max:500'],
+            'menu_keywords' => ['required', 'string', 'max:500'],
+            'human_reply' => [Rule::requiredIf($humanOption), 'nullable', 'string', 'max:1000'],
+        ], [
+            'intro.required' => 'Write the line shown above the options.',
+            'menu_keywords.required' => 'Add at least one menu word.',
+            'human_reply.required' => 'Write the reply for "Talk to a person".',
+        ]);
+
+        $keywords = ChatbotRule::parseKeywords($data['menu_keywords']);
+        if (count($keywords) > ChatbotMenu::MAX_KEYWORDS) {
+            throw ValidationException::withMessages(['menu_keywords' => 'Use at most '.ChatbotMenu::MAX_KEYWORDS.' menu words.']);
+        }
+        if ($error = ChatbotRule::keywordsError($keywords)) {
+            throw ValidationException::withMessages(['menu_keywords' => $error]);
+        }
+
+        $options = ChatbotMenu::options($whatsappSession->chatbotRules()->get());
+        if ($enabled && $options->isEmpty() && ! $humanOption) {
+            throw ValidationException::withMessages(['menu_enabled' => 'Tick "Show in menu" on at least one entry first (or turn on "0. Talk to a person").']);
+        }
+
+        $whatsappSession->update(['chatbot_menu' => [
+            'enabled' => $enabled,
+            'intro' => $data['intro'],
+            'keywords' => $keywords,
+            'human_option' => $humanOption,
+            'human_reply' => $data['human_reply'] ?? ChatbotMenu::DEFAULTS['human_reply'],
+        ]]);
+
+        return redirect()->to(route('chatbot.index', ['instance' => $whatsappSession->instance_id]).'#menu')
+            ->with('status', $enabled ? 'Numbered menu saved.' : 'Numbered menu is off.');
+    }
+
+    /**
      * How long the bot stays quiet in a chat after the owner replies there
      * from their own phone (0 = never pause).
      */
@@ -405,6 +451,23 @@ class ChatbotController extends Controller
         ]);
 
         $rules = $whatsappSession->chatbotRules()->get();
+        $menu = $whatsappSession->chatbotMenu();
+        $options = ChatbotMenu::options($rules);
+        $choice = ChatbotMenu::choice($data['test_message']);
+
+        // Same order as the real bot: the menu first, then the keywords.
+        if ($menu->enabled && ($menu->isRequestedBy($data['test_message']) || $choice !== null)) {
+            return redirect()->to(route('chatbot.index', ['instance' => $whatsappSession->instance_id]).'#test')
+                ->with('chatbot_test', [
+                    'message' => $data['test_message'],
+                    'menu_text' => $choice === null ? $menu->text($options) : null,
+                    'menu_choice' => $choice,
+                    'rule_id' => $choice > 0 ? $options->get($choice - 1)?->id : null,
+                    'handoff' => $choice === 0 && $menu->humanOption,
+                    'keywords' => [],
+                ]);
+        }
+
         $rule = ChatbotRule::bestMatch($rules, $data['test_message']);
 
         return redirect()->to(route('chatbot.index', ['instance' => $whatsappSession->instance_id]).'#test')
@@ -428,6 +491,8 @@ class ChatbotController extends Controller
      */
     private function unansweredQuestions(WhatsappSession $whatsappSession, Collection $rules): Collection
     {
+        $menu = $whatsappSession->chatbotMenu();
+
         return $whatsappSession->messages()
             ->where('direction', 'incoming')
             ->whereIn('type', ChatbotRule::REPLY_TO_TYPES)
@@ -437,6 +502,8 @@ class ChatbotController extends Controller
             ->limit(300)
             ->get(['body', 'from_number', 'created_at'])
             ->reject(fn (Message $message) => ChatbotRule::bestMatch($rules, $message->body) !== null)
+            // With the menu on, "menu" and "2" are answered by the menu, not left unanswered.
+            ->reject(fn (Message $message) => $menu->enabled && ($menu->isRequestedBy($message->body) || ChatbotMenu::choice($message->body) !== null))
             ->groupBy(fn (Message $message) => mb_strtolower(trim(preg_replace('/\s+/u', ' ', $message->body))))
             ->map(fn (Collection $same) => [
                 'body' => trim($same->first()->body),
@@ -474,6 +541,7 @@ class ChatbotController extends Controller
         }
 
         $data['keywords'] = $keywords;
+        $data['in_menu'] = $request->boolean('in_menu');
 
         return $data;
     }

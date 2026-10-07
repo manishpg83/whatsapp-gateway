@@ -144,6 +144,23 @@
 </ul>
 <p class="mb-0">Inside your hours, messages that match nothing get no reply at all, so you can answer them yourself.</p>
 
+<h2 class="h4 fw-bold mt-5 mb-3" id="menu">Optional: a numbered menu</h2>
+<p>
+    Turn on the <strong>Numbered menu</strong> to let customers pick an answer by number. When someone sends a menu word
+    (<code>menu</code> or <code>start</code> by default &mdash; you can change them), they get a list like this:
+</p>
+<div class="bk-bubble-demo border rounded-3 p-3 mb-3 small" style="background: #d9fdd3; white-space: pre-line; max-width: 22rem;">Welcome to ABC Shoes! Reply with a number:
+1. Prices
+2. Timings
+3. Location
+0. Talk to a person</div>
+<ul>
+    <li class="mb-2">The options are your own entries: tick <strong>Show in the numbered menu</strong> on the ones you want listed. They appear in your list order, using each entry's question as the label.</li>
+    <li class="mb-2">Replying with a number within {{ \App\Support\ChatbotMenu::VALID_MINUTES }} minutes sends that entry's answer (and its file). A number that isn't on the list gets the menu again.</li>
+    <li class="mb-2"><strong>0. Talk to a person</strong> (optional) replies "someone will reply soon", pauses the bot in that chat and <strong>sends you an email</strong> with the customer's number, so you can answer them yourself.</li>
+    <li>Keywords keep working as usual &mdash; customers can still just type "price".</li>
+</ul>
+
 <h2 class="h4 fw-bold mt-5 mb-3" id="pause">When you reply yourself, the bot steps back</h2>
 <p>
     If you answer a customer from your own phone (or WhatsApp Web), the chatbot goes quiet <strong>in that chat</strong>,

@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Storage;
  * (`position`, changed with the up/down arrows).
  */
 #[Fillable([
-    'whatsapp_session_id', 'position', 'enabled', 'question', 'keywords', 'answer',
+    'whatsapp_session_id', 'position', 'enabled', 'in_menu', 'question', 'keywords', 'answer',
     'media_type', 'media_path', 'media_mime_type', 'media_file_name', 'media_size',
 ])]
 class ChatbotRule extends Model
@@ -121,6 +121,7 @@ class ChatbotRule extends Model
         return [
             'keywords' => 'array',
             'enabled' => 'boolean',
+            'in_menu' => 'boolean',
         ];
     }
 

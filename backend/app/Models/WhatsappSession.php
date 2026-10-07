@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\ChatbotHours;
+use App\Support\ChatbotMenu;
 use Database\Factories\WhatsappSessionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -28,6 +29,7 @@ use Illuminate\Support\Str;
     'chatbot_enabled',
     'chatbot_hours',
     'chatbot_pause_minutes',
+    'chatbot_menu',
     'cloud_phone_number_id',
     'cloud_access_token',
 ])]
@@ -58,6 +60,7 @@ class WhatsappSession extends Model
             'chatbot_enabled' => 'boolean',
             'chatbot_hours' => 'array',
             'chatbot_pause_minutes' => 'integer',
+            'chatbot_menu' => 'array',
             // The owner's Meta access token — encrypted at rest with APP_KEY.
             'cloud_access_token' => 'encrypted',
         ];
@@ -137,6 +140,21 @@ class WhatsappSession extends Model
     public function chatbotHours(): ChatbotHours
     {
         return new ChatbotHours($this->chatbot_hours);
+    }
+
+    public function chatbotMenu(): ChatbotMenu
+    {
+        return new ChatbotMenu($this->chatbot_menu);
+    }
+
+    /**
+     * Customers who were just sent the numbered menu.
+     *
+     * @return HasMany<ChatbotMenuState, $this>
+     */
+    public function chatbotMenuStates(): HasMany
+    {
+        return $this->hasMany(ChatbotMenuState::class);
     }
 
     /**
