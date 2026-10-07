@@ -835,6 +835,20 @@ class ChatbotTest extends TestCase
         $this->assertSame(2, $instance->chatbotRules()->count());
     }
 
+    public function test_a_tab_separated_file_from_excel_imports(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+
+        // What Excel's "Text (Tab delimited)" save gives, even when named .csv.
+        $this->importCsv($instance, "question\tkeywords\tanswer\tstatus\r\nPrices\t\"price, cost, rate\"\tPlans start at 499\tOn\r\nDiwali Offer\t\"offer, discount\"\t20% off\tOff\r\n")
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', 'Import done: added 2 entries.');
+
+        $rules = $instance->chatbotRules()->get();
+        $this->assertSame(['price', 'cost', 'rate'], $rules[0]->keywords);
+        $this->assertSame([true, false], $rules->pluck('enabled')->all());
+    }
+
     public function test_a_bad_row_imports_nothing(): void
     {
         $instance = WhatsappSession::factory()->create();

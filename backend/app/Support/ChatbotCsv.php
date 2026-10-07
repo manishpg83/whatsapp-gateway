@@ -59,9 +59,14 @@ class ChatbotCsv
             $text = mb_convert_encoding($text, 'UTF-8', 'Windows-1252'); // older Excel CSVs
         }
 
-        // Excel in some regions saves with ";" instead of ",".
+        // Excel doesn't always use ",": "Text (Tab delimited)" and some
+        // older versions save with tabs, and some regions use ";".
         $firstLine = strtok($text, "\r\n") ?: '';
-        $delimiter = str_contains($firstLine, ';') && ! str_contains($firstLine, ',') ? ';' : ',';
+        $delimiter = match (true) {
+            str_contains($firstLine, "\t") => "\t",
+            str_contains($firstLine, ';') && ! str_contains($firstLine, ',') => ';',
+            default => ',',
+        };
 
         $in = fopen('php://temp', 'r+');
         fwrite($in, $text);
