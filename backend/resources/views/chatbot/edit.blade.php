@@ -18,7 +18,7 @@
         </div>
 
         <div class="card shadow-sm db-in" style="--i: 2;">
-            <form method="POST" action="{{ route('chatbot.rules.update', [$instance->instance_id, $rule->id]) }}">
+            <form method="POST" action="{{ route('chatbot.rules.update', [$instance->instance_id, $rule->id]) }}" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 <div class="card-body p-3 p-md-4">

@@ -15,7 +15,8 @@ use Illuminate\Foundation\Queue\Queueable;
  * Chatbot: answers one received message. Queued by WorkerWebhookController
  * (only for a real phone number, never a LID).
  *
- * - A keyword matches: the best entry's answer is sent (any time of day).
+ * - A keyword matches: the best entry's answer is sent (any time of day),
+ *   with its file if it has one.
  * - No match, and business hours are on and it's outside them: the
  *   "we're closed" message is sent (once per person per few hours).
  * - Otherwise nothing is sent.
@@ -59,7 +60,9 @@ class SendChatbotReply implements ShouldQueue
 
         if ($rule) {
             if (! $this->sentRecently($incoming, ['chatbot_rule_id' => $rule->id], now()->subMinutes(ChatbotRule::REPEAT_WAIT_MINUTES))) {
-                $reply = $sender->send($session, $incoming->from_number, $rule->answer);
+                // With an attached file, the answer is sent as its caption.
+                $media = $rule->media();
+                $reply = $sender->send($session, $incoming->from_number, $rule->answer, type: $media ? $rule->media_type : 'text', media: $media);
                 $reply->update(['chatbot_rule_id' => $rule->id, 'bot_reply' => 'answer']);
             }
 

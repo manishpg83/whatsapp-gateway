@@ -79,7 +79,8 @@
 <h3 class="h5 fw-bold mt-4" id="best-match">When more than one entry matches</h3>
 <p>
     Only <strong>one</strong> answer is ever sent. The entry with the <strong>most matching keywords</strong> wins. If two
-    entries match equally, the one <strong>higher in your list</strong> (added first) wins. For example, with these two entries:
+    entries match equally, the one <strong>higher in your list</strong> wins. New entries go to the bottom, and you can move
+    any entry up or down with the arrow buttons. For example, with these two entries:
 </p>
 <ul>
     <li class="mb-1"><strong>Shoes</strong> &mdash; keywords <code>shoes, shoe, boot</code></li>

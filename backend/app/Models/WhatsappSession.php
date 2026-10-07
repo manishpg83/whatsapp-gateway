@@ -150,13 +150,14 @@ class WhatsappSession extends Model
     }
 
     /**
-     * Keyword → answer entries, oldest first (the order they're matched in).
+     * Keyword → answer entries, in the owner's order (on a tie, the higher
+     * one answers). New entries go to the bottom.
      *
      * @return HasMany<ChatbotRule, $this>
      */
     public function chatbotRules(): HasMany
     {
-        return $this->hasMany(ChatbotRule::class)->orderBy('id');
+        return $this->hasMany(ChatbotRule::class)->orderBy('position')->orderBy('id');
     }
 
     /**

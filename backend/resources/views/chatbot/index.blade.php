@@ -239,7 +239,7 @@
     <div class="row g-4">
         {{-- New entry --}}
         <div class="col-lg-4">
-            <div class="card shadow-sm db-in" style="--i: 2;">
+            <div id="new-entry" class="card shadow-sm db-in" style="--i: 2;">
                 <div class="card-body">
                     <h2 class="h6 fw-semibold mb-1"><i class="bi bi-plus-circle me-1 text-primary"></i>New entry</h2>
                     <div class="small text-muted mb-3 text-break">
@@ -254,12 +254,45 @@
                             You've used all your plan's chatbot entries. <a href="{{ route('billing.index') }}" class="alert-link">Upgrade</a> to add more.
                         </div>
                     @endif
-                    <form method="POST" action="{{ route('chatbot.rules.store', $selected->instance_id) }}">
+                    <form method="POST" action="{{ route('chatbot.rules.store', $selected->instance_id) }}" enctype="multipart/form-data">
                         @csrf
-                        @include('chatbot._fields', ['rule' => null])
+                        @include('chatbot._fields', ['rule' => null, 'prefill' => $prefillQuestion])
                         <button type="submit" class="btn btn-primary w-100 mt-3" @disabled($rules->count() >= $max || $planUsed >= $planLimit)>
                             <i class="bi bi-plus-lg me-1"></i>Add entry
                         </button>
+                    </form>
+                </div>
+            </div>
+
+            {{-- Import / export (CSV) --}}
+            <div id="csv" class="card shadow-sm mt-4 db-in" style="--i: 3;">
+                <div class="card-body">
+                    <h2 class="h6 fw-semibold mb-1"><i class="bi bi-filetype-csv me-1 text-primary"></i>Import / export</h2>
+                    <div class="small text-muted mb-3">
+                        Download your entries as a CSV, edit them in Excel, and import them back — or import entries for another instance.
+                    </div>
+
+                    <a href="{{ route('chatbot.export', $selected->instance_id) }}" class="btn btn-sm btn-outline-primary w-100 mb-3">
+                        <i class="bi bi-download me-1"></i>{{ $rules->isEmpty() ? 'Download empty template' : 'Export '.$rules->count().' '.Str::plural('entry', $rules->count()) }}
+                    </a>
+
+                    <form method="POST" action="{{ route('chatbot.import', $selected->instance_id) }}" enctype="multipart/form-data">
+                        @csrf
+                        <label for="cb-csv" class="form-label small fw-semibold">Import a CSV</label>
+                        <input type="file" id="cb-csv" name="csv" accept=".csv,text/csv" required
+                               class="form-control form-control-sm @error('csv') is-invalid @enderror">
+                        @if ($errors->has('csv'))
+                            <div class="invalid-feedback">
+                                @foreach ($errors->get('csv') as $message)
+                                    <div>{{ $message }}</div>
+                                @endforeach
+                            </div>
+                        @endif
+                        <div class="form-text">
+                            Columns: <code>question</code>, <code>keywords</code> (comma-separated), <code>answer</code>, and optional <code>status</code> (on/off).
+                            A row with the same question as an existing entry updates it. Attached files aren't included.
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-outline-primary w-100 mt-2"><i class="bi bi-upload me-1"></i>Import</button>
                     </form>
                 </div>
             </div>
@@ -318,10 +351,16 @@
                                         </div>
                                     @endif
                                     <div class="bk-bubble bk-bubble-text">{{ $testRule->answer }}</div>
+                                    @include('chatbot._attachment', ['rule' => $testRule])
                                 @else
                                     <div class="small text-muted">
                                         <i class="bi bi-slash-circle me-1"></i>No keyword matched — the bot would stay silent and leave this message for you.
                                     </div>
+                                    @if ($offRule = $rules->firstWhere('id', $test['off_rule_id'] ?? null))
+                                        <div class="small text-muted mt-1">
+                                            <i class="bi bi-pause-circle me-1"></i>"{{ $offRule->question }}" would match, but it's switched off.
+                                        </div>
+                                    @endif
                                 @endif
                             </div>
                         @endif
@@ -329,14 +368,19 @@
                 </div>
 
                 <p class="small text-muted mb-3 db-in" style="--i: 4;">
-                    <i class="bi bi-info-circle me-1"></i>If a message matches more than one entry, the one with the most matching keywords answers. On a tie, the higher one in this list wins.
+                    <i class="bi bi-info-circle me-1"></i>If a message matches more than one entry, the one with the most matching keywords answers. On a tie, the higher one in this list wins — use the <i class="bi bi-arrow-up"></i> <i class="bi bi-arrow-down"></i> buttons to change the order.
                 </p>
                 <div class="row g-3">
                     @foreach ($rules as $rule)
-                        <div class="col-md-6">
+                        <div id="rule-{{ $rule->id }}" class="col-md-6">
                             <div class="bk-template-card db-in" style="--i: {{ min($loop->iteration + 3, 12) }};">
                                 <div class="d-flex justify-content-between align-items-start gap-2">
-                                    <div class="fw-semibold text-break">{{ $loop->iteration }}. {{ $rule->question }}</div>
+                                    <div class="fw-semibold text-break">
+                                        {{ $loop->iteration }}. {{ $rule->question }}
+                                        @unless ($rule->enabled)
+                                            <span class="badge rounded-pill text-bg-light border ms-1"><i class="bi bi-pause-circle me-1"></i>OFF</span>
+                                        @endunless
+                                    </div>
                                     <span class="small text-muted text-nowrap">{{ $rule->updated_at->format('M j') }}</span>
                                 </div>
                                 <div class="d-flex flex-wrap gap-1">
@@ -344,7 +388,9 @@
                                         <span class="badge rounded-pill text-bg-light border text-break">{{ $keyword }}</span>
                                     @endforeach
                                 </div>
-                                <div class="bk-bubble bk-bubble-text">{{ $rule->answer }}</div>
+                                {{-- Faded while switched off. --}}
+                                <div class="bk-bubble bk-bubble-text {{ $rule->enabled ? '' : 'opacity-50' }}">{{ $rule->answer }}</div>
+                                @include('chatbot._attachment', ['rule' => $rule])
                                 <div class="small text-muted">
                                     <i class="bi bi-bar-chart me-1"></i>
                                     @if ($rule->replies_total > 0)
@@ -357,6 +403,27 @@
                                     <a href="{{ route('chatbot.rules.edit', [$selected->instance_id, $rule->id]) }}" class="btn btn-sm btn-outline-primary flex-grow-1">
                                         <i class="bi bi-pencil me-1"></i>Edit
                                     </a>
+                                    <form method="POST" action="{{ route('chatbot.rules.toggle', [$selected->instance_id, $rule->id]) }}">
+                                        @csrf
+                                        <input type="hidden" name="enabled" value="{{ $rule->enabled ? 0 : 1 }}">
+                                        <button type="submit" class="btn btn-sm {{ $rule->enabled ? 'btn-outline-secondary' : 'btn-outline-primary' }}"
+                                                aria-label="{{ $rule->enabled ? 'Switch off' : 'Switch on' }}: {{ $rule->question }}"
+                                                title="{{ $rule->enabled ? 'Switch off (the bot skips it)' : 'Switch on' }}">
+                                            <i class="bi {{ $rule->enabled ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
+                                        </button>
+                                    </form>
+                                    @if ($rules->count() > 1)
+                                        @foreach (['up' => ['bi-arrow-up', 'Move up', $loop->first], 'down' => ['bi-arrow-down', 'Move down', $loop->last]] as $direction => [$icon, $label, $disabled])
+                                            <form method="POST" action="{{ route('chatbot.rules.move', [$selected->instance_id, $rule->id]) }}">
+                                                @csrf
+                                                <input type="hidden" name="direction" value="{{ $direction }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary" @disabled($disabled)
+                                                        aria-label="{{ $label }}: {{ $rule->question }}" title="{{ $label }}">
+                                                    <i class="bi {{ $icon }}"></i>
+                                                </button>
+                                            </form>
+                                        @endforeach
+                                    @endif
                                     <form method="POST" action="{{ route('chatbot.rules.destroy', [$selected->instance_id, $rule->id]) }}"
                                           onsubmit="return confirm('Delete this entry?');">
                                         @csrf
@@ -370,6 +437,42 @@
                         </div>
                     @endforeach
                 </div>
+            @endif
+        </div>
+    </div>
+
+    {{-- Received messages that no entry would answer right now --}}
+    <div id="unanswered" class="card shadow-sm mt-4 db-in" style="--i: 4;">
+        <div class="card-body">
+            <h2 class="h6 fw-semibold mb-1"><i class="bi bi-question-circle me-1 text-primary"></i>Unanswered questions</h2>
+            <div class="small text-muted mb-3">
+                Messages from the last 7 days that none of your entries would answer. Add an entry for the common ones — they disappear from here once an entry matches.
+            </div>
+
+            @if ($unanswered->isEmpty())
+                <div class="small text-muted"><i class="bi bi-check-circle me-1 text-success"></i>Nothing here — every recent message matches an entry (or no messages yet).</div>
+            @else
+                <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+                    @foreach ($unanswered as $question)
+                        <li class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 border-bottom pb-2">
+                            <div style="min-width: 0;">
+                                <div class="text-break">{{ Str::limit($question['body'], 200) }}</div>
+                                <div class="small text-muted">
+                                    +{{ $question['from'] }} · {{ $question['last_at']->diffForHumans() }}
+                                    @if ($question['count'] > 1)
+                                        · <span class="fw-medium">asked {{ $question['count'] }} times</span>
+                                    @endif
+                                </div>
+                            </div>
+                            @if ($planLimit > 0 && $planUsed < $planLimit && $rules->count() < $max)
+                                <a href="{{ route('chatbot.index', ['instance' => $selected->instance_id, 'question' => Str::limit($question['body'], 150, '')]) }}#new-entry"
+                                   class="btn btn-sm btn-outline-primary text-nowrap flex-shrink-0">
+                                    <i class="bi bi-plus-lg me-1"></i>Add as entry
+                                </a>
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
             @endif
         </div>
     </div>

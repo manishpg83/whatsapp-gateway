@@ -2,17 +2,24 @@
 
 namespace App\Models;
 
+use App\Services\MediaFetcher;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * One chatbot entry for an instance: when a received message contains one
  * of the keywords (whole word, any case), the answer is the reply. If
- * several entries match, the oldest one (top of the list) wins.
+ * several entries match equally, the one higher in the owner's list wins
+ * (`position`, changed with the up/down arrows).
  */
-#[Fillable(['whatsapp_session_id', 'question', 'keywords', 'answer'])]
+#[Fillable([
+    'whatsapp_session_id', 'position', 'enabled', 'question', 'keywords', 'answer',
+    'media_type', 'media_path', 'media_mime_type', 'media_file_name', 'media_size',
+])]
 class ChatbotRule extends Model
 {
     // Most entries one instance may have.
@@ -38,10 +45,82 @@ class ChatbotRule extends Model
     // Received message types whose text (or caption) the bot reads.
     public const REPLY_TO_TYPES = ['text', 'image', 'video'];
 
+    // Kinds of file an answer can include => [label, icon].
+    public const MEDIA_TYPES = [
+        'image' => ['Image', 'bi-image'],
+        'video' => ['Video', 'bi-camera-video'],
+        'document' => ['Document', 'bi-file-earmark-text'],
+    ];
+
+    /**
+     * Which kind of attachment an uploaded file is, from its real content
+     * (not its name): JPG/PNG/WEBP are sent as an image, MP4/3GP as a
+     * video, anything else (PDF, Excel, ...) as a document. MediaFetcher
+     * then checks the size limit for that kind.
+     */
+    public static function mediaTypeFor(UploadedFile $file): string
+    {
+        $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($file->getRealPath()) ?: '';
+
+        foreach (['image', 'video'] as $type) {
+            if (in_array($mime, MediaFetcher::RULES[$type][1], true)) {
+                return $type;
+            }
+        }
+
+        return 'document';
+    }
+
+    /**
+     * The attached file in the shape MessageSender::send() expects, or
+     * null when there's none — or when the file has gone missing from
+     * disk, so the bot still sends the answer as plain text.
+     *
+     * @return array{path: string, mime_type: string, file_name: string|null, size: int}|null
+     */
+    public function media(): ?array
+    {
+        if (! $this->hasMedia()) {
+            return null;
+        }
+
+        return [
+            'path' => $this->media_path,
+            'mime_type' => $this->media_mime_type,
+            'file_name' => $this->media_file_name,
+            'size' => (int) $this->media_size,
+        ];
+    }
+
+    public function hasMedia(): bool
+    {
+        return $this->media_type !== null
+            && $this->media_path !== null
+            && Storage::disk('whatsapp_media')->exists($this->media_path);
+    }
+
+    /**
+     * Images and videos may be shown in the browser; documents are always
+     * downloaded (same rule as BulkCampaign::mediaIsInline()).
+     */
+    public function mediaIsInline(): bool
+    {
+        return in_array($this->media_type, ['image', 'video'], true);
+    }
+
+    /**
+     * e.g. "price-list.pdf" or "Image".
+     */
+    public function mediaLabel(): string
+    {
+        return $this->media_file_name ?: (self::MEDIA_TYPES[$this->media_type][0] ?? 'File');
+    }
+
     protected function casts(): array
     {
         return [
             'keywords' => 'array',
+            'enabled' => 'boolean',
         ];
     }
 
@@ -67,7 +146,7 @@ class ChatbotRule extends Model
      * The entry with the most matching keywords in $message, or null — in
      * which case the bot stays silent. On a tie, the one higher in the list
      * wins. E.g. "price of these shoes?" picks an entry with "shoes" AND
-     * "price" over one with only "shoes".
+     * "price" over one with only "shoes". Switched-off entries are skipped.
      *
      * @param  iterable<ChatbotRule>  $rules
      */
@@ -77,6 +156,10 @@ class ChatbotRule extends Model
         $bestScore = 0;
 
         foreach ($rules as $rule) {
+            if ($rule->enabled === false) {
+                continue;
+            }
+
             $score = count($rule->matchedKeywords($message));
 
             // ">" not ">=": an equal score never replaces an earlier entry.
@@ -176,6 +259,29 @@ class ChatbotRule extends Model
         }
 
         return array_values(array_unique($forms));
+    }
+
+    /**
+     * What's wrong with a parsed keyword list, or null if it's fine. Shared
+     * by the entry form and the CSV import.
+     *
+     * @param  list<string>  $keywords
+     */
+    public static function keywordsError(array $keywords): ?string
+    {
+        if ($keywords === []) {
+            return 'Add at least one keyword.';
+        }
+        if (count($keywords) > self::MAX_KEYWORDS) {
+            return 'Use at most '.self::MAX_KEYWORDS.' keywords per entry.';
+        }
+        foreach ($keywords as $keyword) {
+            if (mb_strlen($keyword) > self::MAX_KEYWORD_LENGTH) {
+                return 'Each keyword can be at most '.self::MAX_KEYWORD_LENGTH.' characters.';
+            }
+        }
+
+        return null;
     }
 
     /**

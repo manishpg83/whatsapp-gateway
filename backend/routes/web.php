@@ -153,6 +153,11 @@ Route::middleware(['auth', 'not_suspended', 'verified'])->group(function () {
     Route::delete('/chatbot/{instance}/pauses/{pause}', [ChatbotController::class, 'resume'])->whereNumber('pause')->name('chatbot.pauses.destroy');
     Route::post('/chatbot/{instance}/test', [ChatbotController::class, 'test'])->name('chatbot.test');
     Route::get('/chatbot/{instance}/rules/{rule}/edit', [ChatbotController::class, 'edit'])->whereNumber('rule')->name('chatbot.rules.edit');
+    Route::get('/chatbot/{instance}/export', [ChatbotController::class, 'export'])->name('chatbot.export');
+    Route::post('/chatbot/{instance}/import', [ChatbotController::class, 'import'])->name('chatbot.import');
+    Route::post('/chatbot/{instance}/rules/{rule}/toggle', [ChatbotController::class, 'toggleRule'])->whereNumber('rule')->name('chatbot.rules.toggle');
+    Route::post('/chatbot/{instance}/rules/{rule}/move', [ChatbotController::class, 'move'])->whereNumber('rule')->name('chatbot.rules.move');
+    Route::get('/chatbot/{instance}/rules/{rule}/media', [ChatbotController::class, 'media'])->whereNumber('rule')->name('chatbot.rules.media');
     Route::put('/chatbot/{instance}/rules/{rule}', [ChatbotController::class, 'update'])->whereNumber('rule')->name('chatbot.rules.update');
     Route::delete('/chatbot/{instance}/rules/{rule}', [ChatbotController::class, 'destroy'])->whereNumber('rule')->name('chatbot.rules.destroy');
 

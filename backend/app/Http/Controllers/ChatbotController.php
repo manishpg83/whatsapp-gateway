@@ -2,18 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\MediaFetchException;
 use App\Models\ChatbotPause;
 use App\Models\ChatbotRule;
 use App\Models\Message;
 use App\Models\WhatsappSession;
+use App\Services\MediaFetcher;
 use App\Services\PlanLimiter;
+use App\Support\ChatbotCsv;
 use App\Support\ChatbotHours;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Chatbot: per-instance keyword → answer entries. Always scoped to the
@@ -21,7 +30,17 @@ use Illuminate\View\View;
  */
 class ChatbotController extends Controller
 {
-    public function __construct(protected PlanLimiter $limiter) {}
+    // "Unanswered questions": how far back to look, and how many to show.
+    private const UNANSWERED_DAYS = 7;
+
+    private const UNANSWERED_SHOWN = 10;
+
+    private const MEDIA_COLUMNS = ['media_type', 'media_path', 'media_mime_type', 'media_file_name', 'media_size'];
+
+    public function __construct(
+        protected PlanLimiter $limiter,
+        protected MediaFetcher $fetcher,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -43,12 +62,17 @@ class ChatbotController extends Controller
             ->withMax(['replies as last_reply_at' => $sent], 'created_at')
             ->get() ?? collect();
 
+        $unanswered = $selected ? $this->unansweredQuestions($selected, $rules) : collect();
+
         $botReplies = $selected?->messages()->whereNotNull('bot_reply')->whereIn('status', Message::SENT_STATUSES);
 
         return view('chatbot.index', [
             'instances' => $instances,
             'selected' => $selected,
             'rules' => $rules,
+            'unanswered' => $unanswered,
+            // "Add as entry" on an unanswered question pre-fills the form.
+            'prefillQuestion' => Str::limit((string) $request->query('question', ''), 150, ''),
             'max' => ChatbotRule::MAX_PER_INSTANCE,
             // The plan's limit, across all instances.
             'planLimit' => $this->limiter->chatbotEntryLimit($request->user()),
@@ -78,7 +102,12 @@ class ChatbotController extends Controller
             throw ValidationException::withMessages(['question' => 'This instance already has '.ChatbotRule::MAX_PER_INSTANCE.' entries. Delete one first.']);
         }
 
-        $whatsappSession->chatbotRules()->create($data);
+        // New entries go to the bottom of the list.
+        $data['position'] = (int) $whatsappSession->chatbotRules()->max('position') + 1;
+
+        // Stored last, once everything else is valid, so a rejected form
+        // never leaves an unused file behind.
+        $whatsappSession->chatbotRules()->create($data + ($this->uploadedMedia($request, $whatsappSession) ?? []));
 
         return $this->backToList($whatsappSession, "Added \"{$data['question']}\".");
     }
@@ -97,7 +126,18 @@ class ChatbotController extends Controller
     {
         $whatsappSession = $this->findOwnedInstance($request, $instance);
         $model = $this->findRule($whatsappSession, $rule);
-        $model->update($this->validated($request));
+        $data = $this->validated($request);
+
+        // A new file replaces the old one; "Remove" goes back to text only.
+        // The old file stays on disk: replies already sent still link to it.
+        $media = $this->uploadedMedia($request, $whatsappSession);
+        if ($media !== null) {
+            $data += $media;
+        } elseif ($request->boolean('remove_media')) {
+            $data += array_fill_keys(self::MEDIA_COLUMNS, null);
+        }
+
+        $model->update($data);
 
         return $this->backToList($whatsappSession, "Updated \"{$model->question}\".");
     }
@@ -109,6 +149,158 @@ class ChatbotController extends Controller
         $model->delete();
 
         return $this->backToList($whatsappSession, "Deleted \"{$model->question}\".");
+    }
+
+    /**
+     * All of an instance's entries as a CSV (in list order) — a backup, or
+     * to edit in Excel and import again. With no entries it's an empty
+     * template with just the column names. Attached files aren't included.
+     */
+    public function export(Request $request, string $instance): Response
+    {
+        $whatsappSession = $this->findOwnedInstance($request, $instance);
+        $name = Str::slug($whatsappSession->name) ?: 'instance';
+
+        return response(ChatbotCsv::export($whatsappSession->chatbotRules()->get()), 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"chatbot-{$name}.csv\"",
+        ]);
+    }
+
+    /**
+     * Adds entries from a CSV. A row whose question matches an existing
+     * entry (any case) updates that entry instead — so an exported file can
+     * be edited and imported back. All or nothing: if any row has a problem,
+     * or the new entries don't fit the limits, nothing is imported.
+     */
+    public function import(Request $request, string $instance): RedirectResponse
+    {
+        $whatsappSession = $this->findOwnedInstance($request, $instance);
+        $request->validate([
+            'csv' => ['required', 'file', 'max:2048', 'extensions:csv,txt'],
+        ], [
+            'csv.required' => 'Choose the CSV file to import.',
+            'csv.extensions' => 'Upload a .csv file (in Excel: File → Save As → CSV UTF-8).',
+            'csv.max' => 'The CSV file is too large (max 2 MB).',
+        ]);
+
+        [$rows, $errors] = ChatbotCsv::parse((string) file_get_contents($request->file('csv')->getRealPath()));
+
+        if ($errors) {
+            throw ValidationException::withMessages(['csv' => $errors]);
+        }
+        if ($rows === []) {
+            throw ValidationException::withMessages(['csv' => 'The file has no entries — add rows below the column names.']);
+        }
+
+        $existing = $whatsappSession->chatbotRules()->get()->keyBy(fn (ChatbotRule $rule) => mb_strtolower($rule->question));
+        $newCount = collect($rows)->reject(fn (array $row) => $existing->has(mb_strtolower($row['question'])))->count();
+
+        $user = $request->user();
+        $planLimit = $this->limiter->chatbotEntryLimit($user);
+        $planLeft = $planLimit - $this->limiter->chatbotEntriesUsed($user);
+        $instanceLeft = ChatbotRule::MAX_PER_INSTANCE - $existing->count();
+
+        if ($newCount > 0 && $planLimit === 0) {
+            throw ValidationException::withMessages(['csv' => "The chatbot isn't included in your plan. Upgrade to use it."]);
+        }
+        if ($newCount > $planLeft) {
+            throw ValidationException::withMessages(['csv' => "The file has {$newCount} new ".Str::plural('entry', $newCount).', but your plan has room for '.max(0, $planLeft).' more. Remove some rows, or upgrade your plan.']);
+        }
+        if ($newCount > $instanceLeft) {
+            throw ValidationException::withMessages(['csv' => "The file has {$newCount} new ".Str::plural('entry', $newCount).', but this instance has room for '.max(0, $instanceLeft).' more (max '.ChatbotRule::MAX_PER_INSTANCE.').']);
+        }
+
+        DB::transaction(function () use ($whatsappSession, $rows, $existing) {
+            $position = (int) $whatsappSession->chatbotRules()->max('position');
+
+            foreach ($rows as $row) {
+                $data = ['question' => $row['question'], 'keywords' => $row['keywords'], 'answer' => $row['answer']];
+                $rule = $existing->get(mb_strtolower($row['question']));
+
+                if ($rule) {
+                    // No status column/cell: keep the entry's current setting.
+                    $rule->update($data + ($row['enabled'] === null ? [] : ['enabled' => $row['enabled']]));
+                } else {
+                    $whatsappSession->chatbotRules()->create($data + ['position' => ++$position, 'enabled' => $row['enabled'] ?? true]);
+                }
+            }
+        });
+
+        $updated = count($rows) - $newCount;
+        $summary = collect([
+            $newCount ? "added {$newCount} ".Str::plural('entry', $newCount) : null,
+            $updated ? "updated {$updated}" : null,
+        ])->filter()->implode(' and ');
+
+        return $this->backToList($whatsappSession, 'Import done: '.$summary.'.');
+    }
+
+    /**
+     * Switches one entry on or off. A switched-off entry stays in the list
+     * (with its stats) but the bot skips it.
+     */
+    public function toggleRule(Request $request, string $instance, int $rule): RedirectResponse
+    {
+        $whatsappSession = $this->findOwnedInstance($request, $instance);
+        $model = $this->findRule($whatsappSession, $rule);
+        $model->update(['enabled' => $request->boolean('enabled')]);
+
+        return redirect()->to(route('chatbot.index', ['instance' => $whatsappSession->instance_id]).'#rule-'.$model->id)
+            ->with('status', $model->enabled ? "\"{$model->question}\" is ON." : "\"{$model->question}\" is OFF — the bot skips it.");
+    }
+
+    /**
+     * Moves an entry one place up or down. The order decides which entry
+     * answers when two match equally (higher wins). Every entry is
+     * renumbered 1, 2, 3... so the positions never drift or collide.
+     */
+    public function move(Request $request, string $instance, int $rule): RedirectResponse
+    {
+        $whatsappSession = $this->findOwnedInstance($request, $instance);
+        $model = $this->findRule($whatsappSession, $rule);
+        $direction = $request->validate(['direction' => ['required', Rule::in(['up', 'down'])]])['direction'];
+
+        $ids = $whatsappSession->chatbotRules()->pluck('id')->all();
+        $from = array_search($model->id, $ids, true);
+        $to = $direction === 'up' ? $from - 1 : $from + 1;
+
+        if (isset($ids[$to])) {
+            [$ids[$from], $ids[$to]] = [$ids[$to], $ids[$from]];
+
+            DB::transaction(function () use ($whatsappSession, $ids) {
+                foreach ($ids as $index => $id) {
+                    $whatsappSession->chatbotRules()->whereKey($id)->update(['position' => $index + 1]);
+                }
+            });
+        }
+
+        return redirect()->to(route('chatbot.index', ['instance' => $whatsappSession->instance_id]).'#rule-'.$model->id);
+    }
+
+    /**
+     * An entry's attached file, for its owner only. Same safety headers as
+     * BulkCampaignController::media(): documents always download.
+     */
+    public function media(Request $request, string $instance, int $rule): StreamedResponse
+    {
+        $model = $this->findRule($this->findOwnedInstance($request, $instance), $rule);
+
+        abort_unless($model->hasMedia(), 404);
+
+        $inline = $model->mediaIsInline() && ! $request->boolean('download');
+
+        return Storage::disk('whatsapp_media')->response(
+            $model->media_path,
+            $model->media_file_name ?: $model->media_type.'-'.basename($model->media_path),
+            [
+                'Content-Type' => $inline ? $model->media_mime_type : 'application/octet-stream',
+                'X-Content-Type-Options' => 'nosniff',
+                'Content-Security-Policy' => 'sandbox',
+                'Cache-Control' => 'private, max-age=3600',
+            ],
+            $inline ? 'inline' : 'attachment'
+        );
     }
 
     /**
@@ -124,8 +316,8 @@ class ChatbotController extends Controller
             return $this->backToList($whatsappSession, null)->withErrors(['enabled' => "The chatbot isn't included in your plan. Upgrade to use it."]);
         }
 
-        if ($enabled && ! $whatsappSession->chatbotRules()->exists() && ! $whatsappSession->chatbotHours()->enabled) {
-            return $this->backToList($whatsappSession, null)->withErrors(['enabled' => 'Add at least one entry (or turn on business hours) before switching the chatbot on.']);
+        if ($enabled && ! $whatsappSession->chatbotRules()->where('enabled', true)->exists() && ! $whatsappSession->chatbotHours()->enabled) {
+            return $this->backToList($whatsappSession, null)->withErrors(['enabled' => 'Add at least one entry that is switched on (or turn on business hours) before switching the chatbot on.']);
         }
 
         $whatsappSession->update(['chatbot_enabled' => $enabled]);
@@ -212,14 +404,48 @@ class ChatbotController extends Controller
             'test_message.required' => 'Type a message to test.',
         ]);
 
-        $rule = ChatbotRule::bestMatch($whatsappSession->chatbotRules()->get(), $data['test_message']);
+        $rules = $whatsappSession->chatbotRules()->get();
+        $rule = ChatbotRule::bestMatch($rules, $data['test_message']);
 
         return redirect()->to(route('chatbot.index', ['instance' => $whatsappSession->instance_id]).'#test')
             ->with('chatbot_test', [
                 'message' => $data['test_message'],
                 'rule_id' => $rule?->id,
+                // No answer, but a switched-off entry would have matched: say so.
+                'off_rule_id' => $rule ? null : $rules->first(fn (ChatbotRule $r) => ! $r->enabled && $r->matches($data['test_message']))?->id,
                 'keywords' => $rule?->matchedKeywords($data['test_message']) ?? [],
             ]);
+    }
+
+    /**
+     * Recent received messages that none of the current entries would
+     * answer — so the owner can see what to add next. Checked against
+     * today's entries, so a message drops off as soon as one matches it.
+     * The same text sent several times is shown once, with a count.
+     *
+     * @param  Collection<int, ChatbotRule>  $rules
+     * @return Collection<int, array{body: string, count: int, last_at: Carbon, from: string}>
+     */
+    private function unansweredQuestions(WhatsappSession $whatsappSession, Collection $rules): Collection
+    {
+        return $whatsappSession->messages()
+            ->where('direction', 'incoming')
+            ->whereIn('type', ChatbotRule::REPLY_TO_TYPES)
+            ->where('body', '!=', '')
+            ->where('created_at', '>=', now()->subDays(self::UNANSWERED_DAYS))
+            ->latest('id')
+            ->limit(300)
+            ->get(['body', 'from_number', 'created_at'])
+            ->reject(fn (Message $message) => ChatbotRule::bestMatch($rules, $message->body) !== null)
+            ->groupBy(fn (Message $message) => mb_strtolower(trim(preg_replace('/\s+/u', ' ', $message->body))))
+            ->map(fn (Collection $same) => [
+                'body' => trim($same->first()->body),
+                'count' => $same->count(),
+                'last_at' => $same->first()->created_at,
+                'from' => $same->first()->from_number,
+            ])
+            ->take(self::UNANSWERED_SHOWN)
+            ->values();
     }
 
     /**
@@ -231,28 +457,56 @@ class ChatbotController extends Controller
             'question' => ['required', 'string', 'max:150'],
             'keywords' => ['required', 'string', 'max:1000'],
             'answer' => ['required', 'string', 'max:4096'],
+            // Size and real file type are checked by MediaFetcher (uploadedMedia()).
+            'media' => ['nullable', 'file'],
         ], [
             'keywords.required' => 'Add at least one keyword.',
             'answer.required' => 'Write the answer to send.',
+            'media.file' => 'The file could not be uploaded (it may be larger than the server allows: '.ini_get('upload_max_filesize').').',
+            'media.uploaded' => 'The file could not be uploaded (it may be larger than the server allows: '.ini_get('upload_max_filesize').').',
         ]);
+        unset($data['media']);
 
         $keywords = ChatbotRule::parseKeywords($data['keywords']);
 
-        if ($keywords === []) {
-            throw ValidationException::withMessages(['keywords' => 'Add at least one keyword.']);
-        }
-        if (count($keywords) > ChatbotRule::MAX_KEYWORDS) {
-            throw ValidationException::withMessages(['keywords' => 'Use at most '.ChatbotRule::MAX_KEYWORDS.' keywords per entry.']);
-        }
-        foreach ($keywords as $keyword) {
-            if (mb_strlen($keyword) > ChatbotRule::MAX_KEYWORD_LENGTH) {
-                throw ValidationException::withMessages(['keywords' => 'Each keyword can be at most '.ChatbotRule::MAX_KEYWORD_LENGTH.' characters.']);
-            }
+        if ($error = ChatbotRule::keywordsError($keywords)) {
+            throw ValidationException::withMessages(['keywords' => $error]);
         }
 
         $data['keywords'] = $keywords;
 
         return $data;
+    }
+
+    /**
+     * Saves the uploaded attachment (if any) and returns its columns. The
+     * kind (image / video / document) comes from the file's real content.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function uploadedMedia(Request $request, WhatsappSession $whatsappSession): ?array
+    {
+        $file = $request->file('media');
+
+        if (! $file) {
+            return null;
+        }
+
+        $type = ChatbotRule::mediaTypeFor($file);
+
+        try {
+            $media = $this->fetcher->fromUpload($whatsappSession, $file, $type);
+        } catch (MediaFetchException $e) {
+            throw ValidationException::withMessages(['media' => $e->getMessage()]);
+        }
+
+        return [
+            'media_type' => $type,
+            'media_path' => $media['path'],
+            'media_mime_type' => $media['mime_type'],
+            'media_file_name' => $media['file_name'],
+            'media_size' => $media['size'],
+        ];
     }
 
     private function findOwnedInstance(Request $request, string $instanceId): WhatsappSession

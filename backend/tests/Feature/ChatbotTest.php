@@ -12,9 +12,11 @@ use App\Services\MessageSender;
 use App\Services\PlanLimiter;
 use App\Support\ChatbotHours;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -665,6 +667,389 @@ class ChatbotTest extends TestCase
             ->assertSeeInOrder(['Answers sent · 7 days', '2', '"Closed" messages · 7 days', '1', 'All bot replies · 30 days', '4'])
             ->assertSee('Replied 3 times · 2 in 7 days')
             ->assertSee('Not used yet');
+    }
+
+    // --- Attachments -----------------------------------------------------------------
+
+    private const JPEG = "\xFF\xD8\xFF\xE0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xFF\xD9";
+
+    private const PDF = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n";
+
+    public function test_an_entry_can_have_a_file_detected_from_its_content(): void
+    {
+        Storage::fake('whatsapp_media');
+        $instance = WhatsappSession::factory()->create();
+
+        $this->actingAs($instance->user)->post("/chatbot/{$instance->instance_id}/rules", $this->form([
+            'media' => UploadedFile::fake()->createWithContent('Price list.pdf', self::PDF),
+        ]))->assertSessionHasNoErrors();
+
+        $rule = ChatbotRule::sole();
+        $this->assertSame('document', $rule->media_type);
+        $this->assertSame('application/pdf', $rule->media_mime_type);
+        $this->assertSame('Price list.pdf', $rule->media_file_name);
+        $this->assertStringStartsWith("{$instance->instance_id}/out-", $rule->media_path);
+        Storage::disk('whatsapp_media')->assertExists($rule->media_path);
+
+        $this->actingAs($instance->user)->get('/chatbot')->assertSee('Price list.pdf');
+
+        // A photo is sent as an image, whatever its file name says.
+        $this->actingAs($instance->user)->put("/chatbot/{$instance->instance_id}/rules/{$rule->id}", $this->form([
+            'media' => UploadedFile::fake()->createWithContent('menu.pdf', self::JPEG),
+        ]))->assertSessionHasNoErrors();
+        $this->assertSame('image', $rule->fresh()->media_type);
+        $this->assertSame('image/jpeg', $rule->fresh()->media_mime_type);
+    }
+
+    public function test_a_file_can_be_removed_and_a_bad_one_is_rejected(): void
+    {
+        Storage::fake('whatsapp_media');
+        $instance = WhatsappSession::factory()->create();
+        $url = "/chatbot/{$instance->instance_id}/rules";
+
+        $this->actingAs($instance->user)->post($url, $this->form([
+            'media' => UploadedFile::fake()->createWithContent('empty.pdf', ''),
+        ]))->assertSessionHasErrors('media');
+        $this->assertDatabaseCount('chatbot_rules', 0);
+
+        $this->actingAs($instance->user)->post($url, $this->form([
+            'media' => UploadedFile::fake()->createWithContent('offer.jpg', self::JPEG),
+        ]));
+        $rule = ChatbotRule::sole();
+
+        // Saving without a new file keeps the old one...
+        $this->actingAs($instance->user)->put("{$url}/{$rule->id}", $this->form());
+        $this->assertSame('image', $rule->fresh()->media_type);
+
+        // ..."Remove" goes back to text only.
+        $this->actingAs($instance->user)->put("{$url}/{$rule->id}", $this->form(['remove_media' => 1]));
+        $this->assertNull($rule->fresh()->media_type);
+        $this->assertNull($rule->fresh()->media_path);
+    }
+
+    public function test_a_matching_message_gets_the_answer_with_its_file(): void
+    {
+        Storage::fake('whatsapp_media');
+        Http::fake(['*' => Http::response(['message_id' => 'WA-BOT-1'], 200)]);
+        $instance = $this->botInstance();
+        Storage::disk('whatsapp_media')->put("{$instance->instance_id}/out-x.pdf", self::PDF);
+        $instance->chatbotRules()->first()->update([
+            'media_type' => 'document', 'media_path' => "{$instance->instance_id}/out-x.pdf",
+            'media_mime_type' => 'application/pdf', 'media_file_name' => 'Prices.pdf', 'media_size' => 70,
+        ]);
+
+        $this->receive($instance, 'price?');
+
+        $reply = Message::where('direction', 'outgoing')->sole();
+        $this->assertSame('document', $reply->type);
+        $this->assertSame('Plans start at ₹499.', $reply->body);
+        $this->assertSame("{$instance->instance_id}/out-x.pdf", $reply->media_path);
+        Http::assertSent(fn ($request) => $request['type'] === 'document'
+            && $request['message'] === 'Plans start at ₹499.'
+            && $request['media']['file_name'] === 'Prices.pdf');
+    }
+
+    public function test_a_missing_file_still_sends_the_answer_as_text(): void
+    {
+        Storage::fake('whatsapp_media');
+        Http::fake(['*' => Http::response(['message_id' => 'WA-BOT-1'], 200)]);
+        $instance = $this->botInstance();
+        $instance->chatbotRules()->first()->update([
+            'media_type' => 'image', 'media_path' => "{$instance->instance_id}/gone.jpg", 'media_mime_type' => 'image/jpeg', 'media_size' => 10,
+        ]);
+
+        $this->receive($instance, 'price?');
+
+        $this->assertSame('text', Message::where('direction', 'outgoing')->sole()->type);
+    }
+
+    public function test_the_file_is_shown_to_its_owner_only(): void
+    {
+        Storage::fake('whatsapp_media');
+        $instance = WhatsappSession::factory()->create();
+        Storage::disk('whatsapp_media')->put("{$instance->instance_id}/out-x.jpg", self::JPEG);
+        $rule = $instance->chatbotRules()->create(['question' => 'Menu', 'keywords' => ['menu'], 'answer' => 'Here',
+            'media_type' => 'image', 'media_path' => "{$instance->instance_id}/out-x.jpg", 'media_mime_type' => 'image/jpeg', 'media_size' => 20]);
+        $url = "/chatbot/{$instance->instance_id}/rules/{$rule->id}/media";
+
+        $this->actingAs($instance->user)->get($url)->assertOk()->assertHeader('Content-Type', 'image/jpeg');
+        $this->actingAs(User::factory()->create())->get($url)->assertNotFound();
+    }
+
+    // --- CSV import / export ---------------------------------------------------------
+
+    private function importCsv(WhatsappSession $instance, string $csv)
+    {
+        return $this->actingAs($instance->user)->post("/chatbot/{$instance->instance_id}/import", [
+            'csv' => UploadedFile::fake()->createWithContent('entries.csv', $csv),
+        ]);
+    }
+
+    public function test_entries_export_as_csv_in_list_order(): void
+    {
+        $instance = WhatsappSession::factory()->create(['name' => 'My Shop']);
+        $instance->chatbotRules()->create(['question' => 'Prices', 'keywords' => ['price', 'cost'], 'answer' => "From ₹499.\nSee the site.", 'position' => 2]);
+        $instance->chatbotRules()->create(['question' => 'Timings', 'keywords' => ['open'], 'answer' => '10 to 7', 'position' => 1, 'enabled' => false]);
+
+        $response = $this->actingAs($instance->user)->get("/chatbot/{$instance->instance_id}/export")->assertOk()
+            ->assertHeader('Content-Disposition', 'attachment; filename="chatbot-my-shop.csv"');
+
+        $this->assertSame(
+            "\xEF\xBB\xBFquestion,keywords,answer,status\nTimings,open,\"10 to 7\",off\nPrices,\"price, cost\",\"From ₹499.\nSee the site.\",on\n",
+            $response->getContent(),
+        );
+    }
+
+    public function test_an_export_can_be_imported_back_into_another_instance(): void
+    {
+        $from = WhatsappSession::factory()->create();
+        $from->chatbotRules()->create(['question' => 'Prices', 'keywords' => ['price', 'cost'], 'answer' => "From ₹499.\nSee the site.", 'position' => 1]);
+        $from->chatbotRules()->create(['question' => 'Timings', 'keywords' => ['open'], 'answer' => '10 to 7', 'position' => 2, 'enabled' => false]);
+        $csv = $this->actingAs($from->user)->get("/chatbot/{$from->instance_id}/export")->getContent();
+
+        $to = WhatsappSession::factory()->for($from->user)->create();
+        $this->importCsv($to, $csv)->assertSessionHasNoErrors()->assertSessionHas('status', 'Import done: added 2 entries.');
+
+        $rules = $to->chatbotRules()->get();
+        $this->assertSame(['Prices', 'Timings'], $rules->pluck('question')->all());
+        $this->assertSame(['price', 'cost'], $rules[0]->keywords);
+        $this->assertSame("From ₹499.\nSee the site.", $rules[0]->answer);
+        $this->assertSame([true, false], $rules->pluck('enabled')->all());
+        $this->assertSame([1, 2], $rules->pluck('position')->all());
+    }
+
+    public function test_a_matching_question_updates_the_entry(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $rule = $instance->chatbotRules()->create(['question' => 'Prices', 'keywords' => ['price'], 'answer' => 'Old', 'position' => 1, 'enabled' => false]);
+
+        // Any column order, ";" from European Excel, no status column.
+        $this->importCsv($instance, "Answer;Question;Keywords\nNew;PRICES;price, rate\nWe deliver;Delivery;deliver\n")
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', 'Import done: added 1 entry and updated 1.');
+
+        $rule->refresh();
+        $this->assertSame('New', $rule->answer);
+        $this->assertSame(['price', 'rate'], $rule->keywords);
+        $this->assertFalse($rule->enabled); // no status given: unchanged
+        $this->assertSame(2, $instance->chatbotRules()->count());
+    }
+
+    public function test_a_bad_row_imports_nothing(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+
+        $this->importCsv($instance, "question,keywords,answer,status\nGood,ok,Fine,on\n,x,No question,on\nNo keywords,,Text,on\nBad status,y,Z,maybe\nGood,again,Dup,on\n")
+            ->assertSessionHasErrors(['csv' => 'Row 3: the question is empty.']);
+
+        $errors = session('errors')->get('csv');
+        $this->assertSame([
+            'Row 3: the question is empty.',
+            'Row 4: add at least one keyword.',
+            'Row 5: status must be "on" or "off".',
+            'Row 6: the same question is already on row 2.',
+        ], $errors);
+        $this->assertDatabaseCount('chatbot_rules', 0);
+
+        $this->importCsv($instance, "name,phone\nA,1\n")->assertSessionHasErrors('csv');
+        $this->importCsv($instance, "question,keywords,answer\n")->assertSessionHasErrors('csv');
+        $this->assertDatabaseCount('chatbot_rules', 0);
+    }
+
+    public function test_an_import_must_fit_the_plan(): void
+    {
+        // Free plan: 5 chatbot entries; 4 used.
+        $instance = WhatsappSession::factory()->create();
+        for ($i = 1; $i <= 4; $i++) {
+            $instance->chatbotRules()->create(['question' => "Existing {$i}", 'keywords' => ["e{$i}"], 'answer' => 'E']);
+        }
+
+        $this->importCsv($instance, "question,keywords,answer\nA,a,A\nB,b,B\n")
+            ->assertSessionHasErrors(['csv' => 'The file has 2 new entries, but your plan has room for 1 more. Remove some rows, or upgrade your plan.']);
+        $this->assertSame(4, $instance->chatbotRules()->count());
+
+        // Updating existing entries doesn't use up room: this fits.
+        $this->importCsv($instance, "question,keywords,answer\nExisting 1,e,Changed\nA,a,A\n")->assertSessionHasNoErrors();
+        $this->assertSame(5, $instance->chatbotRules()->count());
+    }
+
+    public function test_another_users_instance_cant_be_exported_or_imported(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $instance->chatbotRules()->create(['question' => 'Secret', 'keywords' => ['s'], 'answer' => 'S']);
+        $other = User::factory()->create();
+
+        $this->actingAs($other)->get("/chatbot/{$instance->instance_id}/export")->assertNotFound();
+        $this->actingAs($other)->post("/chatbot/{$instance->instance_id}/import", [
+            'csv' => UploadedFile::fake()->createWithContent('e.csv', "question,keywords,answer\nA,a,A\n"),
+        ])->assertNotFound();
+        $this->assertSame(1, $instance->chatbotRules()->count());
+    }
+
+    // --- Per-entry ON/OFF ------------------------------------------------------------
+
+    public function test_an_entry_can_be_switched_off_and_on(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $rule = $instance->chatbotRules()->create(['question' => 'Diwali offer', 'keywords' => ['offer'], 'answer' => '20% off']);
+        $url = "/chatbot/{$instance->instance_id}/rules/{$rule->id}/toggle";
+
+        $this->assertTrue($rule->fresh()->enabled);
+
+        $this->actingAs($instance->user)->post($url, ['enabled' => 0])
+            ->assertRedirect(route('chatbot.index', ['instance' => $instance->instance_id]).'#rule-'.$rule->id);
+        $this->assertFalse($rule->fresh()->enabled);
+        $this->actingAs($instance->user)->get('/chatbot')->assertSee('Diwali offer')->assertSee('OFF');
+
+        $this->actingAs($instance->user)->post($url, ['enabled' => 1]);
+        $this->assertTrue($rule->fresh()->enabled);
+    }
+
+    public function test_a_switched_off_entry_never_answers(): void
+    {
+        Http::fake();
+        $instance = $this->botInstance();
+        $instance->chatbotRules()->update(['enabled' => false]);
+
+        $this->receive($instance, 'What is the price?');
+
+        $this->assertSame(0, $this->outgoingCount());
+        Http::assertNothingSent();
+    }
+
+    public function test_the_next_best_entry_answers_when_the_best_is_off(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $instance->chatbotRules()->create(['question' => 'Shoe prices', 'keywords' => ['shoes', 'price'], 'answer' => 'A', 'enabled' => false]);
+        $instance->chatbotRules()->create(['question' => 'Prices', 'keywords' => ['price'], 'answer' => 'B']);
+
+        $this->assertSame('Prices', ChatbotRule::bestMatch($instance->chatbotRules()->get(), 'price of shoes?')->question);
+    }
+
+    public function test_the_test_box_says_when_a_switched_off_entry_would_match(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $instance->chatbotRules()->create(['question' => 'Diwali offer', 'keywords' => ['offer'], 'answer' => '20% off', 'enabled' => false]);
+
+        $this->actingAs($instance->user)->followingRedirects()
+            ->post("/chatbot/{$instance->instance_id}/test", ['test_message' => 'any offer?'])
+            ->assertSee('No keyword matched')
+            ->assertSee("would match, but it's switched off", false);
+    }
+
+    public function test_the_bot_needs_an_entry_that_is_on(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $instance->chatbotRules()->create(['question' => 'Q', 'keywords' => ['q'], 'answer' => 'A', 'enabled' => false]);
+
+        $this->actingAs($instance->user)->post("/chatbot/{$instance->instance_id}/toggle", ['enabled' => 1])->assertSessionHasErrors('enabled');
+        $this->assertFalse($instance->fresh()->chatbot_enabled);
+    }
+
+    public function test_another_users_entry_cant_be_switched(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $rule = $instance->chatbotRules()->create(['question' => 'Q', 'keywords' => ['q'], 'answer' => 'A']);
+
+        $this->actingAs(User::factory()->create())
+            ->post("/chatbot/{$instance->instance_id}/rules/{$rule->id}/toggle", ['enabled' => 0])
+            ->assertNotFound();
+        $this->assertTrue($rule->fresh()->enabled);
+    }
+
+    // --- Order -----------------------------------------------------------------------
+
+    public function test_entries_can_be_moved_and_the_order_decides_a_tie(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $base = "/chatbot/{$instance->instance_id}/rules";
+
+        $this->actingAs($instance->user)->post($base, $this->form(['question' => 'Shoes', 'keywords' => 'shoes']));
+        $this->actingAs($instance->user)->post($base, $this->form(['question' => 'Stock', 'keywords' => 'have']));
+        $this->actingAs($instance->user)->post($base, $this->form(['question' => 'Third', 'keywords' => 'third']));
+        [$shoes, $stock, $third] = $instance->chatbotRules()->get()->all();
+        $this->assertSame([1, 2, 3], [$shoes->position, $stock->position, $third->position]);
+
+        // A tie: the higher one wins.
+        $this->assertSame('Shoes', ChatbotRule::bestMatch($instance->chatbotRules()->get(), 'do you have shoes?')->question);
+
+        $this->actingAs($instance->user)->post("{$base}/{$stock->id}/move", ['direction' => 'up'])
+            ->assertRedirect(route('chatbot.index', ['instance' => $instance->instance_id]).'#rule-'.$stock->id);
+
+        $this->assertSame(['Stock', 'Shoes', 'Third'], $instance->chatbotRules()->pluck('question')->all());
+        $this->assertSame('Stock', ChatbotRule::bestMatch($instance->chatbotRules()->get(), 'do you have shoes?')->question);
+        $this->actingAs($instance->user)->get('/chatbot')->assertSeeInOrder(['1. Stock', '2. Shoes', '3. Third']);
+
+        // Already at the edge: nothing changes.
+        $this->actingAs($instance->user)->post("{$base}/{$stock->id}/move", ['direction' => 'up']);
+        $this->actingAs($instance->user)->post("{$base}/{$third->id}/move", ['direction' => 'down']);
+        $this->assertSame(['Stock', 'Shoes', 'Third'], $instance->chatbotRules()->pluck('question')->all());
+
+        $this->actingAs($instance->user)->post("{$base}/{$shoes->id}/move", ['direction' => 'down']);
+        $this->assertSame(['Stock', 'Third', 'Shoes'], $instance->chatbotRules()->pluck('question')->all());
+
+        $this->actingAs($instance->user)->post("{$base}/{$shoes->id}/move", ['direction' => 'sideways'])->assertSessionHasErrors('direction');
+    }
+
+    public function test_another_users_entry_cant_be_moved(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $rule = $instance->chatbotRules()->create(['question' => 'Q', 'keywords' => ['q'], 'answer' => 'A']);
+
+        $this->actingAs(User::factory()->create())
+            ->post("/chatbot/{$instance->instance_id}/rules/{$rule->id}/move", ['direction' => 'up'])
+            ->assertNotFound();
+    }
+
+    // --- Unanswered questions --------------------------------------------------------
+
+    public function test_the_page_lists_recent_messages_no_entry_answers(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $instance->chatbotRules()->create(['question' => 'Prices', 'keywords' => ['price'], 'answer' => 'A']);
+        $incoming = fn (array $attributes) => Message::factory()->for($instance, 'whatsappSession')
+            ->create(['direction' => 'incoming', 'type' => 'text', 'from_number' => '919999999999', ...$attributes]);
+
+        $incoming(['body' => 'do you  deliver to pune?']);
+        $incoming(['body' => 'Do you deliver to Pune?']); // same question, counted once (newest wording shown)
+        $incoming(['body' => 'Price for two kg?']); // an entry answers it
+        $incoming(['body' => 'Are you open on Sunday?', 'created_at' => now()->subDays(8)]); // too old
+        $incoming(['body' => 'Old outgoing', 'direction' => 'outgoing']);
+        $incoming(['body' => '', 'type' => 'audio']);
+
+        $this->actingAs($instance->user)->get('/chatbot')->assertOk()
+            ->assertSee('Unanswered questions')
+            ->assertSee('Do you deliver to Pune?')
+            ->assertSee('asked 2 times')
+            ->assertDontSee('Price for two kg?')
+            ->assertDontSee('Are you open on Sunday?')
+            ->assertDontSee('Old outgoing');
+
+        // Once an entry matches, it's gone from the list.
+        $instance->chatbotRules()->create(['question' => 'Delivery', 'keywords' => ['deliver'], 'answer' => 'B']);
+        $this->actingAs($instance->user)->get('/chatbot')->assertDontSee('Do you deliver to Pune?');
+    }
+
+    public function test_add_as_entry_prefills_the_question(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+
+        $this->actingAs($instance->user)
+            ->get(route('chatbot.index', ['instance' => $instance->instance_id, 'question' => 'Do you deliver to Pune?']))
+            ->assertOk()
+            ->assertSee('value="Do you deliver to Pune?"', false);
+    }
+
+    public function test_another_users_messages_are_never_listed(): void
+    {
+        $mine = WhatsappSession::factory()->create();
+        $theirs = WhatsappSession::factory()->create();
+        Message::factory()->for($theirs, 'whatsappSession')
+            ->create(['direction' => 'incoming', 'type' => 'text', 'body' => 'Secret question from their customer']);
+
+        $this->actingAs($mine->user)->get(route('chatbot.index', ['instance' => $theirs->instance_id]))
+            ->assertOk()
+            ->assertDontSee('Secret question from their customer');
     }
 
     public function test_hours_alone_let_the_bot_be_switched_on(): void
