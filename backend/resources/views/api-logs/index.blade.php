@@ -113,7 +113,7 @@
                         </div>
 
                         <div class="al-row-meta">
-                            <x-message-status :message="$log" />
+                            <span class="al-status"><x-message-status :message="$log" /></span>
                             <span class="ms-time" title="{{ $log->created_at->format('Y-m-d H:i:s') }}">{{ $log->created_at->format('H:i:s') }}</span>
                             <i class="bi bi-chevron-down ms-chevron" aria-hidden="true"></i>
                         </div>

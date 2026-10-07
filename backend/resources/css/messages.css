@@ -383,6 +383,39 @@
         padding: 0.5rem 1rem;
     }
 
+    /* The first line keeps just the number and the time, so the number
+       isn't cut off; the status badge(s) move under the message. */
+    .ms-row-main {
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
+        grid-template-areas:
+            'icon who time chev'
+            'icon content content content'
+            'icon status status status';
+        column-gap: 0.6rem;
+    }
+
+    .ms-row-meta {
+        display: contents;
+    }
+
+    .ms-status {
+        grid-area: status;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+
+    .ms-time {
+        grid-area: time;
+        align-self: start;
+        padding-top: 0.1rem;
+    }
+
+    .ms-chevron {
+        grid-area: chev;
+        align-self: start;
+    }
+
     .ms-detail {
         padding: 0.25rem 1rem 1rem;
         flex-direction: column;
@@ -404,5 +437,28 @@
     [class*='ms-']::after {
         animation: none !important;
         transition: none !important;
+    }
+}
+
+/* Chatbot page: its three stat tiles sit side by side on phones, so each
+   tile puts the icon above the text. */
+@media (max-width: 575.98px) {
+    .cb-stats .ms-tile {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.45rem;
+        padding: 0.7rem;
+    }
+
+    .cb-stats .ms-tile-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 0.95rem;
+        border-radius: 9px;
+    }
+
+    .cb-stats .ms-tile-label {
+        font-size: 0.64rem;
+        letter-spacing: 0.02em;
     }
 }

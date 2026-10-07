@@ -182,7 +182,7 @@
         <section class="dc-section dc-endpoint db-in" id="endpoint-send" style="--i: 6;">
             <div class="dc-endpoint-head">
                 <span class="dc-method dc-post">POST</span>
-                <code class="dc-endpoint-url">/api/v1/messages/send</code>
+                <code class="dc-endpoint-url">/api/<wbr>v1/<wbr>messages/<wbr>send</code>
                 <button type="button" class="dc-copy-sm ms-auto" data-dc-copy-text="{{ url('/api/v1/messages/send') }}" title="Copy URL"><i class="bi bi-clipboard"></i></button>
             </div>
             <h2 class="dc-h2 mt-3">Send a message (text or media)</h2>
@@ -372,7 +372,7 @@
         <section class="dc-section dc-endpoint db-in" id="endpoint-status" style="--i: 7;">
             <div class="dc-endpoint-head">
                 <span class="dc-method dc-get">GET</span>
-                <code class="dc-endpoint-url">/api/v1/messages/{message_id}</code>
+                <code class="dc-endpoint-url">/api/<wbr>v1/<wbr>messages/<wbr>{message_id}</code>
                 <button type="button" class="dc-copy-sm ms-auto" data-dc-copy-text="{{ url('/api/v1/messages/') }}/" title="Copy URL"><i class="bi bi-clipboard"></i></button>
             </div>
             <h2 class="dc-h2 mt-3">Check message status</h2>
@@ -418,11 +418,11 @@
 
                     <h3 class="dc-h3"><code>status</code> values</h3>
                     <ul class="dc-status-list">
-                        <li><span class="dc-sv">pending</span>being sent right now.</li>
-                        <li><span class="dc-sv">sent</span>handed over to WhatsApp successfully (✓).</li>
-                        <li><span class="dc-sv">delivered</span>reached the recipient's phone (✓✓). <code>delivered_at</code> is set.</li>
-                        <li><span class="dc-sv">read</span>the recipient opened it (blue ✓✓). <code>read_at</code> is set.</li>
-                        <li><span class="dc-sv">failed</span>could not be sent from your linked number. If <code>fallback_status</code> is <code>"sent"</code>, it went out through your Cloud API fallback instead (<code>sent_via</code> is <code>"cloud_api"</code>).</li>
+                        <li><span class="dc-sv">pending</span><span>being sent right now.</span></li>
+                        <li><span class="dc-sv">sent</span><span>handed over to WhatsApp successfully (✓).</span></li>
+                        <li><span class="dc-sv">delivered</span><span>reached the recipient's phone (✓✓). <code>delivered_at</code> is set.</span></li>
+                        <li><span class="dc-sv">read</span><span>the recipient opened it (blue ✓✓). <code>read_at</code> is set.</span></li>
+                        <li><span class="dc-sv">failed</span><span>could not be sent from your linked number. If <code>fallback_status</code> is <code>"sent"</code>, it went out through your Cloud API fallback instead (<code>sent_via</code> is <code>"cloud_api"</code>).</span></li>
                     </ul>
                     <p class="small text-muted mb-0">
                         <code>read</code> only appears if the recipient has read receipts turned on in WhatsApp.
@@ -462,7 +462,7 @@
         <section class="dc-section dc-endpoint db-in" id="endpoint-check-numbers" style="--i: 8;">
             <div class="dc-endpoint-head">
                 <span class="dc-method dc-post">POST</span>
-                <code class="dc-endpoint-url">/api/v1/numbers/check</code>
+                <code class="dc-endpoint-url">/api/<wbr>v1/<wbr>numbers/<wbr>check</code>
                 <button type="button" class="dc-copy-sm ms-auto" data-dc-copy-text="{{ url('/api/v1/numbers/check') }}" title="Copy URL"><i class="bi bi-clipboard"></i></button>
             </div>
             <h2 class="dc-h2 mt-3">Check if numbers are on WhatsApp</h2>

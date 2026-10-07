@@ -487,3 +487,61 @@ a:hover {
     background-color: var(--wa-info-light);
     color: var(--wa-info);
 }
+
+/*
+ * .table-stack: on phones (up to 575px) each table row becomes a small
+ * block instead of squeezed columns. Cells marked .stack-head form the
+ * first line (.stack-end pushes one to the right); the other cells follow
+ * underneath, each on its own line, with data-label="…" shown as a small
+ * label in front. Tablet and desktop keep the normal table.
+ */
+@media (max-width: 575.98px) {
+    .table-stack thead {
+        display: none;
+    }
+
+    .table-stack,
+    .table-stack tbody {
+        display: block;
+        width: 100%;
+    }
+
+    .table-stack tr {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.3rem 0.6rem;
+        padding: 0.75rem 0.9rem;
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+
+    .table-stack tbody tr:last-child {
+        border-bottom: 0;
+    }
+
+    .table-stack td {
+        order: 2;
+        flex-basis: 100%;
+        min-width: 0;
+        max-width: none !important;
+        padding: 0 !important;
+        border: 0 !important;
+        text-align: left !important;
+        background: transparent !important;
+    }
+
+    .table-stack td.stack-head {
+        order: 1;
+        flex-basis: auto;
+    }
+
+    .table-stack td.stack-end {
+        margin-left: auto;
+    }
+
+    .table-stack td[data-label]::before {
+        content: attr(data-label) ' ';
+        font-size: 0.78rem;
+        color: var(--bs-secondary-color);
+    }
+}

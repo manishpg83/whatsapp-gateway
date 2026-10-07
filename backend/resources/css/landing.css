@@ -37,6 +37,13 @@ html:has(body.landing) {
     scroll-behavior: smooth;
 }
 
+/* Safety net: nothing inside the page may make it wider than the screen.
+   (overflow-x on <body> alone still lets a phone drag the page sideways;
+   "clip", unlike "hidden", keeps the sticky top bar working.) */
+.landing main {
+    overflow-x: clip;
+}
+
 .landing section[id] {
     scroll-margin-top: 84px;
 }
@@ -1755,6 +1762,158 @@ html:has(body.landing) {
     }
 }
 
+/* ------------------------------------------------------------- Phones */
+
+/* Phones (up to 575px): a smaller logo, type and spacing, so the page
+   reads like a phone page rather than a shrunk desktop one. Desktop and
+   tablet sizes above are untouched. The nav is shared by every public
+   page, so the smaller logo applies there too. */
+@media (max-width: 575.98px) {
+    .lp-nav {
+        padding: 0.6rem 0;
+    }
+
+    .lp-nav.is-scrolled {
+        padding: 0.45rem 0;
+    }
+
+    .lp-brand .brand-logo {
+        --brand-h: 30px;
+    }
+
+    .lp-nav-toggler {
+        font-size: 1.2rem;
+        padding: 0.15rem 0.5rem;
+    }
+
+    .lp-btn-lg {
+        padding: 0.75rem 1.2rem;
+        font-size: 0.95rem;
+    }
+
+    .lp-eyebrow {
+        font-size: 0.72rem;
+        padding: 0.32rem 0.7rem;
+    }
+
+    /* Hero */
+    .lp-hero {
+        padding: 36px 0 64px;
+    }
+
+    .lp-hero-title {
+        font-size: 1.85rem;
+        line-height: 1.15;
+        letter-spacing: -0.03em;
+        margin: 0.9rem 0;
+    }
+
+    .lp-hero-lead {
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+    }
+
+    .lp-trust {
+        font-size: 0.82rem;
+        margin-top: 1.25rem;
+    }
+
+    /* Sections */
+    .lp-section {
+        padding: 64px 0;
+    }
+
+    /* A page that opens with a section (Pricing, About, Guides) needs
+       less space under the top bar. */
+    .landing main > .lp-section:first-child {
+        padding-top: 36px;
+    }
+
+    .lp-section-head {
+        margin-bottom: 32px;
+    }
+
+    .lp-h2 {
+        font-size: 1.5rem;
+        margin: 0.75rem 0 0.5rem;
+    }
+
+    .lp-sub {
+        font-size: 0.95rem;
+    }
+
+    /* How it works */
+    .lp-step {
+        padding: 20px 18px;
+    }
+
+    .lp-step-top {
+        margin-bottom: 14px;
+    }
+
+    .lp-step-num {
+        width: 38px;
+        height: 38px;
+        font-size: 0.85rem;
+    }
+
+    .lp-step-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.1rem;
+    }
+
+    .lp-step-title,
+    .lp-feature-title {
+        font-size: 1rem;
+    }
+
+    .lp-step-text,
+    .lp-feature-text {
+        font-size: 0.88rem;
+    }
+
+    /* Features */
+    .lp-feature {
+        padding: 20px 18px;
+    }
+
+    .lp-feature-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 13px;
+        font-size: 1.2rem;
+        margin-bottom: 14px;
+    }
+
+    /* About us cards: slightly smaller text so long lines (the email
+       address) fit without breaking mid-word. */
+    .ab-card {
+        font-size: 0.95rem;
+    }
+
+    .ab-card h2 {
+        font-size: 1.2rem;
+    }
+
+    /* The laptop's base sticks out a little past the screen on desktop;
+       on a phone keep it inside the page edge. */
+    .lp-laptop-base {
+        margin: 0 -3%;
+    }
+
+    /* Pricing */
+    .lp-price {
+        padding: 24px 20px 20px;
+    }
+
+    .lp-price-amount {
+        font-size: 2rem;
+        margin-bottom: 1.1rem;
+    }
+}
+
 /* People who ask for less motion get the finished page, no movement. */
 @media (prefers-reduced-motion: reduce) {
     html:has(body.landing) {
@@ -2182,7 +2341,19 @@ html:has(body.landing) {
 
 @media (max-width: 575.98px) {
     .pr-compare {
-        font-size: 0.85rem;
+        min-width: 470px;
+        font-size: 0.82rem;
+    }
+
+    .pr-compare > :not(caption) > * > * {
+        padding: 0.55rem 0.45rem;
+    }
+
+    .pr-compare th:first-child {
+        width: 118px;
+        min-width: 118px;
+        max-width: 118px;
+        padding-left: 0.75rem;
     }
 }
 
@@ -2205,3 +2376,89 @@ html:has(body.landing) {
     font-size: 0.85rem;
 }
 
+
+/* Guides on phones (up to 575px): smaller card icons and titles, and
+   article text / headings / tables sized for a small screen. */
+@media (max-width: 575.98px) {
+    .gd-card .card-body {
+        padding: 1.25rem !important;
+    }
+
+    .gd-card .card-body > .bi {
+        font-size: 1.9rem !important;
+    }
+
+    .gd-card h2 {
+        font-size: 1.1rem;
+    }
+
+    .gd-article {
+        font-size: 0.95rem;
+        line-height: 1.65;
+    }
+
+    .gd-article h2 {
+        font-size: 1.25rem;
+    }
+
+    .gd-article h3 {
+        font-size: 1.08rem;
+    }
+
+    .gd-article .table {
+        font-size: 0.85rem;
+    }
+
+    .gd-article .table > :not(caption) > * > * {
+        padding: 0.45rem 0.5rem;
+    }
+
+    .gd-article .dc-code pre {
+        font-size: 0.78rem;
+    }
+}
+
+/* Auth pages on phones (up to 575px): a more compact heading and fields so
+   the Login form fits on one screen. Inputs stay at 16px: iPhones zoom
+   the page when you tap a field with smaller text. 100svh = the visible
+   screen, so the footer isn't pushed below the browser's address bar. */
+@media (max-width: 575.98px) {
+    .lp-auth-shell,
+    .lp-auth-main {
+        min-height: 100svh;
+    }
+
+    .lp-auth-main {
+        padding: 16px 20px;
+    }
+
+    .lp-auth-form-wrap {
+        padding: 28px 0;
+    }
+
+    .lp-auth-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 13px;
+        font-size: 1.25rem;
+        margin-bottom: 14px;
+    }
+
+    .lp-auth-title {
+        font-size: 1.55rem;
+    }
+
+    .lp-auth-sub {
+        font-size: 0.93rem;
+        margin-bottom: 1.4rem;
+    }
+
+    .lp-auth .form-control {
+        padding: 0.62rem 0.9rem;
+        font-size: 1rem;
+    }
+
+    .lp-auth-switch {
+        margin-top: 1.25rem;
+    }
+}

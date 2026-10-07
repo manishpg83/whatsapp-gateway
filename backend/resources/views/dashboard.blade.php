@@ -38,7 +38,7 @@
 
 {{-- Summary cards --}}
 <div class="row g-3 mb-4">
-    <div class="col-md-3 col-sm-6">
+    <div class="col-6 col-md-3">
         <div class="card stat-card stat-card-green shadow-sm h-100 db-stat db-in" style="--i: 1;">
             <div class="card-body d-flex align-items-start gap-3">
                 <div class="bg-wa-light text-primary rounded-3 p-2 fs-4 lh-1 db-stat-icon">
@@ -53,7 +53,7 @@
         </div>
     </div>
 
-    <div class="col-md-3 col-sm-6">
+    <div class="col-6 col-md-3">
         <div class="card stat-card stat-card-blue shadow-sm h-100 db-stat db-in" style="--i: 2;">
             <div class="card-body d-flex align-items-start gap-3">
                 <div class="rounded-3 p-2 fs-4 lh-1 db-stat-icon" style="background-color: var(--wa-info-light); color: var(--wa-info);">
@@ -78,7 +78,7 @@
         </div>
     </div>
 
-    <div class="col-md-3 col-sm-6">
+    <div class="col-6 col-md-3">
         <div class="card stat-card shadow-sm h-100 db-stat db-in" style="--i: 3; border-left-color: var(--wa-primary-dark);">
             <div class="card-body d-flex align-items-start gap-3">
                 <div class="bg-wa-light text-primary rounded-3 p-2 fs-4 lh-1 db-stat-icon">
@@ -98,7 +98,7 @@
         </div>
     </div>
 
-    <div class="col-md-3 col-sm-6">
+    <div class="col-6 col-md-3">
         <div class="card stat-card stat-card-purple shadow-sm h-100 db-stat db-in" style="--i: 4;">
             <div class="card-body d-flex align-items-start gap-3">
                 <div class="rounded-3 p-2 fs-4 lh-1 db-stat-icon" style="background-color: var(--wa-purple-light); color: var(--wa-purple);">

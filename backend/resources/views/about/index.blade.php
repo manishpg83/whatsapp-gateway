@@ -51,7 +51,7 @@
             {{-- Who we are / what we do --}}
             <div class="col-lg-7" data-reveal>
                 <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body p-4 p-md-5">
+                    <div class="card-body p-3 p-sm-4 p-md-5 ab-card">
                         <h2 class="h4 fw-bold mb-3">What we do</h2>
                         <p>
                             {{ config('app.name') }} lets developers and businesses send and receive WhatsApp messages
@@ -84,7 +84,7 @@
             {{-- Company details --}}
             <div class="col-lg-5" data-reveal style="--i: 1;">
                 <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body p-4 p-md-5">
+                    <div class="card-body p-3 p-sm-4 p-md-5 ab-card">
                         <h2 class="h4 fw-bold mb-4">Company details</h2>
 
                         <div class="d-flex gap-3 mb-3">

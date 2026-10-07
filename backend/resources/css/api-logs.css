@@ -319,6 +319,40 @@
         font-size: 0.68rem;
     }
 
+    /* Like the Messages page: the first line keeps just the number and
+       the time, so the number isn't cut off; the status badge(s) go last. */
+    .al-row-main {
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
+        grid-template-areas:
+            'req who time chev'
+            'req body body body'
+            'req token token token'
+            'req status status status';
+        column-gap: 0.6rem;
+    }
+
+    .al-row-meta {
+        display: contents;
+    }
+
+    .al-status {
+        grid-area: status;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+
+    .al-row-meta .ms-time {
+        grid-area: time;
+        align-self: start;
+        padding-top: 0.1rem;
+    }
+
+    .al-row-meta .ms-chevron {
+        grid-area: chev;
+        align-self: start;
+    }
+
     .al-detail {
         padding: 0.25rem 1rem 1rem;
     }

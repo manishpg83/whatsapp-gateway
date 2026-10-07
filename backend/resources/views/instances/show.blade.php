@@ -364,7 +364,7 @@
                             <p class="text-muted small mb-3">No tokens yet.</p>
                         @else
                             <div class="table-responsive border rounded-3 mb-3">
-                                <table class="table table-sm align-middle mb-0 small">
+                                <table class="table table-sm align-middle mb-0 small table-stack">
                                     <thead class="table-light">
                                         <tr>
                                             <th class="ps-3">Name</th>
@@ -377,11 +377,11 @@
                                     <tbody>
                                         @foreach ($instance->apiTokens as $token)
                                             <tr>
-                                                <td class="ps-3">{{ $token->name }}</td>
-                                                <td class="font-monospace">{{ $token->token_prefix }}&hellip;</td>
-                                                <td class="text-nowrap">{{ $token->created_at->format('M j, Y') }}</td>
-                                                <td class="text-nowrap">{{ $token->last_used_at?->diffForHumans() ?? 'Never' }}</td>
-                                                <td class="text-end pe-2">
+                                                <td class="ps-3 stack-head fw-semibold">{{ $token->name }}</td>
+                                                <td class="font-monospace" data-label="Token">{{ $token->token_prefix }}&hellip;</td>
+                                                <td class="text-nowrap" data-label="Created">{{ $token->created_at->format('M j, Y') }}</td>
+                                                <td class="text-nowrap" data-label="Last used">{{ $token->last_used_at?->diffForHumans() ?? 'Never' }}</td>
+                                                <td class="text-end pe-2 stack-head stack-end">
                                                     @if ($token->revoked_at)
                                                         <span class="badge text-bg-secondary">Revoked</span>
                                                     @else
@@ -535,7 +535,7 @@
                                 <p class="text-muted mt-2 mb-0">No webhooks sent yet.</p>
                             @else
                                 <div class="table-responsive mt-2">
-                                    <table class="table table-sm align-middle mb-0">
+                                    <table class="table table-sm align-middle mb-0 table-stack">
                                         <thead>
                                             <tr>
                                                 <th>Date/Time</th>
@@ -558,12 +558,12 @@
                                                     };
                                                 @endphp
                                                 <tr>
-                                                    <td class="text-nowrap">{{ $delivery->created_at->format('M j, H:i:s') }}</td>
-                                                    <td><code>{{ $delivery->event }}</code></td>
-                                                    <td><span class="badge rounded-pill text-bg-{{ $color }}">{{ $label }}</span></td>
-                                                    <td>{{ $delivery->response_status ?? '—' }}</td>
-                                                    <td>{{ $delivery->attempts }}</td>
-                                                    <td class="text-muted text-truncate" style="max-width: 160px;" title="{{ $delivery->error }}">{{ $delivery->error ?? '—' }}</td>
+                                                    <td class="text-nowrap stack-head fw-semibold">{{ $delivery->created_at->format('M j, H:i:s') }}</td>
+                                                    <td data-label="Event"><code>{{ $delivery->event }}</code></td>
+                                                    <td class="stack-head stack-end"><span class="badge rounded-pill text-bg-{{ $color }}">{{ $label }}</span></td>
+                                                    <td data-label="HTTP">{{ $delivery->response_status ?? '—' }}</td>
+                                                    <td data-label="Tries">{{ $delivery->attempts }}</td>
+                                                    <td class="text-muted text-truncate" style="max-width: 160px;" title="{{ $delivery->error }}" data-label="Error">{{ $delivery->error ?? '—' }}</td>
                                                 </tr>
                                             @endforeach
                                         </tbody>
@@ -674,7 +674,7 @@
                 </div>
             @else
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-hover align-middle mb-0 table-stack">
                         <thead class="table-light">
                             <tr>
                                 <th class="ps-4" style="width: 60px;"></th>
@@ -690,15 +690,15 @@
                                     $incoming = $message->direction === 'incoming';
                                 @endphp
                                 <tr>
-                                    <td class="ps-4">
+                                    <td class="ps-4 stack-head">
                                         <span class="direction-bubble {{ $incoming ? 'in' : 'out' }}" title="{{ $incoming ? 'Received' : 'Sent' }}">
                                             <i class="bi {{ $incoming ? 'bi-arrow-down-left' : 'bi-arrow-up-right' }}"></i>
                                         </span>
                                     </td>
-                                    <td class="text-nowrap fw-semibold">{{ $incoming ? $message->from_number : $message->to_number }}</td>
+                                    <td class="text-nowrap fw-semibold stack-head">{{ $incoming ? $message->from_number : $message->to_number }}</td>
                                     <td>@include('messages._content', ['message' => $message, 'compact' => true])</td>
                                     <td><x-message-status :message="$message" /></td>
-                                    <td class="pe-4 text-end text-nowrap small text-muted" title="{{ $message->created_at->format('Y-m-d H:i:s') }}">
+                                    <td class="pe-4 text-end text-nowrap small text-muted stack-head stack-end" title="{{ $message->created_at->format('Y-m-d H:i:s') }}">
                                         {{ $message->created_at->diffForHumans() }}
                                     </td>
                                 </tr>

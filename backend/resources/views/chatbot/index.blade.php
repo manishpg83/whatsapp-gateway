@@ -83,13 +83,13 @@
     </div>
 
     {{-- Stats for this instance --}}
-    <div class="row g-3 mb-4">
+    <div class="row g-2 g-sm-3 mb-4 cb-stats">
         @foreach ([
             ['Answers sent · 7 days', $stats['answers_week'], 'bi-robot', 'green'],
             ['"Closed" messages · 7 days', $stats['closed_week'], 'bi-moon-stars', 'purple'],
             ['All bot replies · 30 days', $stats['month'], 'bi-graph-up', 'blue'],
         ] as $i => [$label, $count, $icon, $tone])
-            <div class="col-12 col-sm-4">
+            <div class="col-4">
                 <div class="ms-tile ms-tone-{{ $tone }} db-in" style="--i: {{ $i + 2 }};">
                     <span class="ms-tile-icon"><i class="bi {{ $icon }}"></i></span>
                     <span class="d-block" style="min-width: 0;">

@@ -172,7 +172,7 @@
                         <div class="ms-row-content">@include('messages._content', ['message' => $message, 'compact' => true])</div>
 
                         <div class="ms-row-meta">
-                            <x-message-status :message="$message" />
+                            <span class="ms-status"><x-message-status :message="$message" /></span>
                             <span class="ms-time" title="{{ $message->created_at->format('Y-m-d H:i:s') }}">{{ $message->created_at->format('H:i') }}</span>
                             <i class="bi bi-chevron-down ms-chevron" aria-hidden="true"></i>
                         </div>

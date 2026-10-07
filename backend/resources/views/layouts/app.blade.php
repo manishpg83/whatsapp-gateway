@@ -132,13 +132,19 @@
                     <i class="bi bi-list fs-5"></i>
                 </button>
 
+                {{-- Phones: the sidebar (and its logo) is hidden, so show a small logo here. --}}
+                <a href="{{ route(auth()->user()->is_admin ? 'admin.dashboard' : 'dashboard') }}" class="d-sm-none" aria-label="{{ config('app.name') }} dashboard">
+                    <x-brand-logo size="sm" style="--brand-h: 26px;" />
+                </a>
+
                 <span class="text-muted small text-uppercase fw-semibold d-none d-sm-inline">@yield('title', 'Dashboard')</span>
 
                 <div class="ms-auto dropdown">
                     <button class="btn btn-light dropdown-toggle d-flex align-items-center gap-2" type="button"
-                            data-bs-toggle="dropdown" aria-expanded="false">
+                            data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">
                         <span class="avatar-badge">{{ mb_strtoupper(mb_substr(auth()->user()->name, 0, 1)) }}</span>
-                        <span>{{ auth()->user()->name }}</span>
+                        {{-- Phones show just the avatar, to leave room for the logo. --}}
+                        <span class="d-none d-sm-inline">{{ auth()->user()->name }}</span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li>
@@ -197,7 +203,7 @@
 @else
     @include('partials.site-nav')
 
-    <main class="container py-5 flex-grow-1">
+    <main class="container py-4 py-sm-5 flex-grow-1">
         @if (session('status'))
             <div class="alert alert-success">{{ session('status') }}</div>
         @endif

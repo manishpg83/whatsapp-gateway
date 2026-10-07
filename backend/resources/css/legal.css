@@ -632,6 +632,69 @@
     margin-top: 0.1rem;
 }
 
+/* Phones (up to 575px), Terms / Privacy / Contact: a smaller hero icon,
+   chips that fit two to a line, and less padding around the text. */
+@media (max-width: 575.98px) {
+    .tm-hero {
+        padding: 1.25rem !important;
+    }
+
+    .tm-hero-icon {
+        width: 52px;
+        height: 52px;
+        font-size: 1.4rem;
+        border-radius: 15px;
+    }
+
+    .tm-hero h1 {
+        font-size: 1.5rem;
+    }
+
+    .tm-hero p {
+        font-size: 0.93rem;
+    }
+
+    .tm-hero .ad-chip {
+        font-size: 0.74rem;
+        padding: 0.25rem 0.6rem;
+    }
+
+    .tm-key {
+        padding: 0.9rem 1rem;
+    }
+
+    .tm-body {
+        padding: 1.15rem 1rem;
+        font-size: 0.95rem;
+    }
+
+    .tm-intro {
+        font-size: 0.97rem;
+    }
+
+    /* Contact form */
+    .ct-topic-card {
+        padding: 0.6rem 0.7rem;
+        font-size: 0.85rem;
+        gap: 0.5rem;
+    }
+
+    .ct-topic-card .bi {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+    }
+
+    .ct-send {
+        font-size: 1rem;
+        padding: 0.6rem 1rem;
+    }
+
+    .ct-card {
+        padding: 0.9rem 1rem;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     [class*='ct-'],
     [class*='ct-'] *,

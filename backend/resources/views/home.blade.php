@@ -430,7 +430,7 @@
 
 <section class="lp-section lp-section-ice" id="faq">
     <div class="container">
-        <div class="row g-5">
+        <div class="row g-4 g-lg-5">
             <div class="col-lg-4">
                 <div class="lp-faq-intro" data-reveal>
                     <span class="lp-eyebrow"><i class="bi bi-question-circle"></i> FAQ</span>

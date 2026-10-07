@@ -652,10 +652,17 @@ html:has(.dc-layout) {
     font-size: 0.9rem;
 }
 
+/* Two parts per row: the status name, then its description as ONE block
+   (wrapped in a <span>), so inline <code> stays inside the sentence. */
 .dc-status-list li {
     display: flex;
     gap: 0.6rem;
     align-items: baseline;
+}
+
+.dc-status-list li > span:last-child {
+    min-width: 0;
+    overflow-wrap: break-word;
 }
 
 .dc-sv {
@@ -855,6 +862,67 @@ html:has(.dc-layout) {
 @media (max-width: 991.98px) {
     .dc-section {
         scroll-margin-top: 120px;
+    }
+}
+
+/* Phones (up to 575px): less padding on the outer cards (the inner boxes
+   already have their own), smaller headings, so the text gets the width. */
+@media (max-width: 575.98px) {
+    .dc-hero {
+        padding: 1.4rem 1.2rem;
+        border-radius: 16px;
+    }
+
+    .dc-hero-title {
+        font-size: 1.6rem;
+    }
+
+    .dc-hero-sub {
+        font-size: 0.93rem;
+    }
+
+    .dc-section {
+        padding: 1.15rem 1rem;
+        border-radius: 16px;
+        margin-bottom: 1rem;
+        font-size: 0.93rem;
+    }
+
+    .dc-h2 {
+        font-size: 1.12rem;
+        gap: 0.6rem;
+    }
+
+    .dc-h2-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        font-size: 1rem;
+    }
+
+    .dc-step {
+        padding: 1rem 0.9rem 0.9rem;
+    }
+
+    .dc-dodont {
+        padding: 0.9rem 0.95rem;
+    }
+
+    .dc-endpoint-head {
+        padding: 0.6rem 0.7rem;
+        gap: 0.6rem;
+    }
+
+    .dc-endpoint-url {
+        font-size: 0.84rem !important;
+    }
+
+    .dc-stack tr {
+        padding: 0.65rem 0.75rem;
+    }
+
+    .dc-code pre {
+        padding: 0.85rem 0.9rem;
     }
 }
 
