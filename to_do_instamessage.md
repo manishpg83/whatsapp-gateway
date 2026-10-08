@@ -14,10 +14,10 @@ how chatbot work is that you reserve a keyword like to know your shipping messag
 * Right now in message table, user's messages are not encrypted which can be lead to privacy issue.
 * Chatbot work on how it will work.
 
-pending 
-menu working
-payment
-cloud api fallback testing
-have to mention about chatbot in welcome landing page
-in admin give optio like how many from indian website how many from za
-about us information in admin
+
+* Menu In chatbot -> Done
+* Payment
+* Have to mention about chatbot in welcome landing page
+* About us information in admin -> Done
+* Cloud api fallback testing
+* in admin give option like how many from indian website how many from za

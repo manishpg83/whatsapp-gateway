@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AdminAuditLog;
 use App\Models\EmailTemplate;
 use App\Models\Plan;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -17,7 +18,7 @@ use Illuminate\Http\Request;
  */
 class AdminAudit
 {
-    public static function record(Request $request, string $action, User|Plan|EmailTemplate $target, array $details = []): void
+    public static function record(Request $request, string $action, User|Plan|EmailTemplate|Setting $target, array $details = []): void
     {
         $admin = $request->user();
 
@@ -25,6 +26,7 @@ class AdminAudit
             $target instanceof User => ['user', "{$target->name} ({$target->email})"],
             $target instanceof Plan => ['plan', $target->name],
             $target instanceof EmailTemplate => ['email_template', EmailTemplates::definition($target->key)['label']],
+            $target instanceof Setting => ['setting', ucfirst($target->key).' settings'],
         };
 
         AdminAuditLog::create([

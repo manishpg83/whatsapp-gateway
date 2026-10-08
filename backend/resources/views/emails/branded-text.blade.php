@@ -10,4 +10,4 @@
 
 --
 {!! config('app.name') !!} — Your WhatsApp API, simplified.
-BriskBrain Technologies · {!! route('contact') !!}
+{!! config('company.name') !!} · {!! route('contact') !!}

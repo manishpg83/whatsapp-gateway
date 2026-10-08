@@ -15,6 +15,7 @@
         'plan.deleted' => ['red', 'bi-trash'],
         'email_template.updated' => ['blue', 'bi-envelope-paper'],
         'email_template.reset' => ['amber', 'bi-arrow-counterclockwise'],
+        'company_settings.updated' => ['blue', 'bi-building'],
     ];
 @endphp
 <div class="ad-table-wrap">

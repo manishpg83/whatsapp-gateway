@@ -67,7 +67,7 @@
                         <br>
                         <strong style="color:#4a5a53;">{{ config('app.name') }}</strong> — Your WhatsApp API, simplified.<br>
                         You're receiving this email because of your {{ config('app.name') }} account.<br>
-                        &copy; {{ date('Y') }} BriskBrain Technologies. All rights reserved.
+                        &copy; {{ date('Y') }} {{ config('company.name') }}. All rights reserved.
                     </td>
                 </tr>
 

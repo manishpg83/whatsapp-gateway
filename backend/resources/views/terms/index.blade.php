@@ -108,7 +108,7 @@
             <div class="ad-panel h-auto tm-body db-in" style="--i: 5;">
                 <p class="tm-intro">
                     These Terms of Service ("Terms") govern your access to and use of
-                    {{ config('app.name') }} (the "Service"), operated by BriskBrain Technologies
+                    {{ config('app.name') }} (the "Service"), operated by {{ config('company.name') }}
                     ("we", "us", "our"). By creating an account or using the Service, you agree
                     to be bound by these Terms. If you do not agree, do not use the Service.
                 </p>
@@ -308,8 +308,8 @@
                     <div class="tm-contact">
                         <span class="ad-stat-icon ad-tone-green"><i class="bi bi-envelope-paper"></i></span>
                         <div style="min-width: 0;">
-                            <div class="fw-semibold">BriskBrain Technologies</div>
-                            <a href="mailto:briskbraintechnologies@gmail.com" class="text-break">briskbraintechnologies@gmail.com</a>
+                            <div class="fw-semibold">{{ config('company.name') }}</div>
+                            <a href="mailto:{{ config('company.email') }}" class="text-break">{{ config('company.email') }}</a>
                             <div class="small text-muted">or use our <a href="{{ route('contact') }}">contact form</a></div>
                         </div>
                     </div>

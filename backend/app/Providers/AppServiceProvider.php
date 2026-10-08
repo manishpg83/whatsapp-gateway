@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Services\EmailTemplates;
+use App\Support\CompanySettings;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -29,6 +30,10 @@ class AppServiceProvider extends ServiceProvider
         // No Tailwind in this app (CLAUDE.md §3) — Laravel's pagination
         // views default to Tailwind, so switch to the Bootstrap 5 one.
         Paginator::useBootstrapFive();
+
+        // Company details edited in Admin → Company settings replace the
+        // defaults in config/company.php.
+        CompanySettings::apply();
 
         // Laravel's own "verify email" and "reset password" emails use our
         // admin-editable templates (Admin → Email Templates) like the rest.

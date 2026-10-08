@@ -121,7 +121,7 @@
                 <section id="{{ $id = 'who-we-are' }}" class="tm-section pt-0">
                     <h2 class="tm-h2"><span class="tm-num">{{ ++$n }}</span>{{ $sections[$id] }}</h2>
                     <p>
-                        {{ config('app.name') }} (the "Service") is operated by <strong>BriskBrain Technologies</strong>
+                        {{ config('app.name') }} (the "Service") is operated by <strong>{{ config('company.name') }}</strong>
                         ("we", "us", "our"), based in India. This policy explains what personal information we
                         handle when you visit our website, create an account, or use the Service, and the choices
                         you have. It should be read together with our <a href="{{ route('terms') }}">Terms of Service</a>.
@@ -327,8 +327,8 @@
                     <div class="tm-contact">
                         <span class="ad-stat-icon ad-tone-green"><i class="bi bi-envelope-paper"></i></span>
                         <div style="min-width: 0;">
-                            <div class="fw-semibold">BriskBrain Technologies — Privacy &amp; Grievances</div>
-                            <a href="mailto:briskbraintechnologies@gmail.com" class="text-break">briskbraintechnologies@gmail.com</a>
+                            <div class="fw-semibold">{{ config('company.name') }} — Privacy &amp; Grievances</div>
+                            <a href="mailto:{{ config('company.email') }}" class="text-break">{{ config('company.email') }}</a>
                             <div class="small text-muted">or use our <a href="{{ route('contact', ['topic' => 'privacy']) }}">contact form</a> (topic: Privacy / data request)</div>
                         </div>
                     </div>

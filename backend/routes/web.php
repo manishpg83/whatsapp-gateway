@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin\AuditLogController as AdminAuditLogController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\InstanceController as AdminInstanceController;
+use App\Http\Controllers\Admin\CompanySettingsController as AdminCompanySettingsController;
 use App\Http\Controllers\Admin\EmailTemplateController as AdminEmailTemplateController;
 use App\Http\Controllers\Admin\PlanController as AdminPlanController;
 use App\Http\Controllers\Admin\RevenueController as AdminRevenueController;
@@ -213,6 +214,9 @@ Route::middleware(['auth', 'not_suspended', 'verified', 'admin'])->prefix('admin
     Route::post('/email-templates/{key}/test', [AdminEmailTemplateController::class, 'sendTest'])
         ->middleware('throttle:5,1')
         ->name('email-templates.test');
+
+    Route::get('/company', [AdminCompanySettingsController::class, 'edit'])->name('company.edit');
+    Route::put('/company', [AdminCompanySettingsController::class, 'update'])->name('company.update');
 });
 
 // The 24-hour media download link sent in webhooks, for the customer's

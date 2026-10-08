@@ -73,6 +73,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link sidebar-link {{ request()->routeIs('admin.company.*') ? 'active' : '' }}" href="{{ route('admin.company.edit') }}">
+                                <i class="bi bi-building me-2"></i>Company settings
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link sidebar-link {{ request()->routeIs('admin.audit-log.*') ? 'active' : '' }}" href="{{ route('admin.audit-log.index') }}">
                                 <i class="bi bi-journal-text me-2"></i>Audit log
                             </a>

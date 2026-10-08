@@ -35,7 +35,7 @@
 @endunless
 <meta name="theme-color" content="#0b8457">
 <meta name="application-name" content="{{ $appName }}">
-<meta name="author" content="BriskBrain Technologies">
+<meta name="author" content="{{ config('company.name') }}">
 <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="48x48">
 <link rel="icon" href="{{ asset('images/brand/icon-192.png') }}" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">

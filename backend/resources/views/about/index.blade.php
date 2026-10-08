@@ -1,12 +1,12 @@
 @extends('layouts.landing')
 
 @section('title', 'About Us')
-@section('meta_description', 'InstaMessage is built and run by BriskBrain Technologies, a software company in Ahmedabad, India. Company details, address and how to reach us.')
+@section('meta_description', config('app.name').' is built and run by '.config('company.name').', a software company in '.config('company.address.city').', '.config('company.address.country').'. Company details, address and how to reach us.')
 
 @php
     $company = config('company');
     $address = $company['address'];
-    $addressLines = [$address['street'], "{$address['city']}, {$address['region']} {$address['postal_code']}", $address['country']];
+    $addressLines = \App\Support\CompanySettings::addressLines();
 @endphp
 
 @push('structured_data')

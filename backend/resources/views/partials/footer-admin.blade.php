@@ -3,6 +3,6 @@
 <footer class="admin-footer">
     <div class="px-3 px-md-4 d-flex flex-column flex-sm-row justify-content-between gap-1">
         <span class="d-flex align-items-center gap-2"><x-brand-logo size="sm" /> &copy; {{ now()->year }}. All rights reserved.</span>
-        <span>Powered by <strong>BriskBrain Technologies</strong></span>
+        <span>Powered by <strong>{{ config('company.name') }}</strong></span>
     </div>
 </footer>
