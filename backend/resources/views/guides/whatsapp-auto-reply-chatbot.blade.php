@@ -149,11 +149,15 @@
     Turn on the <strong>Numbered menu</strong> to let customers pick an answer by number. When someone sends a menu word
     (<code>menu</code> or <code>start</code> by default &mdash; you can change them), they get a list like this:
 </p>
-<div class="bk-bubble-demo border rounded-3 p-3 mb-3 small" style="background: #d9fdd3; white-space: pre-line; max-width: 22rem;">Welcome to ABC Shoes! Reply with a number:
-1. Prices
-2. Timings
-3. Location
-0. Talk to a person</div>
+<div class="bk-bubble-demo border rounded-3 p-3 mb-3 small" style="background: #d9fdd3; white-space: pre-line; max-width: 22rem;"><strong>Welcome to ABC Shoes! How can we help?</strong>
+
+<strong>1.</strong> Prices
+<strong>2.</strong> Timings
+<strong>3.</strong> Location
+
+<strong>0.</strong> Talk to a person
+
+<em>Reply with a number to choose.</em></div>
 <ul>
     <li class="mb-2">The options are your own entries: tick <strong>Show in the numbered menu</strong> on the ones you want listed. They appear in your list order, using each entry's question as the label.</li>
     <li class="mb-2">Replying with a number within {{ \App\Support\ChatbotMenu::VALID_MINUTES }} minutes sends that entry's answer (and its file). A number that isn't on the list gets the menu again.</li>

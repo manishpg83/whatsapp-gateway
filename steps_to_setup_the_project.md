@@ -126,8 +126,52 @@ php artisan tinker
 >>> $u->is_admin = true;
 >>> $u->save();
 
-In Live server 
-------------------------------------------------------------------
+
+**The Pause scenerio in Chatbot**
+
+Scenario 1: Dropdown = "Don't pause", customer sends "hi"
+10:00 Rahul: hi
+10:00 Bot: Hello! Welcome to Sharma Store…
+The bot replies right away, same as always.
+
+Scenario 2: Dropdown = "Don't pause", customer sends "hi", you also reply by hand
+10:00 Rahul: hi
+10:00 Bot: Hello! Welcome…
+10:01 You (from your phone): Hi Rahul, your order is ready
+10:02 Rahul: hi, ok thanks
+10:02 Bot: Hello! Welcome… ← the bot still replies
+With "Don't pause", the bot ignores your manual replies and keeps answering every matching message. That can look odd while you're chatting with someone.
+
+Scenario 3: Dropdown = 30 minutes, customer sends "hi", nobody replies by hand
+10:00 Rahul: hi
+10:00 Bot: Hello! Welcome…
+10:20 Rahul: hi
+10:20 Bot: Hello! Welcome…
+No pause happens. The 30-minute timer only starts when you send a message yourself. If you never reply, the bot behaves exactly as it does with "Don't pause". The customer is never left without an answer.
+
+Scenario 4: Dropdown = 30 minutes, you reply by hand
+10:00 Rahul: hi
+10:00 Bot: Hello! Welcome…
+10:05 You (from your phone): Hi Rahul, your order is ready ← pause starts, until 10:35
+10:10 Rahul: hi, when can I collect?
+10:10 Bot: (silent; you're handling this chat)
+10:20 You: Anytime after 5pm ← pause moves forward, now until 10:50
+10:50 The pause ends by itself
+11:00 Rahul: hi
+11:00 Bot: Hello! Welcome… ← the bot is back
+Each manual reply restarts the 30 minutes from that moment.
+
+Meanwhile, if Priya sends hi at 10:10, the bot answers her normally, because only Rahul's chat is paused.
+
+Scenario 5: You start the chat yourself by sending "hi"
+10:00 You (from your phone, to Rahul): hi ← pause starts, until 10:30
+10:05 Rahul: hi
+10:05 Bot: (silent)
+It doesn't matter who wrote first or what you typed. Any message you send by hand pauses that chat.
+
+
+**In Live server**
+
 To run npm from backend directory and if permission issue comes
 cd /var/www/html/projects/whatsapp-gateway
 sudo su

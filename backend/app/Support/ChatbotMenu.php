@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\ChatbotRule;
 use Illuminate\Support\Collection;
+use Illuminate\Support\HtmlString;
 
 /**
  * An instance's chatbot numbered menu (stored as JSON in
@@ -30,7 +31,7 @@ class ChatbotMenu
 
     public const DEFAULTS = [
         'enabled' => false,
-        'intro' => 'Hi! Reply with a number:',
+        'intro' => 'Hi! How can we help you today?',
         'keywords' => ['menu', 'start'],
         'human_option' => true,
         'human_reply' => "Okay! Someone from our team will reply to you here soon.",
@@ -82,24 +83,54 @@ class ChatbotMenu
     }
 
     /**
-     * The WhatsApp message listing the options, e.g.
-     * "Hi! Reply with a number:\n1. Prices\n2. Timings\n0. Talk to a person".
+     * The WhatsApp message listing the options, using WhatsApp's own
+     * formatting (*bold*, _italic_), e.g.
+     *
+     *   *Hi! How can we help you today?*
+     *
+     *   *1.* Prices
+     *   *2.* Timings
+     *
+     *   *0.* Talk to a person
+     *
+     *   _Reply with a number to choose._
      *
      * @param  Collection<int, ChatbotRule>  $options
      */
     public function text(Collection $options): string
     {
-        $lines = [$this->intro];
+        // Stars the owner typed themselves would break the bold.
+        $intro = trim($this->intro, " *");
+        $lines = $intro === '' ? [] : ['*'.$intro.'*', ''];
 
         foreach ($options->values() as $index => $rule) {
-            $lines[] = ($index + 1).'. '.$rule->question;
+            $lines[] = '*'.($index + 1).'.* '.$rule->question;
         }
 
         if ($this->humanOption) {
-            $lines[] = '0. Talk to a person';
+            if ($options->isNotEmpty()) {
+                $lines[] = '';
+            }
+            $lines[] = '*0.* Talk to a person';
         }
 
+        $lines[] = '';
+        $lines[] = '_Reply with a number to choose._';
+
         return implode("\n", $lines);
+    }
+
+    /**
+     * $text as safe HTML, with WhatsApp's *bold* and _italic_ shown the way
+     * the phone shows them — for previews on the dashboard.
+     */
+    public static function previewHtml(string $text): HtmlString
+    {
+        $html = e($text);
+        $html = preg_replace('/(?<![\w*])\*(\S(?:[^*\n]*\S)?)\*(?![\w*])/u', '<strong>$1</strong>', $html);
+        $html = preg_replace('/(?<![\w_])_(\S(?:[^_\n]*\S)?)_(?![\w_])/u', '<em>$1</em>', $html);
+
+        return new HtmlString($html);
     }
 
     /**

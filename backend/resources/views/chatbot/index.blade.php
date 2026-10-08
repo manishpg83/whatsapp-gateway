@@ -247,7 +247,7 @@
                                 <input type="text" id="menu-intro" name="intro" maxlength="500" required value="{{ old('intro', $menu->intro) }}"
                                        class="form-control @error('intro') is-invalid @enderror">
                                 @error('intro') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                <div class="form-text">Shown above the numbered options, e.g. "Welcome to ABC Shoes! Reply with a number:".</div>
+                                <div class="form-text">Shown in bold above the numbered options, e.g. "Welcome to ABC Shoes! How can we help?". A "Reply with a number" hint is added at the bottom for you.</div>
                             </div>
 
                             <div class="mb-3">
@@ -278,7 +278,7 @@
 
                     <div class="col-lg-5">
                         <div class="small fw-semibold mb-2">What customers see</div>
-                        <div class="bk-bubble bk-bubble-text">{{ $menu->text($menuOptions) }}</div>
+                        <div class="bk-bubble bk-bubble-text">{{ \App\Support\ChatbotMenu::previewHtml($menu->text($menuOptions)) }}</div>
                         <div class="small text-muted mt-2">
                             @if ($menuOptions->isEmpty())
                                 <i class="bi bi-exclamation-circle text-warning me-1"></i>No options yet — tick <strong>"Show in the numbered menu"</strong> on the entries you want listed.
@@ -439,7 +439,7 @@
                                     {{-- The numbered menu handles this message (it's checked before keywords). --}}
                                     @if ($test['menu_text'] !== null)
                                         <div class="small text-success fw-semibold mb-2"><i class="bi bi-list-ol me-1"></i>Menu word — the bot sends the numbered menu:</div>
-                                        <div class="bk-bubble bk-bubble-text">{{ $test['menu_text'] }}</div>
+                                        <div class="bk-bubble bk-bubble-text">{{ \App\Support\ChatbotMenu::previewHtml($test['menu_text']) }}</div>
                                     @elseif ($test['handoff'])
                                         <div class="small text-success fw-semibold mb-2"><i class="bi bi-person-raised-hand me-1"></i>Option 0 — Talk to a person:</div>
                                         <div class="bk-bubble bk-bubble-text">{{ $selected->chatbotMenu()->humanReply }}</div>

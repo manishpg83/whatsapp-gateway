@@ -807,7 +807,7 @@ class ChatbotTest extends TestCase
 
         $this->receive($instance, 'Menu please');
 
-        $this->assertSame("Welcome! Reply with a number:\n1. Prices\n2. Timings\n0. Talk to a person", $this->lastReply()->body);
+        $this->assertSame("*Welcome! Reply with a number:*\n\n*1.* Prices\n*2.* Timings\n\n*0.* Talk to a person\n\n_Reply with a number to choose._", $this->lastReply()->body);
         $this->assertSame('menu', $this->lastReply()->bot_reply);
         $this->assertSame(
             $instance->chatbotRules()->whereIn('question', ['Prices', 'Timings'])->orderBy('position')->pluck('id')->all(),
@@ -929,7 +929,7 @@ class ChatbotTest extends TestCase
         $instance = $this->menuInstance(['human_option' => false]);
         $this->receive($instance, 'menu');
 
-        $this->assertStringNotContainsString('0. Talk to a person', $this->lastReply()->body);
+        $this->assertStringNotContainsString('Talk to a person', $this->lastReply()->body);
 
         $this->receive($instance, '0');
         $this->assertSame('menu', $this->lastReply()->bot_reply); // not on the menu: sent again
@@ -960,7 +960,14 @@ class ChatbotTest extends TestCase
 
         $this->actingAs($instance->user)->get('/chatbot')->assertOk()
             ->assertSee('Numbered menu')
-            ->assertSee("Hello! Pick one:\n1. Prices\n0. Talk to a person", false);
+            ->assertSee("<strong>Hello! Pick one:</strong>\n\n<strong>1.</strong> Prices\n\n<strong>0.</strong> Talk to a person\n\n<em>Reply with a number to choose.</em>", false);
+    }
+
+    public function test_the_menu_preview_shows_whatsapp_formatting_safely(): void
+    {
+        $html = (string) \App\Support\ChatbotMenu::previewHtml("*Hi* <b>x</b> _note_ snake_case_word 2*3*4");
+
+        $this->assertSame('<strong>Hi</strong> &lt;b&gt;x&lt;/b&gt; <em>note</em> snake_case_word 2*3*4', $html);
     }
 
     public function test_the_menu_cant_be_switched_on_empty(): void
@@ -1003,7 +1010,7 @@ class ChatbotTest extends TestCase
 
         $this->actingAs($instance->user)->followingRedirects()->post($url, ['test_message' => 'menu'])
             ->assertSee('the bot sends the numbered menu', false)
-            ->assertSee("1. Prices\n2. Timings", false);
+            ->assertSee("<strong>1.</strong> Prices\n<strong>2.</strong> Timings", false);
 
         $this->actingAs($instance->user)->followingRedirects()->post($url, ['test_message' => '2'])
             ->assertSee('Option 2 — Timings')
