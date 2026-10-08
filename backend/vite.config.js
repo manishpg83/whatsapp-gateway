@@ -4,7 +4,7 @@ import laravel from 'laravel-vite-plugin';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js', 'resources/css/landing.css', 'resources/js/landing.js', 'resources/js/email-editor.js', 'resources/js/bulk.js'],
+            input: ['resources/css/app.css', 'resources/js/app.js', 'resources/css/landing.css', 'resources/js/landing.js', 'resources/js/email-editor.js', 'resources/js/bulk.js', 'resources/js/chatbot.js', 'resources/js/inbox.js'],
             refresh: true,
         }),
     ],

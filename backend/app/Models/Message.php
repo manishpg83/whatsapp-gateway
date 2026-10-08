@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\MessageFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -44,6 +45,11 @@ class Message extends Model
     // Use this, not just 'sent', whenever counting sent messages.
     public const SENT_STATUSES = ['sent', 'delivered', 'read'];
 
+    // direction: 'incoming' (from a customer), 'outgoing' (sent through us:
+    // API, bulk, chatbot, Inbox) or 'phone' (the owner typed it on their own
+    // phone — shown in the Inbox only; never counted toward plans or stats).
+    public const DIRECTION_PHONE = 'phone';
+
     protected function casts(): array
     {
         return [
@@ -74,6 +80,17 @@ class Message extends Model
         'audio/ogg', 'audio/mpeg', 'audio/mp4', 'audio/aac',
         'video/mp4', 'video/3gpp',
     ];
+
+    /**
+     * Only messages that went through the gateway — not ones the owner
+     * typed on their phone (for logs and lists outside the Inbox).
+     *
+     * @param  Builder<Message>  $query
+     */
+    public function scopeThroughGateway(Builder $query): void
+    {
+        $query->where('direction', '!=', self::DIRECTION_PHONE);
+    }
 
     /**
      * @return BelongsTo<WhatsappSession, $this>

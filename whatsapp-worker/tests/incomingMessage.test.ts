@@ -12,6 +12,7 @@ function buildMessage(overrides: {
   id?: string | null;
   message?: Record<string, unknown> | null;
   messageTimestamp?: number;
+  pushName?: string;
 }): WAMessage {
   return {
     key: {
@@ -22,6 +23,7 @@ function buildMessage(overrides: {
     },
     message: overrides.message === undefined ? { conversation: "Hello" } : overrides.message,
     messageTimestamp: overrides.messageTimestamp ?? 1700000000,
+    pushName: overrides.pushName,
   } as unknown as WAMessage;
 }
 
@@ -57,12 +59,18 @@ describe("parseIncomingMessage — text", () => {
     expect(parseIncomingMessage(buildMessage({ message: { conversation: "Hello" } }))).toEqual({
       from: "919999999999",
       fromIsLid: false,
+      name: null,
       type: "text",
       text: "Hello",
       media: null,
       whatsappMessageId: "WA-ID-1",
       timestamp: new Date(1700000000 * 1000).toISOString(),
     });
+  });
+
+  it("includes the sender's WhatsApp profile name", () => {
+    expect(parseIncomingMessage(buildMessage({ pushName: "  Riya Shah " }))?.name).toBe("Riya Shah");
+    expect(parseIncomingMessage(buildMessage({ pushName: "" }))?.name).toBeNull();
   });
 
   it("parses an extended text message (e.g. a reply)", () => {
@@ -219,12 +227,26 @@ describe("parseIncomingMessage — LID senders", () => {
 });
 
 describe("parseOwnMessage — the owner replying from their phone", () => {
-  it("reports who the owner wrote to", () => {
+  it("reports who the owner wrote to, and what", () => {
     expect(parseOwnMessage(buildMessage({ fromMe: true, message: { conversation: "I'll call you" } }))).toEqual({
       to: "919999999999",
       toIsLid: false,
+      type: "text",
+      text: "I'll call you",
+      media: null,
       whatsappMessageId: "WA-ID-1",
+      timestamp: new Date(1700000000 * 1000).toISOString(),
     });
+  });
+
+  it("includes a photo the owner sent, so it can be downloaded", () => {
+    const result = parseOwnMessage(
+      buildMessage({ fromMe: true, message: { imageMessage: { caption: "Our menu", mimetype: "image/jpeg", fileLength: 2048 } } })
+    );
+
+    expect(result?.type).toBe("image");
+    expect(result?.text).toBe("Our menu");
+    expect(result?.media).toEqual({ mimeType: "image/jpeg", fileName: null, size: 2048 });
   });
 
   it("uses the phone number behind a LID chat when given", () => {

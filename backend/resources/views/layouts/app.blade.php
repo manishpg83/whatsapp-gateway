@@ -94,6 +94,13 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link sidebar-link {{ request()->routeIs('inbox.*') ? 'active' : '' }}" href="{{ route('inbox.index') }}">
+                                <i class="bi bi-chat-square-text me-2"></i>Inbox
+                                @php $inboxUnread = \App\Models\InboxConversation::unreadFor(auth()->user()); @endphp
+                                <span class="ib-nav-badge" data-ib-nav-badge @if ($inboxUnread === 0) hidden @endif>{{ $inboxUnread > 99 ? '99+' : $inboxUnread }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link sidebar-link {{ request()->routeIs('messages.*') ? 'active' : '' }}" href="{{ route('messages.index') }}">
                                 <i class="bi bi-chat-left-text me-2"></i>Messages
                             </a>

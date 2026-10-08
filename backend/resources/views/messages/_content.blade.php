@@ -1,4 +1,5 @@
-{{-- One message's content. Expects $message; optional $compact.
+{{-- One message's content. Expects $message; optional $compact, and
+     $hideBot to leave out the "Bot" badge (the Inbox shows its own label).
 
      Compact (tables): every message has the same shape — a fixed-size tile
      on the left (photo thumbnail / video / file / voice icon), then a title
@@ -38,7 +39,7 @@
     });
 @endphp
 
-@if ($message->bot_reply)
+@if ($message->bot_reply && ! ($hideBot ?? false))
     <span class="badge rounded-pill bg-wa-light text-primary border me-1 align-middle" title="Sent automatically by the chatbot"><i class="bi bi-robot me-1"></i>Bot</span>
 @endif
 

@@ -175,7 +175,7 @@ class SendChatbotReply implements ShouldQueue
         $reply = $sender->send($session, $phone, $menu->humanReply);
         $reply->update(['bot_reply' => 'handoff']);
 
-        $session->chatbotPauses()->updateOrCreate(['phone' => $phone], ['paused_until' => now()->addMinutes($minutes)]);
+        ChatbotPause::extend($session, $phone, $minutes);
         $session->chatbotMenuStates()->where('phone', $phone)->delete();
 
         // The customer already has their reply; a mail problem must not undo that.

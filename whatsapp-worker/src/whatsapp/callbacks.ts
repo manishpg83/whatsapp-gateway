@@ -2,6 +2,15 @@ import type { Config } from "../config.js";
 import type { IncomingType } from "./incomingMessage.js";
 import type { MediaResult } from "./media.js";
 
+// A message's stored file, as sent to Laravel.
+type EventMedia = {
+  status: MediaResult["status"];
+  path: string | null; // relative to the shared media folder
+  mime_type: string;
+  file_name: string | null;
+  size: number | null;
+} | null;
+
 export type WorkerEvent =
   | { event: "qr.updated"; instance_id: string; qr_code: string }
   | {
@@ -19,17 +28,12 @@ export type WorkerEvent =
       instance_id: string;
       from: string; // phone number digits — or a LID's digits when from_is_lid
       from_is_lid: boolean;
+      name: string | null; // the sender's WhatsApp profile name, if any
       type: IncomingType;
       message: string; // text, caption or summary — may be ""
       whatsapp_message_id: string;
       timestamp: string;
-      media: {
-        status: MediaResult["status"];
-        path: string | null; // relative to the shared media folder
-        mime_type: string;
-        file_name: string | null;
-        size: number | null;
-      } | null;
+      media: EventMedia;
     }
   | {
       // The owner wrote to a customer from their own phone (not via us).
@@ -38,6 +42,10 @@ export type WorkerEvent =
       to: string; // phone number digits — or a LID's digits when to_is_lid
       to_is_lid: boolean;
       whatsapp_message_id: string;
+      type: IncomingType;
+      message: string; // text, caption or summary — may be ""
+      timestamp: string;
+      media: EventMedia;
     }
   | {
       // A message we sent was delivered (✓✓) or read (blue ✓✓).

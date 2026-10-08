@@ -31,7 +31,7 @@ class MessageController extends Controller
 
         // Always scoped to $user's own instances (CLAUDE.md §5), so a guessed
         // or foreign instance_id just yields zero rows — never another user's data.
-        $query = Message::whereHas('whatsappSession', fn ($q) => $q->where('user_id', $user->id))
+        $query = Message::throughGateway()->whereHas('whatsappSession', fn ($q) => $q->where('user_id', $user->id))
             ->with('whatsappSession');
 
         if ($filters['instance_id']) {
@@ -52,7 +52,7 @@ class MessageController extends Controller
 
         // Totals for the summary tiles: all of this user's messages, not
         // just the filtered view (same ownership scope as the list above).
-        $totals = Message::whereHas('whatsappSession', fn ($q) => $q->where('user_id', $user->id))
+        $totals = Message::throughGateway()->whereHas('whatsappSession', fn ($q) => $q->where('user_id', $user->id))
             ->selectRaw('COUNT(*) as total')
             ->selectRaw("SUM(direction = 'outgoing') as sent")
             ->selectRaw("SUM(direction = 'incoming') as received")

@@ -251,7 +251,7 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
 
     for (const msg of messages) {
       // The owner replied to a customer from their phone: tell Laravel, so
-      // the chatbot can pause for that chat.
+      // the chatbot can pause for that chat and the Inbox can show it.
       if (msg.key.fromMe) {
         const own = parseOwnMessage(msg);
 
@@ -264,6 +264,10 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
             }
           }
 
+          const ownMedia = own.media
+            ? await downloadMedia(msg, own.media, own.whatsappMessageId, instanceId, socket, config, logger)
+            : null;
+
           await notifyLaravel(
             config,
             {
@@ -272,6 +276,19 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
               to: own.to,
               to_is_lid: own.toIsLid,
               whatsapp_message_id: own.whatsappMessageId,
+              type: own.type,
+              message: own.text,
+              timestamp: own.timestamp,
+              media:
+                own.media && ownMedia
+                  ? {
+                      status: ownMedia.status,
+                      path: ownMedia.path,
+                      mime_type: own.media.mimeType,
+                      file_name: own.media.fileName,
+                      size: ownMedia.size,
+                    }
+                  : null,
             },
             logger
           );
@@ -314,6 +331,7 @@ async function connect(instanceId: string, config: Config, logger: FastifyBaseLo
           instance_id: instanceId,
           from: parsed.from,
           from_is_lid: parsed.fromIsLid,
+          name: parsed.name,
           type: parsed.type,
           message: parsed.text,
           whatsapp_message_id: parsed.whatsappMessageId,

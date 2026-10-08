@@ -86,6 +86,24 @@ class ChatbotTest extends TestCase
             ->assertDontSee('Alpha question');
     }
 
+    public function test_the_picked_instance_is_remembered_and_shown_in_the_switcher(): void
+    {
+        $first = WhatsappSession::factory()->create(['name' => 'Alpha']);
+        $second = WhatsappSession::factory()->for($first->user)->create(['name' => 'Beta']);
+        $second->chatbotRules()->create(['question' => 'Beta question', 'keywords' => ['b'], 'answer' => 'B']);
+
+        $this->actingAs($first->user)->get('/chatbot?instance='.$second->instance_id)
+            ->assertSee('choose which one to edit')
+            ->assertSee('1 entry');
+
+        // The sidebar link (no ?instance) opens the same instance again.
+        $this->actingAs($first->user)->get('/chatbot')->assertSee('Beta question')->assertSee('Auto-reply for Beta');
+
+        // A foreign or unknown id falls back to the remembered one.
+        $this->actingAs($first->user)->get('/chatbot?instance='.WhatsappSession::factory()->create()->instance_id)
+            ->assertSee('Auto-reply for Beta');
+    }
+
     public function test_keywords_are_validated(): void
     {
         $instance = WhatsappSession::factory()->create();

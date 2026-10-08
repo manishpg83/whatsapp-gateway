@@ -45,11 +45,19 @@ class ChatbotController extends Controller
 
     public function index(Request $request): View
     {
-        $instances = $request->user()->whatsappSessions()->orderBy('name')->get();
+        $instances = $request->user()->whatsappSessions()->withCount('chatbotRules')->orderBy('name')->get();
 
-        // The instance picked in the dropdown, else the first one. Looked up
-        // in the user's own list only, so a foreign id just falls back.
-        $selected = $instances->firstWhere('instance_id', $request->query('instance')) ?? $instances->first();
+        // The instance picked in the switcher, else the one picked last time
+        // (remembered in the session, so the sidebar link doesn't jump back
+        // to the first instance), else the first one. Looked up in the
+        // user's own list only, so a foreign id just falls back.
+        $selected = $instances->firstWhere('instance_id', $request->query('instance'))
+            ?? $instances->firstWhere('instance_id', $request->session()->get('chatbot.instance'))
+            ?? $instances->first();
+
+        if ($selected) {
+            $request->session()->put('chatbot.instance', $selected->instance_id);
+        }
 
         // Stats count only replies that actually went out (not failed ones).
         $sent = fn ($query) => $query->whereIn('status', Message::SENT_STATUSES);

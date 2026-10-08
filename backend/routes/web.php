@@ -25,6 +25,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\InboxController;
 use App\Http\Controllers\InstanceController;
 use App\Http\Controllers\InternalSessionsController;
 use App\Http\Controllers\MessageController;
@@ -123,6 +124,12 @@ Route::middleware(['auth', 'not_suspended', 'verified'])->group(function () {
         ->middleware('throttle:messages')
         ->name('instances.send-test-message');
 
+    Route::get('/inbox', [InboxController::class, 'index'])->name('inbox.index');
+    // Polled every few seconds while the Inbox is open.
+    Route::get('/inbox/{instance}/updates', [InboxController::class, 'updates'])->middleware('throttle:60,1')->name('inbox.updates');
+    // Sends a real WhatsApp message each time, so a sane per-minute cap.
+    Route::post('/inbox/{instance}/reply', [InboxController::class, 'reply'])->middleware('throttle:30,1')->name('inbox.reply');
+    Route::post('/inbox/{instance}/bot', [InboxController::class, 'bot'])->name('inbox.bot');
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
     // A received image / voice note / document — owner only.
     Route::get('/messages/{message}/media', [MessageMediaController::class, 'show'])->name('messages.media');

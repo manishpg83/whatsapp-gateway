@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\SendChatbotReply;
+use App\Models\ChatbotPause;
+use App\Models\InboxConversation;
 use App\Models\Message;
 use App\Models\WhatsappSession;
 use App\Notifications\InstanceDisconnected;
@@ -132,32 +134,15 @@ class WorkerWebhookController extends Controller
             'type' => ['sometimes', 'in:'.implode(',', array_keys(Message::TYPES))],
             // Text, caption or summary. May be empty (e.g. a photo with no caption).
             'message' => ['present', 'nullable', 'string'],
+            // The sender's WhatsApp profile name (older workers didn't send it).
+            'name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'whatsapp_message_id' => ['required', 'string'],
             'timestamp' => ['required', 'date'],
-            'media' => ['nullable', 'array'],
-            'media.status' => ['required_with:media', 'in:stored,too_large,failed'],
-            'media.path' => ['nullable', 'string', 'max:255'],
-            'media.mime_type' => ['required_with:media', 'string', 'max:255'],
-            'media.file_name' => ['nullable', 'string', 'max:255'],
-            'media.size' => ['nullable', 'integer', 'min:0'],
+            ...self::MEDIA_RULES,
         ]);
 
         $session = $this->findByInstanceId($data['instance_id']);
-        $media = $data['media'] ?? null;
-
-        // Defence in depth: even though only the worker (holding the shared
-        // secret) can call this, never trust a file path blindly — it must
-        // point inside THIS instance's own folder, with no "../" tricks.
-        $mediaPath = $media['path'] ?? null;
-        if ($mediaPath !== null && ! preg_match('#^'.preg_quote($session->instance_id, '#').'/[A-Za-z0-9_-]+\.[a-z0-9]{1,10}$#', $mediaPath)) {
-            Log::warning('Worker sent an invalid media path; ignoring the file', ['instance_id' => $session->instance_id]);
-            $mediaPath = null;
-            $media['status'] = 'failed';
-        }
-
-        if ($media !== null && $media['status'] === 'stored' && $mediaPath === null) {
-            $media['status'] = 'failed'; // "stored" but nowhere to find it
-        }
+        $media = $this->mediaColumns($session, $data['media'] ?? null);
 
         $message = $session->messages()->create([
             'direction' => 'incoming',
@@ -166,12 +151,10 @@ class WorkerWebhookController extends Controller
             'body' => $data['message'] ?? '',
             'status' => 'received',
             'whatsapp_message_id' => $data['whatsapp_message_id'],
-            'media_status' => $media['status'] ?? null,
-            'media_path' => $mediaPath,
-            'media_mime_type' => $media['mime_type'] ?? null,
-            'media_file_name' => $media['file_name'] ?? null,
-            'media_size' => $media['size'] ?? null,
+            ...$media,
         ]);
+
+        InboxConversation::messageReceived($session, $message->from_number, $data['name'] ?? null);
 
         // Chatbot: matched and sent from the queue, so this callback stays
         // fast. Never to a LID — it isn't a phone number we can reply to.
@@ -187,13 +170,13 @@ class WorkerWebhookController extends Controller
             'message' => $message->body,
             'message_id' => $message->whatsapp_message_id,
             'timestamp' => $data['timestamp'],
-            'media' => $media === null ? null : [
+            'media' => $message->media_status === null ? null : [
                 'status' => $message->media_status,
                 'mime_type' => $message->media_mime_type,
                 'file_name' => $message->media_file_name,
                 'size' => $message->media_size,
                 // A 24-hour download link (no login needed) — only when the file was stored.
-                'url' => $message->media_status === 'stored' && $mediaPath !== null ? $message->temporaryMediaUrl() : null,
+                'url' => $message->media_status === 'stored' && $message->media_path !== null ? $message->temporaryMediaUrl() : null,
             ],
         ]);
 
@@ -220,7 +203,8 @@ class WorkerWebhookController extends Controller
         $session = $this->findByInstanceId($data['instance_id']);
 
         $message = $session->messages()
-            ->where('direction', 'outgoing')
+            // Phone-typed messages get ticks in the Inbox too.
+            ->whereIn('direction', ['outgoing', Message::DIRECTION_PHONE])
             ->where('whatsapp_message_id', $data['whatsapp_message_id'])
             ->first();
 
@@ -236,6 +220,11 @@ class WorkerWebhookController extends Controller
             'read_at' => $data['status'] === 'read' ? now() : null,
         ]);
 
+        // The owner's webhook is about messages sent through us only.
+        if ($message->direction === Message::DIRECTION_PHONE) {
+            return response()->noContent();
+        }
+
         $this->webhookDispatcher->dispatch($session, [
             'event' => 'message.status',
             'instance_id' => $session->instance_id,
@@ -249,13 +238,14 @@ class WorkerWebhookController extends Controller
     }
 
     /**
-     * The owner replied to a customer from their own phone: pause the
-     * chatbot in that chat for the instance's chatbot_pause_minutes, so
-     * it doesn't talk over them. Each reply moves the pause forward.
+     * The owner replied to a customer from their own phone: store it for
+     * the Inbox (direction "phone"), and pause the chatbot in that chat for
+     * the instance's chatbot_pause_minutes, so it doesn't talk over them.
+     * Each reply moves the pause forward.
      *
      * Ignored when it's a message we sent ourselves (API / bot — the worker
-     * already filters these, this is a second check), when `to` is a LID
-     * (incoming messages are matched by real phone number), or when the
+     * already filters these, this is a second check). No pause when `to` is
+     * a LID (incoming messages are matched by real phone number) or the
      * owner chose "Don't pause".
      */
     protected function handleSentFromPhone(Request $request): Response
@@ -265,22 +255,82 @@ class WorkerWebhookController extends Controller
             'to' => ['required', 'string', 'max:32'],
             'to_is_lid' => ['sometimes', 'boolean'],
             'whatsapp_message_id' => ['required', 'string'],
+            // The message itself, for the Inbox (older workers didn't send it).
+            'type' => ['sometimes', 'in:'.implode(',', array_keys(Message::TYPES))],
+            'message' => ['sometimes', 'nullable', 'string'],
+            ...self::MEDIA_RULES,
         ]);
 
         $session = $this->findByInstanceId($data['instance_id']);
 
         $ours = $session->messages()->where('whatsapp_message_id', $data['whatsapp_message_id'])->exists();
 
-        if (($data['to_is_lid'] ?? true) || $ours || $session->chatbot_pause_minutes <= 0) {
+        if ($ours) {
             return response()->noContent();
         }
 
-        $session->chatbotPauses()->updateOrCreate(
-            ['phone' => $data['to']],
-            ['paused_until' => now()->addMinutes($session->chatbot_pause_minutes)],
-        );
+        // Shown in the Inbox only — direction "phone" never counts toward
+        // the plan or the sent-message stats. The owner has seen the chat.
+        if ($request->has('message')) {
+            $session->messages()->create([
+                'direction' => Message::DIRECTION_PHONE,
+                'type' => $data['type'] ?? 'text',
+                'to_number' => $data['to'],
+                'body' => $data['message'] ?? '',
+                'status' => 'sent',
+                'whatsapp_message_id' => $data['whatsapp_message_id'],
+                ...$this->mediaColumns($session, $data['media'] ?? null),
+            ]);
+            InboxConversation::markRead($session, $data['to']);
+        }
+
+        if (! ($data['to_is_lid'] ?? true) && $session->chatbot_pause_minutes > 0) {
+            ChatbotPause::extend($session, $data['to'], $session->chatbot_pause_minutes);
+        }
 
         return response()->noContent();
+    }
+
+    // Validation for a message's stored file, as the worker sends it.
+    private const MEDIA_RULES = [
+        'media' => ['nullable', 'array'],
+        'media.status' => ['required_with:media', 'in:stored,too_large,failed'],
+        'media.path' => ['nullable', 'string', 'max:255'],
+        'media.mime_type' => ['required_with:media', 'string', 'max:255'],
+        'media.file_name' => ['nullable', 'string', 'max:255'],
+        'media.size' => ['nullable', 'integer', 'min:0'],
+    ];
+
+    /**
+     * The media_* columns for a message's file (all null without one).
+     *
+     * Defence in depth: even though only the worker (holding the shared
+     * secret) can call this, never trust a file path blindly — it must
+     * point inside THIS instance's own folder, with no "../" tricks.
+     *
+     * @return array<string, mixed>
+     */
+    private function mediaColumns(WhatsappSession $session, ?array $media): array
+    {
+        $path = $media['path'] ?? null;
+
+        if ($path !== null && ! preg_match('#^'.preg_quote($session->instance_id, '#').'/[A-Za-z0-9_-]+\.[a-z0-9]{1,10}$#', $path)) {
+            Log::warning('Worker sent an invalid media path; ignoring the file', ['instance_id' => $session->instance_id]);
+            $path = null;
+            $media['status'] = 'failed';
+        }
+
+        if ($media !== null && $media['status'] === 'stored' && $path === null) {
+            $media['status'] = 'failed'; // "stored" but nowhere to find it
+        }
+
+        return [
+            'media_status' => $media['status'] ?? null,
+            'media_path' => $path,
+            'media_mime_type' => $media['mime_type'] ?? null,
+            'media_file_name' => $media['file_name'] ?? null,
+            'media_size' => $media['size'] ?? null,
+        ];
     }
 
     /**

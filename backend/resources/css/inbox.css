@@ -1,0 +1,564 @@
+/*
+ * Inbox (inbox/index.blade.php). Classes start with ib-. The instance
+ * switcher above it is partials/instance-switcher (cb-switch*, chatbot.css).
+ * Desktop: list and chat side by side. Phones: one at a time — the list,
+ * or the open chat with a back arrow.
+ */
+
+.ib-shell {
+    display: grid;
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+    height: calc(100vh - 210px);
+    min-height: 380px;
+    background: #fff;
+    border: 1px solid rgba(16, 35, 28, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    overflow: hidden;
+}
+
+/* ---- Conversation list */
+
+.ib-list {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    border-right: 1px solid rgba(16, 35, 28, 0.08);
+}
+
+.ib-search {
+    position: relative;
+    padding: 0.75rem;
+    border-bottom: 1px solid rgba(16, 35, 28, 0.07);
+}
+
+.ib-search .bi {
+    position: absolute;
+    top: 50%;
+    left: 1.5rem;
+    transform: translateY(-50%);
+    color: #8a9792;
+    pointer-events: none;
+}
+
+.ib-search .form-control {
+    padding-left: 2.3rem;
+    font-size: 0.9rem;
+    background: #f1f5f3;
+    border-color: transparent;
+    border-radius: 10px;
+}
+
+.ib-search .form-control:focus {
+    background: #fff;
+}
+
+.ib-rows {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.ib-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.9rem;
+    color: var(--wa-dark);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(16, 35, 28, 0.05);
+    transition: background-color 0.15s;
+}
+
+.ib-row:hover {
+    color: var(--wa-dark);
+    background: #f6f9f8;
+}
+
+.ib-row.active {
+    background: var(--wa-primary-light);
+    box-shadow: inset 3px 0 0 var(--wa-primary);
+}
+
+.ib-avatar {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: #fff;
+    background: #b7c4bf;
+    border-radius: 50%;
+}
+
+.ib-row.active .ib-avatar {
+    background: var(--wa-primary);
+}
+
+.ib-row-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.ib-row-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.ib-row-name {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ib-row-time {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    color: #8a9792;
+}
+
+.ib-row-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.85rem;
+    color: #6c757d;
+    min-width: 0;
+}
+
+.ib-row-preview > .bi {
+    flex-shrink: 0;
+}
+
+.ib-row-tag {
+    flex-shrink: 0;
+    font-weight: 600;
+}
+
+.ib-row-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ib-tick-read {
+    color: #34b7f1;
+}
+
+.ib-list-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 2rem 1rem;
+    text-align: center;
+}
+
+.ib-list-empty > .bi {
+    font-size: 2rem;
+    color: #b7c4bf;
+}
+
+/* ---- Open chat */
+
+.ib-chat {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+.ib-chat-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 1rem;
+    background: #f6f9f8;
+    border-bottom: 1px solid rgba(16, 35, 28, 0.08);
+}
+
+.ib-back {
+    display: none;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    color: var(--wa-dark);
+    border-radius: 50%;
+}
+
+.ib-back:hover {
+    color: var(--wa-dark);
+    background: rgba(16, 35, 28, 0.06);
+}
+
+.ib-thread {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1rem 1.25rem;
+    overflow-y: auto;
+    background-color: #efeae2;
+    background-image: radial-gradient(rgba(16, 35, 28, 0.05) 1px, transparent 1px);
+    background-size: 16px 16px;
+}
+
+.ib-day {
+    align-self: center;
+    margin: 0.6rem 0 0.3rem;
+}
+
+.ib-day span {
+    display: inline-block;
+    padding: 0.2rem 0.7rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #54656f;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    box-shadow: 0 1px 1px rgba(16, 35, 28, 0.08);
+}
+
+.ib-note {
+    align-self: center;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.8rem;
+    color: #54656f;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 8px;
+}
+
+.ib-msg {
+    max-width: min(75%, 560px);
+    padding: 0.45rem 0.65rem 0.3rem;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    border-radius: 10px;
+    box-shadow: 0 1px 1px rgba(16, 35, 28, 0.1);
+}
+
+.ib-msg-in {
+    align-self: flex-start;
+    background: #fff;
+    border-top-left-radius: 2px;
+}
+
+.ib-msg-out {
+    align-self: flex-end;
+    background: #d9fdd3;
+    border-top-right-radius: 2px;
+}
+
+.ib-msg-out.is-failed {
+    background: #fde8e8;
+}
+
+.ib-msg-text {
+    white-space: pre-wrap;
+}
+
+.ib-msg img,
+.ib-msg video,
+.ib-msg audio {
+    max-width: 100% !important;
+}
+
+.ib-msg-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem;
+    margin-top: 0.15rem;
+    font-size: 0.7rem;
+    color: #667781;
+}
+
+.ib-source {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    margin-right: auto;
+    padding: 0 0.4rem;
+    font-weight: 600;
+    color: var(--wa-primary-dark);
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 6px;
+}
+
+.ib-msg-error {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: #b42318;
+}
+
+.ib-chat-foot {
+    padding: 0.6rem 0.75rem 0.5rem;
+    background: #f0f2f5;
+    border-top: 1px solid rgba(16, 35, 28, 0.08);
+}
+
+.ib-compose {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
+.ib-compose .form-control {
+    max-height: 9rem;
+    padding: 0.55rem 1rem;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    resize: none;
+    border: 0;
+    border-radius: 20px;
+}
+
+.ib-send {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: var(--wa-primary);
+    border: 0;
+    border-radius: 50%;
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+.ib-send:hover {
+    background: var(--wa-primary-dark);
+    transform: scale(1.05);
+}
+
+.ib-send:disabled {
+    opacity: 0.6;
+    transform: none;
+}
+
+.ib-compose-off {
+    padding: 0.55rem 0.85rem;
+    font-size: 0.875rem;
+    color: #8a5a00;
+    background: #fff7e6;
+    border-radius: 10px;
+}
+
+.ib-foot-note {
+    margin-top: 0.4rem;
+    padding: 0 0.35rem;
+    font-size: 0.72rem;
+    color: #6c757d;
+}
+
+.ib-chat-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 2rem;
+    text-align: center;
+    background: #f6f9f8;
+}
+
+.ib-chat-empty-icon {
+    width: 72px;
+    height: 72px;
+    margin-bottom: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: var(--wa-primary);
+    background: var(--wa-primary-light);
+    border-radius: 50%;
+}
+
+/* ---- Phones and small tablets: one pane at a time */
+
+@media (max-width: 767.98px) {
+    .ib-shell {
+        grid-template-columns: minmax(0, 1fr);
+        height: calc(100vh - 170px);
+        min-height: 380px;
+    }
+
+    .ib-list {
+        border-right: 0;
+    }
+
+    .ib-shell.is-open .ib-list,
+    .ib-shell:not(.is-open) .ib-chat {
+        display: none;
+    }
+
+    .ib-back {
+        display: inline-flex;
+    }
+
+    /* With a chat open, the page title and instance switcher make way for it
+       (the chat header names the instance). */
+    .ib-open-hide {
+        display: none;
+    }
+
+    .ib-thread {
+        padding: 0.75rem;
+    }
+
+    .ib-msg {
+        max-width: 88%;
+    }
+}
+
+/* ---- Unread */
+
+.ib-row.is-unread .ib-row-name,
+.ib-row.is-unread .ib-row-text {
+    font-weight: 700;
+    color: var(--wa-dark);
+}
+
+.ib-row.is-unread .ib-row-time {
+    font-weight: 600;
+    color: #1fa855;
+}
+
+.ib-unread {
+    min-width: 1.35rem;
+    margin-left: auto;
+    padding: 0 0.4rem;
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.35rem;
+    text-align: center;
+    color: #fff;
+    background: #25d366;
+    border-radius: 999px;
+}
+
+/* The sidebar's "Inbox" link (layouts/app.blade.php). */
+.ib-nav-badge {
+    float: right;
+    min-width: 1.4rem;
+    margin-top: 0.1rem;
+    padding: 0 0.4rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.4rem;
+    text-align: center;
+    color: #fff;
+    background: #25d366;
+    border-radius: 999px;
+}
+
+.ib-nav-badge[hidden] {
+    display: none;
+}
+
+/* ---- Chat header: title + the chatbot switch for this chat */
+
+.ib-chat-title {
+    flex: 1;
+    min-width: 0;
+}
+
+.ib-bot {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.ib-bot-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #5c6b66;
+    background: #e9eeec;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.ib-bot-state.is-on {
+    color: var(--wa-primary-dark);
+    background: var(--wa-primary-light);
+}
+
+/* ---- Reply box: attach a file */
+
+.ib-attach {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    font-size: 1.25rem;
+    color: #54656f;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.ib-attach:hover {
+    background: rgba(16, 35, 28, 0.07);
+}
+
+.ib-file {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    max-width: 100%;
+    margin-bottom: 0.45rem;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.85rem;
+    background: #fff;
+    border: 1px solid rgba(16, 35, 28, 0.1);
+    border-radius: 10px;
+}
+
+.ib-file[hidden] {
+    display: none;
+}
+
+.ib-file .bi {
+    color: var(--wa-primary);
+}
+
+.ib-file .btn-close {
+    margin-left: auto;
+    font-size: 0.65rem;
+}
+
+@media (max-width: 575.98px) {
+    .ib-chat-head {
+        flex-wrap: wrap;
+    }
+
+    .ib-bot {
+        width: 100%;
+        padding-left: calc(34px + 42px + 1.5rem);
+    }
+}

@@ -26,6 +26,8 @@ export type ParsedIncomingMessage = {
   // instead and fromIsLid is true — never reply to it as a phone number.
   from: string;
   fromIsLid: boolean;
+  // The name the sender set in their WhatsApp profile ("push name"), if any.
+  name: string | null;
   type: IncomingType;
   // Message text, the media caption, or a readable summary (location,
   // contact, unsupported). May be "" — e.g. a photo with no caption.
@@ -70,48 +72,84 @@ export function parseIncomingMessage(msg: WAMessage): ParsedIncomingMessage | nu
     return null;
   }
 
+  const content = parseContent(msg.message);
+
+  if (!content) {
+    return null;
+  }
+
+  const sender = senderOf(remoteJid, msg.key.remoteJidAlt);
+
+  return {
+    from: sender.from,
+    fromIsLid: sender.fromIsLid,
+    name: msg.pushName?.trim() || null,
+    ...content,
+    whatsappMessageId: msg.key.id,
+    timestamp: timestampOf(msg),
+  };
+}
+
+/** What a message contains, shared by incoming and own (phone-typed) messages. */
+export type ParsedContent = {
+  type: IncomingType;
+  // Text, the media caption, or a readable summary. May be "".
+  text: string;
+  media: IncomingMedia | null;
+};
+
+/**
+ * The type, text and media of a message — or null for protocol noise
+ * (reactions, edits, deletes...) that isn't a message at all. Anything we
+ * can't show becomes "unsupported" instead of silently disappearing.
+ */
+export function parseContent(message: proto.IMessage): ParsedContent | null {
   // View-once photos/videos: WhatsApp doesn't show these on linked
   // devices either, and storing a copy would defeat the sender's intent.
-  if (isViewOnce(msg.message)) {
-    return build(msg, remoteJid, "unsupported", "[View-once message — open it on the phone]", null);
+  if (isViewOnce(message)) {
+    return { type: "unsupported", text: "[View-once message — open it on the phone]", media: null };
   }
 
   // Unwraps ephemeral ("disappearing") and document-with-caption wrappers.
-  const content = normalizeMessageContent(msg.message);
+  const content = normalizeMessageContent(message);
   const contentType = getContentType(content);
 
   if (!content || !contentType || IGNORED_CONTENT_TYPES.has(contentType)) {
     return null;
   }
 
+  const result = (type: IncomingType, text: string, mediaInfo: IncomingMedia | null): ParsedContent => ({
+    type,
+    text,
+    media: mediaInfo,
+  });
+
   switch (contentType) {
     case "conversation":
-      return build(msg, remoteJid, "text", content.conversation ?? "", null);
+      return result("text", content.conversation ?? "", null);
 
     case "extendedTextMessage":
-      return build(msg, remoteJid, "text", content.extendedTextMessage?.text ?? "", null);
+      return result("text", content.extendedTextMessage?.text ?? "", null);
 
     case "imageMessage": {
       const m = content.imageMessage!;
-      return build(msg, remoteJid, "image", m.caption ?? "", media(m.mimetype, null, m.fileLength, "image/jpeg"));
+      return result("image", m.caption ?? "", media(m.mimetype, null, m.fileLength, "image/jpeg"));
     }
 
     case "videoMessage": {
       const m = content.videoMessage!;
-      return build(msg, remoteJid, "video", m.caption ?? "", media(m.mimetype, null, m.fileLength, "video/mp4"));
+      return result("video", m.caption ?? "", media(m.mimetype, null, m.fileLength, "video/mp4"));
     }
 
     case "audioMessage": {
       const m = content.audioMessage!;
       // ptt ("push to talk") = a recorded voice note, not a sent audio file.
-      return build(msg, remoteJid, m.ptt ? "voice" : "audio", "", media(m.mimetype, null, m.fileLength, "audio/ogg"));
+      return result(m.ptt ? "voice" : "audio", "", media(m.mimetype, null, m.fileLength, "audio/ogg"));
     }
 
     case "documentMessage": {
       const m = content.documentMessage!;
-      return build(
-        msg,
-        remoteJid,
+      return result(
         "document",
         m.caption ?? "",
         media(m.mimetype, m.fileName ?? m.title ?? null, m.fileLength, "application/octet-stream")
@@ -120,38 +158,40 @@ export function parseIncomingMessage(msg: WAMessage): ParsedIncomingMessage | nu
 
     case "stickerMessage": {
       const m = content.stickerMessage!;
-      return build(msg, remoteJid, "sticker", "", media(m.mimetype, null, m.fileLength, "image/webp"));
+      return result("sticker", "", media(m.mimetype, null, m.fileLength, "image/webp"));
     }
 
     case "locationMessage":
     case "liveLocationMessage": {
       const m = (content.locationMessage ?? content.liveLocationMessage)!;
-      return build(msg, remoteJid, "location", describeLocation(m), null);
+      return result("location", describeLocation(m), null);
     }
 
     case "contactMessage":
-      return build(msg, remoteJid, "contact", describeContact(content.contactMessage!), null);
+      return result("contact", describeContact(content.contactMessage!), null);
 
     case "contactsArrayMessage": {
       const contacts = content.contactsArrayMessage?.contacts ?? [];
-      return build(msg, remoteJid, "contact", contacts.map(describeContact).join("\n\n"), null);
+      return result("contact", contacts.map(describeContact).join("\n\n"), null);
     }
 
     default:
-      return build(msg, remoteJid, "unsupported", `[Unsupported message type: ${contentType}]`, null);
+      return result("unsupported", `[Unsupported message type: ${contentType}]`, null);
   }
 }
 
-export type ParsedOwnMessage = {
+export type ParsedOwnMessage = ParsedContent & {
   // The customer the owner wrote to (phone digits — or a LID's digits when toIsLid).
   to: string;
   toIsLid: boolean;
   whatsappMessageId: string;
+  timestamp: string;
 };
 
 /**
  * A message the OWNER typed on their phone (or WhatsApp Web) to a
- * customer — so Laravel can pause the chatbot for that chat. Only call this
+ * customer — so Laravel can pause the chatbot for that chat and show the
+ * message in the Inbox. Only call this
  * for "notify" upserts: messages this worker sends itself arrive as
  * "append" and must never count as the owner replying.
  *
@@ -169,36 +209,25 @@ export function parseOwnMessage(msg: WAMessage): ParsedOwnMessage | null {
     return null;
   }
 
-  const content = normalizeMessageContent(msg.message);
-  const contentType = getContentType(content);
+  const content = parseContent(msg.message);
 
-  if (!content || !contentType || IGNORED_CONTENT_TYPES.has(contentType)) {
+  if (!content) {
     return null;
   }
 
   const recipient = senderOf(remoteJid, msg.key.remoteJidAlt);
 
-  return { to: recipient.from, toIsLid: recipient.fromIsLid, whatsappMessageId: msg.key.id };
+  return {
+    to: recipient.from,
+    toIsLid: recipient.fromIsLid,
+    ...content,
+    whatsappMessageId: msg.key.id,
+    timestamp: timestampOf(msg),
+  };
 }
 
-function build(
-  msg: WAMessage,
-  remoteJid: string,
-  type: IncomingType,
-  text: string,
-  mediaInfo: IncomingMedia | null
-): ParsedIncomingMessage {
-  const sender = senderOf(remoteJid, msg.key.remoteJidAlt);
-
-  return {
-    from: sender.from,
-    fromIsLid: sender.fromIsLid,
-    type,
-    text,
-    media: mediaInfo,
-    whatsappMessageId: msg.key.id!,
-    timestamp: new Date(Number(msg.messageTimestamp ?? 0) * 1000).toISOString(),
-  };
+function timestampOf(msg: WAMessage): string {
+  return new Date(Number(msg.messageTimestamp ?? 0) * 1000).toISOString();
 }
 
 /**
