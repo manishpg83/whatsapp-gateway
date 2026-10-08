@@ -1,0 +1,29 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to production server
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: 22
+          script: |
+            cd /var/www/html/projects/whatsapp-gateway
+
+            echo "Fetching latest main..."
+            git fetch origin main
+
+            echo "Resetting production to main..."
+            git reset --hard origin/main
+
+            echo "Production deployment completed!"
