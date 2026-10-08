@@ -2,28 +2,22 @@ name: Deploy Production
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-
+    runs-on: self-hosted
     steps:
-      - name: Deploy to production server
-        uses: appleboy/ssh-action@v1.2.2
-        with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
-          key: ${{ secrets.PROD_SSH_KEY }}
-          port: 22
-          script: |
-            cd /var/www/html/projects/whatsapp-gateway
-
-            echo "Fetching latest main..."
-            git fetch origin main
-
-            echo "Resetting production to main..."
-            git reset --hard origin/main
-
-            echo "Production deployment completed!"
+      - name: Deploy
+        run: |
+          cd /var/www/html/projects/whatsapp-gateway
+          git fetch origin main
+          git reset --hard origin/main
+          composer install --no-dev --optimize-autoloader --no-interaction
+          npm ci
+          npm run build
+          php artisan migrate --force
+          php artisan optimize:clear
+          php artisan config:cache
+          php artisan queue:restart
+          echo "Production deployment completed!"
