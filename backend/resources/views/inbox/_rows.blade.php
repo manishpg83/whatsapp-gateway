@@ -1,14 +1,24 @@
 {{-- The conversation list (also re-rendered by InboxController::updates).
-     Needs $conversations, $selected, $search, $chat. --}}
+     Needs $conversations, $hasMoreChats, $unreadChats, $listParams, $search, $unread, $chat, $chats, $selected. --}}
 @php
-    $chatUrl = fn (string $contact) => route('inbox.index', array_filter(['instance' => $selected->instance_id, 'chat' => $contact, 'search' => $search ?: null]));
+    $chatUrl = fn (string $contact) => route('inbox.index', $listParams + ['chat' => $contact]);
+    // The filter buttons start from page 1 of the list, keeping search and the open chat.
+    $filterUrl = fn (bool $onlyUnread) => route('inbox.index', array_filter([
+        'instance' => $selected->instance_id, 'search' => $search ?: null, 'filter' => $onlyUnread ? 'unread' : null, 'chat' => $chat,
+    ]));
 @endphp
+<div class="ib-filter" role="group" aria-label="Show">
+    <a href="{{ $filterUrl(false) }}" class="ib-filter-btn {{ $unread ? '' : 'active' }}" @if (! $unread) aria-current="true" @endif>All</a>
+    <a href="{{ $filterUrl(true) }}" class="ib-filter-btn {{ $unread ? 'active' : '' }}" @if ($unread) aria-current="true" @endif>
+        Unread @if ($unreadChats)<span class="ib-filter-count">{{ $unreadChats > 99 ? '99+' : $unreadChats }}</span>@endif
+    </a>
+</div>
 @if ($conversations->isEmpty())
     <div class="ib-list-empty">
-        <i class="bi bi-chat-square-dots"></i>
-        <div class="fw-semibold">{{ $search !== '' ? 'No matching conversations.' : 'No conversations yet.' }}</div>
+        <i class="bi {{ $unread && $search === '' ? 'bi-check2-all' : 'bi-chat-square-dots' }}"></i>
+        <div class="fw-semibold">{{ $search !== '' ? 'No matching conversations.' : ($unread ? 'No unread chats.' : 'No conversations yet.') }}</div>
         <div class="small text-muted">
-            @if ($search !== '')
+            @if ($search !== '' || $unread)
                 <a href="{{ route('inbox.index', ['instance' => $selected->instance_id]) }}">Show all</a>
             @else
                 Messages to and from {{ $selected->name }} show up here.
@@ -49,4 +59,8 @@
             </a>
         @endforeach
     </nav>
+    @if ($hasMoreChats)
+        <a href="{{ route('inbox.index', ['chats' => $chats + 1] + $listParams + array_filter(['chat' => $chat])) }}"
+           class="ib-more" data-ib-load-chats><i class="bi bi-arrow-down me-1"></i>Load more chats</a>
+    @endif
 @endif

@@ -67,6 +67,7 @@ class BulkCampaign extends Model
     protected function casts(): array
     {
         return [
+            'body' => 'encrypted', // privacy: see CLAUDE.md §17
             'run_started_at' => 'datetime',
             'started_at' => 'datetime',
             'finished_at' => 'datetime',

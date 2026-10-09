@@ -7,6 +7,7 @@ use App\Models\ChatbotPause;
 use App\Models\ChatbotRule;
 use App\Models\Message;
 use App\Models\WhatsappSession;
+use App\Services\MediaCrypto;
 use App\Services\MediaFetcher;
 use App\Services\PlanLimiter;
 use App\Support\ChatbotCsv;
@@ -299,7 +300,7 @@ class ChatbotController extends Controller
 
         $inline = $model->mediaIsInline() && ! $request->boolean('download');
 
-        return Storage::disk('whatsapp_media')->response(
+        return app(MediaCrypto::class)->response(
             $model->media_path,
             $model->media_file_name ?: $model->media_type.'-'.basename($model->media_path),
             [
@@ -504,11 +505,12 @@ class ChatbotController extends Controller
         return $whatsappSession->messages()
             ->where('direction', 'incoming')
             ->whereIn('type', ChatbotRule::REPLY_TO_TYPES)
-            ->where('body', '!=', '')
             ->where('created_at', '>=', now()->subDays(self::UNANSWERED_DAYS))
             ->latest('id')
             ->limit(300)
             ->get(['body', 'from_number', 'created_at'])
+            // body is encrypted, so empty ones are skipped here, not in SQL.
+            ->filter(fn (Message $message) => trim($message->body) !== '')
             ->reject(fn (Message $message) => ChatbotRule::bestMatch($rules, $message->body) !== null)
             // With the menu on, "menu" and "2" are answered by the menu, not left unanswered.
             ->reject(fn (Message $message) => $menu->enabled && ($menu->isRequestedBy($message->body) || ChatbotMenu::choice($message->body) !== null))

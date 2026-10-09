@@ -409,7 +409,8 @@ async function downloadMedia(
       config.MEDIA_STORAGE_PATH,
       instanceId,
       mediaFileName(whatsappMessageId, media),
-      maxBytes
+      maxBytes,
+      config.MEDIA_ENCRYPTION_KEY
     );
 
     return { status: "stored", path: saved.path, size: saved.size };

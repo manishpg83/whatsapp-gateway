@@ -116,6 +116,6 @@ return [
     ],
 
     // Where messages from the public Contact page (/contact) are sent.
-    'support_address' => env('MAIL_SUPPORT_ADDRESS', 'briskbraintechnologies@gmail.com'),
+    'support_address' => env('MAIL_SUPPORT_ADDRESS', 'instamessageai@gmail.com'),
 
 ];

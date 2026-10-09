@@ -13,6 +13,13 @@
             <h1 class="h3 mb-0">Inbox</h1>
             <div class="text-muted small">Your WhatsApp conversations, one per customer.</div>
         </div>
+        @if ($selected)
+            {{-- New-message alerts on/off (inbox.js; remembered in this browser). --}}
+            <button type="button" class="btn btn-sm btn-light border ms-auto text-nowrap" data-ib-alerts hidden
+                    title="A sound, and a browser notification when this tab is in the background">
+                <i class="bi bi-bell" data-ib-alerts-icon></i><span class="ms-1" data-ib-alerts-label>Alerts on</span>
+            </button>
+        @endif
     </div>
 
     @include('partials.instance-switcher', [
@@ -44,15 +51,17 @@
 
     {{-- inbox.js polls data-ib-updates for changes; the versions say what's shown now. --}}
     <div class="ib-shell {{ $open ? 'is-open' : '' }} db-in" style="--i: 2;"
-         data-ib-updates="{{ route('inbox.updates', array_filter(['instance' => $selected->instance_id, 'chat' => $chat, 'search' => $search ?: null])) }}"
-         data-ib-list-version="{{ $listVersion }}" data-ib-thread-version="{{ $threadVersion }}">
+         data-ib-updates="{{ route('inbox.updates', $listParams + array_filter(['chat' => $chat])) }}"
+         data-ib-list-version="{{ $listVersion }}" data-ib-thread-version="{{ $threadVersion }}"
+         data-ib-chats="{{ $chats }}" data-ib-older="{{ $older }}">
         {{-- ======================================================== Conversations --}}
         <aside class="ib-list" aria-label="Conversations">
             <form method="GET" action="{{ route('inbox.index') }}" class="ib-search">
                 <input type="hidden" name="instance" value="{{ $selected->instance_id }}">
+                @if ($unread)<input type="hidden" name="filter" value="unread">@endif
                 <i class="bi bi-search" aria-hidden="true"></i>
-                <label for="ib-search" class="visually-hidden">Search a number</label>
-                <input type="search" id="ib-search" name="search" value="{{ $search }}" placeholder="Search a number" inputmode="numeric" class="form-control">
+                <label for="ib-search" class="visually-hidden">Search a name or number</label>
+                <input type="search" id="ib-search" name="search" value="{{ $search }}" placeholder="Search a name or number" maxlength="50" class="form-control">
             </form>
 
             <div class="ib-rows" data-ib-list>
@@ -70,16 +79,33 @@
                 </div>
             @else
                 <header class="ib-chat-head">
-                    <a href="{{ route('inbox.index', array_filter(['instance' => $selected->instance_id, 'search' => $search ?: null])) }}" class="ib-back" aria-label="Back to conversations">
+                    <a href="{{ route('inbox.index', $listParams) }}" class="ib-back" aria-label="Back to conversations">
                         <i class="bi bi-arrow-left"></i>
                     </a>
                     <span class="ib-avatar" aria-hidden="true"><i class="bi bi-person-fill"></i></span>
                     <div class="ib-chat-title">
-                        <div class="fw-semibold text-break">{{ $chatName ?? '+'.$chat }}</div>
+                        <div class="ib-chat-name">
+                            <span class="fw-semibold text-break">{{ $chatName ?? '+'.$chat }}</span>
+                            <button type="button" class="ib-rename-btn" data-bs-toggle="collapse" data-bs-target="#ib-rename"
+                                    aria-expanded="false" aria-controls="ib-rename" title="Rename this contact">
+                                <i class="bi bi-pencil"></i><span class="visually-hidden">Rename this contact</span>
+                            </button>
+                        </div>
                         <div class="small text-muted">
                             @if ($chatName)+{{ $chat }} · @endif<span data-ib-total>{{ number_format($threadTotal) }} {{ Str::plural('message', $threadTotal) }}</span> · via {{ $selected->name }}
                         </div>
                     </div>
+
+                    {{-- Back to the list with this chat unread again, to come back to later. --}}
+                    <form method="POST" action="{{ route('inbox.unread', $selected->instance_id) }}" class="ib-head-action">
+                        @csrf
+                        <input type="hidden" name="chat" value="{{ $chat }}">
+                        @if ($search !== '')<input type="hidden" name="search" value="{{ $search }}">@endif
+                        @if ($unread)<input type="hidden" name="filter" value="unread">@endif
+                        <button type="submit" class="btn btn-sm btn-light border" title="Mark as unread — come back to it later">
+                            <i class="bi bi-envelope"></i><span class="ib-head-action-text ms-1">Mark unread</span>
+                        </button>
+                    </form>
 
                     {{-- The chatbot in this chat: answering, paused for a while (a recent reply), or turned off. --}}
                     @if ($selected->chatbot_enabled && $thread->isNotEmpty())
@@ -104,6 +130,25 @@
                         </div>
                     @endif
                 </header>
+
+                {{-- Rename: the owner's own name for this customer (shown instead of their WhatsApp name). --}}
+                <form method="POST" action="{{ route('inbox.rename', $selected->instance_id) }}" id="ib-rename"
+                      class="collapse ib-rename {{ $errors->has('name') ? 'show' : '' }}">
+                    @csrf
+                    <input type="hidden" name="chat" value="{{ $chat }}">
+                    <label for="ib-rename-input" class="small fw-semibold mb-1">Your name for +{{ $chat }}</label>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="ib-rename-input" name="name" maxlength="100"
+                               value="{{ old('name', $customName) }}" placeholder="e.g. Ramesh – Pune shop"
+                               class="form-control form-control-sm @error('name') is-invalid @enderror">
+                        <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                        @if ($customName)
+                            <button type="submit" name="reset" value="1" class="btn btn-sm btn-light border text-nowrap">Use WhatsApp name</button>
+                        @endif
+                    </div>
+                    @error('name') <div class="small text-danger mt-1">{{ $message }}</div> @enderror
+                    <div class="small text-muted mt-1">Only you see this name. It's used in this list and in search.</div>
+                </form>
 
                 <div class="ib-thread" data-ib-thread>
                     @include('inbox._thread')

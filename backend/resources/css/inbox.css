@@ -152,6 +152,52 @@
     color: #34b7f1;
 }
 
+/* ---- All / Unread filter (top of the list) */
+
+.ib-filter {
+    display: flex;
+    gap: 0.4rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.ib-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.75rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #54656f;
+    text-decoration: none;
+    background: #f0f2f5;
+    border-radius: 999px;
+}
+
+.ib-filter-btn:hover {
+    color: var(--wa-dark);
+    background: #e6e9eb;
+}
+
+.ib-filter-btn.active {
+    color: var(--wa-primary-dark);
+    background: var(--wa-primary-light);
+}
+
+.ib-filter-count {
+    min-width: 1.2rem;
+    padding: 0 0.3rem;
+    font-size: 0.72rem;
+    line-height: 1.2rem;
+    text-align: center;
+    color: #fff;
+    background: var(--wa-primary);
+    border-radius: 999px;
+}
+
+.ib-head-action {
+    flex-shrink: 0;
+}
+
 .ib-list-empty {
     flex: 1;
     display: flex;
@@ -302,6 +348,57 @@
     margin-top: 0.25rem;
     font-size: 0.75rem;
     color: #b42318;
+}
+
+/* "Retry" under a failed message. */
+.ib-retry {
+    margin-top: 0.3rem;
+}
+
+.ib-retry-btn {
+    padding: 0.15rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #b42318;
+    background: #fff;
+    border: 1px solid rgba(180, 35, 24, 0.35);
+    border-radius: 999px;
+}
+
+.ib-retry-btn:hover:not(:disabled) {
+    background: #fef3f2;
+}
+
+/* "Load earlier messages" (top of the chat) and "Load more chats" (end of the list). */
+.ib-load {
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.ib-load:hover {
+    background: #fff;
+}
+
+.ib-more {
+    display: block;
+    margin: 0.5rem 0.75rem 0.75rem;
+    padding: 0.45rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    border: 1px solid rgba(16, 35, 28, 0.12);
+    border-radius: 8px;
+}
+
+.ib-more:hover {
+    background: #f5f6f6;
+}
+
+.ib-load.is-loading,
+.ib-more.is-loading {
+    opacity: 0.6;
+    pointer-events: none;
 }
 
 .ib-chat-foot {
@@ -480,6 +577,34 @@
     min-width: 0;
 }
 
+.ib-chat-name {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.ib-rename-btn {
+    flex-shrink: 0;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.8rem;
+    color: #667781;
+    background: none;
+    border: 0;
+    border-radius: 6px;
+}
+
+.ib-rename-btn:hover,
+.ib-rename-btn[aria-expanded="true"] {
+    color: var(--wa-dark);
+    background: #e9eeec;
+}
+
+.ib-rename {
+    padding: 0.6rem 1rem 0.7rem;
+    background: #fff;
+    border-bottom: 1px solid rgba(16, 35, 28, 0.08);
+}
+
 .ib-bot {
     display: flex;
     align-items: center;
@@ -555,6 +680,11 @@
 @media (max-width: 575.98px) {
     .ib-chat-head {
         flex-wrap: wrap;
+    }
+
+    /* "Mark unread": just the envelope icon on phones. */
+    .ib-head-action-text {
+        display: none;
     }
 
     .ib-bot {

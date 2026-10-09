@@ -61,6 +61,6 @@
             </div>
         </div>
         <hr class="border-secondary-subtle my-3">
-        <div class="small">&copy; {{ now()->year }} {{ config('app.name') }}. All rights reserved.</div>
+        <div class="small">&copy; {{ now()->year }} {{ config('app.name') }}. All Rights Reserved.</div>
     </div>
 </footer>

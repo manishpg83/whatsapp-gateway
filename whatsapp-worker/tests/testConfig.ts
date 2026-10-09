@@ -11,4 +11,5 @@ export const testConfig: Config = {
   SESSION_STORAGE_PATH: "./tests/tmp-whatsapp-secrets",
   MEDIA_STORAGE_PATH: "./tests/tmp-whatsapp-media",
   MAX_MEDIA_MB: 100,
+  MEDIA_ENCRYPTION_KEY: Buffer.alloc(32), // test-only key (32 zero bytes)
 };

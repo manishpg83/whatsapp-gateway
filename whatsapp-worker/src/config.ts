@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseMediaKey } from "./whatsapp/mediaCrypto.js";
 
 /**
  * All environment variables the worker needs, validated once at startup.
@@ -29,6 +30,12 @@ const envSchema = z.object({
   MEDIA_STORAGE_PATH: z.string().default("C:\\whatsapp-media"),
   // Bigger incoming files are not downloaded (recorded as "too large").
   MAX_MEDIA_MB: z.coerce.number().positive().default(100),
+  // Key for the encrypted media files (see whatsapp/mediaCrypto.ts). Must be
+  // the same as MEDIA_ENCRYPTION_KEY in backend/.env. No default on purpose.
+  MEDIA_ENCRYPTION_KEY: z
+    .string()
+    .refine((value) => parseMediaKey(value) !== null, 'MEDIA_ENCRYPTION_KEY must be "base64:" + 32 random bytes')
+    .transform((value) => parseMediaKey(value) as Buffer),
 });
 
 export type Config = z.infer<typeof envSchema>;

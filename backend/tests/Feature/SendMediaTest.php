@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\ApiToken;
 use App\Models\Message;
 use App\Models\WhatsappSession;
+use App\Services\MediaCrypto;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\UploadedFile;
@@ -90,6 +91,10 @@ class SendMediaTest extends TestCase
         $this->assertSame(strlen(self::JPEG), $message->media_size);
         $this->assertMatchesRegularExpression('#^'.$this->instance->instance_id.'/out-[0-9a-f-]{36}\.jpg$#', $message->media_path);
         Storage::disk('whatsapp_media')->assertExists($message->media_path);
+        // Stored encrypted (CLAUDE.md §17), but still decrypts to the original.
+        $stored = Storage::disk('whatsapp_media')->path($message->media_path);
+        $this->assertTrue(app(MediaCrypto::class)->isEncrypted($stored));
+        $this->assertSame(self::JPEG, implode('', iterator_to_array(app(MediaCrypto::class)->chunks($stored), false)));
 
         $worker = $this->workerRequest();
         $this->assertSame('image', $worker['type']);

@@ -11,4 +11,10 @@ return [
     // in both directions.
     'secret' => env('INTERNAL_API_SECRET'),
 
+    // Key for the encrypted media files (images, voice notes, documents) on
+    // the whatsapp_media disk — see App\Services\MediaCrypto. Must match
+    // MEDIA_ENCRYPTION_KEY in whatsapp-worker/.env exactly. Losing it makes
+    // every stored media file unreadable.
+    'media_key' => env('MEDIA_ENCRYPTION_KEY'),
+
 ];

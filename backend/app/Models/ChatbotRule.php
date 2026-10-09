@@ -119,6 +119,7 @@ class ChatbotRule extends Model
     protected function casts(): array
     {
         return [
+            'answer' => 'encrypted', // privacy: see CLAUDE.md §17
             'keywords' => 'array',
             'enabled' => 'boolean',
             'in_menu' => 'boolean',

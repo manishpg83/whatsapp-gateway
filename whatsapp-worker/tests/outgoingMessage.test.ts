@@ -1,4 +1,5 @@
 import path from "node:path";
+import { Readable } from "node:stream";
 import { describe, expect, it } from "vitest";
 import { buildOutgoingContent, resolveMediaPath } from "../src/whatsapp/outgoingMessage.js";
 
@@ -24,20 +25,22 @@ describe("resolveMediaPath", () => {
 });
 
 describe("buildOutgoingContent", () => {
+  const stream = Readable.from([]);
   const media = (mimeType: string, fileName: string | null = null) => ({
     path: `${INSTANCE}/out-a.bin`,
     mimeType,
     fileName,
     absolutePath: "/media/out-a.bin",
+    stream,
   });
 
   it("builds a text message", () => {
     expect(buildOutgoingContent("text", "Hello", null)).toEqual({ text: "Hello" });
   });
 
-  it("builds an image with a caption, streamed from the local file", () => {
+  it("builds an image with a caption, streamed from the decrypted file", () => {
     expect(buildOutgoingContent("image", "Look", media("image/jpeg"))).toEqual({
-      image: { url: "/media/out-a.bin" },
+      image: { stream },
       caption: "Look",
       mimetype: "image/jpeg",
     });
@@ -45,7 +48,7 @@ describe("buildOutgoingContent", () => {
 
   it("leaves the caption out when it is empty", () => {
     expect(buildOutgoingContent("video", "", media("video/mp4"))).toEqual({
-      video: { url: "/media/out-a.bin" },
+      video: { stream },
       caption: undefined,
       mimetype: "video/mp4",
     });
@@ -53,7 +56,7 @@ describe("buildOutgoingContent", () => {
 
   it("sends a voice note as Ogg/Opus with ptt set", () => {
     expect(buildOutgoingContent("voice", "", media("audio/ogg"))).toEqual({
-      audio: { url: "/media/out-a.bin" },
+      audio: { stream },
       mimetype: "audio/ogg; codecs=opus",
       ptt: true,
     });
@@ -61,14 +64,14 @@ describe("buildOutgoingContent", () => {
 
   it("sends an audio file without ptt", () => {
     expect(buildOutgoingContent("audio", "", media("audio/mpeg"))).toEqual({
-      audio: { url: "/media/out-a.bin" },
+      audio: { stream },
       mimetype: "audio/mpeg",
     });
   });
 
   it("sends a document with its file name and caption", () => {
     expect(buildOutgoingContent("document", "Your invoice", media("application/pdf", "Invoice-42.pdf"))).toEqual({
-      document: { url: "/media/out-a.bin" },
+      document: { stream },
       mimetype: "application/pdf",
       fileName: "Invoice-42.pdf",
       caption: "Your invoice",

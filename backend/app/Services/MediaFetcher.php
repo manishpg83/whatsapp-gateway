@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Exceptions\MediaFetchException;
 use App\Models\WhatsappSession;
 use App\Rules\PublicWebhookUrl;
-use Illuminate\Http\File;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -129,7 +128,10 @@ class MediaFetcher
         }
 
         $name = 'out-'.Str::uuid().'.'.$this->extension($mime, $nameHint);
-        Storage::disk('whatsapp_media')->putFileAs($session->instance_id, new File($localPath), $name);
+        // Saved encrypted (privacy, CLAUDE.md §17); the worker decrypts it when sending.
+        $disk = Storage::disk('whatsapp_media');
+        $disk->makeDirectory($session->instance_id);
+        app(MediaCrypto::class)->encryptFile($localPath, $disk->path("{$session->instance_id}/{$name}"));
 
         return [
             'path' => "{$session->instance_id}/{$name}",

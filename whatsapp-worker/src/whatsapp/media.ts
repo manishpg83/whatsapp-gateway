@@ -5,6 +5,7 @@ import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { Readable } from "node:stream";
 import type { IncomingMedia } from "./incomingMessage.js";
+import { createEncryptStream } from "./mediaCrypto.js";
 
 /**
  * What happened to a message's media file:
@@ -64,16 +65,18 @@ export function mediaFileName(whatsappMessageId: string, media: IncomingMedia): 
 }
 
 /**
- * Streams a download to MEDIA_STORAGE_PATH/<instanceId>/<file>, aborting
- * (and deleting the partial file) if it grows past maxBytes — the size
- * WhatsApp declares up front can't be fully trusted.
+ * Streams a download to MEDIA_STORAGE_PATH/<instanceId>/<file>, encrypted
+ * with `key` (see mediaCrypto.ts), aborting (and deleting the partial
+ * file) if it grows past maxBytes — the size WhatsApp declares up front
+ * can't be fully trusted. The returned size is the original file's size.
  */
 export async function saveMediaStream(
   stream: Readable,
   storageRoot: string,
   instanceId: string,
   fileName: string,
-  maxBytes: number
+  maxBytes: number,
+  key: Buffer
 ): Promise<{ path: string; size: number }> {
   const dir = path.join(storageRoot, instanceId);
   const fullPath = path.join(dir, fileName);
@@ -89,7 +92,7 @@ export async function saveMediaStream(
   });
 
   try {
-    await pipeline(stream, limiter, createWriteStream(fullPath));
+    await pipeline(stream, limiter, createEncryptStream(key), createWriteStream(fullPath));
   } catch (err) {
     await fs.rm(fullPath, { force: true }).catch(() => {});
     throw err;

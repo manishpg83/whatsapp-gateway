@@ -129,7 +129,11 @@ Route::middleware(['auth', 'not_suspended', 'verified'])->group(function () {
     Route::get('/inbox/{instance}/updates', [InboxController::class, 'updates'])->middleware('throttle:60,1')->name('inbox.updates');
     // Sends a real WhatsApp message each time, so a sane per-minute cap.
     Route::post('/inbox/{instance}/reply', [InboxController::class, 'reply'])->middleware('throttle:30,1')->name('inbox.reply');
+    Route::post('/inbox/{instance}/messages/{message}/retry', [InboxController::class, 'retry'])
+        ->whereNumber('message')->middleware('throttle:30,1')->name('inbox.retry');
     Route::post('/inbox/{instance}/bot', [InboxController::class, 'bot'])->name('inbox.bot');
+    Route::post('/inbox/{instance}/name', [InboxController::class, 'rename'])->name('inbox.rename');
+    Route::post('/inbox/{instance}/unread', [InboxController::class, 'unread'])->name('inbox.unread');
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
     // A received image / voice note / document — owner only.
     Route::get('/messages/{message}/media', [MessageMediaController::class, 'show'])->name('messages.media');

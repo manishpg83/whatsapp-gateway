@@ -1,10 +1,27 @@
 {{-- The open chat's messages (also re-rendered by InboxController::updates).
-     Needs $thread, $threadTotal. --}}
+     Needs $thread, $threadTotal, $hasOlder, $selected, $chat, $listParams, $older. --}}
+@php
+    // Failed messages that get a "Retry" button: those whose same text/file
+    // hasn't gone through in a later message (e.g. an earlier retry).
+    $retryable = [];
+    $sentLater = [];
+    foreach ($thread->reverse() as $m) {
+        $key = $m->type.'|'.$m->body.'|'.$m->media_path;
+        if ($m->direction === 'outgoing' && (in_array($m->status, \App\Models\Message::SENT_STATUSES, true) || $m->fallback_status === 'sent')) {
+            $sentLater[$key] = true;
+        } elseif (! isset($sentLater[$key]) && $m->canBeRetried()) {
+            $retryable[$m->id] = true;
+        }
+    }
+@endphp
 @if ($thread->isEmpty())
     <div class="ib-note">No messages with this number yet.</div>
 @else
-    @if ($threadTotal > $thread->count())
-        <div class="ib-note">Showing the latest {{ $thread->count() }} messages.</div>
+    @if ($hasOlder)
+        <a href="{{ route('inbox.index', $listParams + ['chat' => $chat, 'older' => $older + 1]) }}"
+           class="ib-note ib-load" data-ib-load-older><i class="bi bi-arrow-up me-1"></i>Load earlier messages</a>
+    @elseif ($threadTotal > $thread->count())
+        <div class="ib-note">Showing the latest {{ number_format($thread->count()) }} messages.</div>
     @endif
     @foreach ($thread as $message)
         @if ($loop->first || ! $message->created_at->isSameDay($thread[$loop->index - 1]->created_at))
@@ -35,6 +52,12 @@
             </div>
             @if ($out && $message->status === 'failed' && $message->error)
                 <div class="ib-msg-error"><i class="bi bi-exclamation-triangle me-1"></i>Not sent: {{ Str::limit($message->error, 140) }}</div>
+            @endif
+            @if (isset($retryable[$message->id]))
+                <form method="POST" action="{{ route('inbox.retry', [$selected->instance_id, $message->id]) }}" class="ib-retry" data-ib-retry>
+                    @csrf
+                    <button type="submit" class="ib-retry-btn"><i class="bi bi-arrow-clockwise me-1"></i>Retry</button>
+                </form>
             @endif
         </div>
     @endforeach

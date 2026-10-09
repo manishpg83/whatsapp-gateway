@@ -1,4 +1,5 @@
 import path from "node:path";
+import type { Readable } from "node:stream";
 import type { AnyMessageContent } from "baileys";
 
 export const OUTGOING_TYPES = ["text", "image", "video", "audio", "voice", "document"] as const;
@@ -28,20 +29,21 @@ export function resolveMediaPath(storageRoot: string, instanceId: string, relati
 
 /**
  * Builds what Baileys' sendMessage() expects for each type. Media is
- * passed as a local file path ({ url }) — Baileys streams it from disk, so
- * large files are never loaded fully into memory. A pure function so it
- * can be unit tested without a WhatsApp connection.
+ * passed as a stream of the decrypted file ({ stream }, see
+ * mediaCrypto.ts) — Baileys reads it piece by piece, so large files are
+ * never loaded fully into memory. A pure function so it can be unit tested
+ * without a WhatsApp connection.
  */
 export function buildOutgoingContent(
   type: OutgoingType,
   text: string,
-  media: (OutgoingMedia & { absolutePath: string }) | null
+  media: (OutgoingMedia & { absolutePath: string; stream: Readable }) | null
 ): AnyMessageContent {
   if (type === "text" || !media) {
     return { text };
   }
 
-  const file = { url: media.absolutePath };
+  const file = { stream: media.stream };
   const caption = text !== "" ? text : undefined;
 
   switch (type) {

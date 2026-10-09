@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Message;
+use App\Services\MediaCrypto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -41,7 +42,7 @@ class MessageMediaController extends Controller
         // a download for inline types too.
         $inline = $message->mediaIsInline() && ! $request->boolean('download');
 
-        return Storage::disk('whatsapp_media')->response(
+        return app(MediaCrypto::class)->response(
             $message->media_path,
             $message->mediaDownloadName(),
             [

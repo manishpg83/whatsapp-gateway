@@ -28,6 +28,8 @@
         <env name="DB_DATABASE" value="whatsapp_gateway_test"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
+        <!-- Test-only media key (32 zero bytes). Never use this anywhere else. -->
+        <env name="MEDIA_ENCRYPTION_KEY" value="base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

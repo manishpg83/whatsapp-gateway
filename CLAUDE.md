@@ -356,3 +356,35 @@ Outgoing email (verification, password reset) is sent via **Gmail SMTP**
 (`smtp.gmail.com:587`, account `briskbrainteam@gmail.com`, using a Gmail **app password**).
 The real credentials live **only** in `backend/.env` (`MAIL_*` keys) — never put the
 password in this file or anywhere else that Git tracks.
+
+---
+
+## 17. Privacy: encryption at rest (started 2026-10-09)
+
+**Message text** — Laravel `encrypted` casts, key = `APP_KEY`:
+- `messages.body` (migration `2026_10_09_100000_…`, column made `MEDIUMTEXT`),
+  `bulk_campaigns.body`, `bulk_templates.body`, `chatbot_rules.answer`
+  (migration `2026_10_09_110000_…`). New tables holding message text get the same cast.
+- **Never filter, search or sort on these columns in SQL** (`where('body', ...)`, `LIKE`).
+  Load the rows and filter in PHP, as `ChatbotController::unansweredQuestions()` does.
+- Not encrypted on purpose: phone numbers and contact names (needed for Inbox grouping/search),
+  chatbot questions/keywords/menu (bot configuration, matched against incoming text).
+
+**Media files** on the `whatsapp_media` disk — AES-256-GCM in 64 KB chunks, key =
+`MEDIA_ENCRYPTION_KEY` (same value in `backend/.env` and `whatsapp-worker/.env`):
+- Same file format in `App\Services\MediaCrypto` (PHP) and `whatsapp-worker/src/whatsapp/mediaCrypto.ts`.
+  **Change one, change both**; `MediaCryptoTest` has a worker-made fixture that proves they match.
+- Write media only through `MediaCrypto::encryptFile()` / the worker's `saveMediaStream()`;
+  serve it only through `MediaCrypto::response()` — never `Storage::disk('whatsapp_media')->response()`.
+- Files without the `IMENC1` marker are old unencrypted ones and are still readable.
+  `php artisan media:encrypt` converts them (safe to re-run; `--decrypt` undoes it).
+- Tests that store media must use `Storage::fake('whatsapp_media')`, or they write into the real folder.
+
+**Keys — losing either one makes the data unreadable forever.**
+- Never run `php artisan key:generate` or change `MEDIA_ENCRYPTION_KEY` on a server with data.
+- Keep a safe off-server backup of each production `backend/.env` and `whatsapp-worker/.env`
+  (India and South Africa sites each have their own keys).
+- Deploying this to a server: add `MEDIA_ENCRYPTION_KEY` to both `.env` files (the worker refuses
+  to start without it), then `php artisan migrate --force`, restart the worker,
+  then `php artisan media:encrypt`.
+- This is encryption at rest, **not** end-to-end: anyone with server access + `.env` can read it.

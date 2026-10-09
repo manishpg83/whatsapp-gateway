@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\InboxConversation;
 use App\Models\Message;
 use App\Models\User;
 use App\Models\WhatsappSession;
@@ -63,6 +64,25 @@ class InboxTest extends TestCase
             ->assertSeeInOrder(['+919822222222', 'What are your timings?', '+919811111111', 'Bot:', 'Yes, everywhere in Pune.']);
     }
 
+    public function test_each_conversation_remembers_its_latest_message(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $this->incoming($instance, '919811111111', 'Hi');
+        $reply = $this->outgoing($instance, '919811111111', 'Hello!');
+        $other = $this->incoming($instance, '919822222222', 'Timings?');
+        Message::factory()->for($instance, 'whatsappSession')->create(['to_number' => null]); // no number: no conversation
+
+        $this->assertSame(
+            ['919811111111' => $reply->id, '919822222222' => $other->id],
+            InboxConversation::where('whatsapp_session_id', $instance->id)->orderBy('phone')->pluck('last_message_id', 'phone')->all()
+        );
+
+        // An older chat moves back to the top when a new message arrives.
+        $this->incoming($instance, '919811111111', 'One more thing');
+
+        $this->actingAs($instance->user)->get('/inbox')->assertSeeInOrder(['+919811111111', 'One more thing', '+919822222222']);
+    }
+
     public function test_opening_a_conversation_shows_only_its_messages_oldest_first(): void
     {
         $instance = WhatsappSession::factory()->create();
@@ -88,6 +108,71 @@ class InboxTest extends TestCase
         $this->actingAs($instance->user)->get('/inbox?search=2222')
             ->assertSee('Beta message')
             ->assertDontSee('Alpha message');
+    }
+
+    public function test_conversations_can_be_searched_by_name(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $this->incoming($instance, '919811111111', 'Alpha message');
+        $this->incoming($instance, '919822222222', 'Beta message');
+        InboxConversation::where('phone', '919822222222')->update(['name' => 'Ramesh Kumar']);
+
+        $this->actingAs($instance->user)->get('/inbox?search=ramesh')
+            ->assertSee('Beta message')
+            ->assertDontSee('Alpha message');
+
+        // A number typed with + and spaces still matches.
+        $this->actingAs($instance->user)->get('/inbox?search='.urlencode('+91 98111'))
+            ->assertSee('Alpha message')
+            ->assertDontSee('Beta message');
+
+        // % is matched literally, not as "anything".
+        $this->actingAs($instance->user)->get('/inbox?search=%25')
+            ->assertSee('No matching conversations.');
+    }
+
+    public function test_earlier_messages_can_be_loaded(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $this->incoming($instance, '919811111111', 'The very first message');
+        foreach (range(1, 100) as $i) {
+            $this->incoming($instance, '919811111111', "Later message {$i}");
+        }
+
+        $this->actingAs($instance->user)->get('/inbox?chat=919811111111')
+            ->assertSee('Load earlier messages')
+            ->assertSee('older=2', false)
+            ->assertDontSee('The very first message');
+
+        $this->actingAs($instance->user)->get('/inbox?chat=919811111111&older=2')
+            ->assertSee('The very first message')
+            ->assertDontSee('Load earlier messages');
+
+        // The live updates use the same page count.
+        $json = $this->actingAs($instance->user)
+            ->getJson("/inbox/{$instance->instance_id}/updates?chat=919811111111&older=2")
+            ->json();
+        $this->assertStringContainsString('The very first message', $json['thread']);
+    }
+
+    public function test_more_chats_can_be_loaded(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $this->incoming($instance, '919800000000', 'The oldest chat');
+        foreach (range(1, 100) as $i) {
+            $this->incoming($instance, '9198'.str_pad((string) $i, 8, '0', STR_PAD_LEFT), "Chat {$i}");
+        }
+
+        $this->actingAs($instance->user)->get('/inbox')
+            ->assertSee('Load more chats')
+            ->assertDontSee('The oldest chat');
+
+        $this->actingAs($instance->user)->get('/inbox?chats=2')
+            ->assertSee('The oldest chat')
+            ->assertDontSee('Load more chats');
+
+        $json = $this->actingAs($instance->user)->getJson("/inbox/{$instance->instance_id}/updates?chats=2")->json();
+        $this->assertStringContainsString('The oldest chat', $json['list']);
     }
 
     public function test_only_the_picked_instance_is_shown_and_it_is_remembered(): void
@@ -416,5 +501,143 @@ class InboxTest extends TestCase
             ->assertOk()
             ->assertDontSee('Private message')
             ->assertSee('No messages with this number yet.');
+    }
+
+    // --- Unread -----------------------------------------------------------------
+
+    public function test_the_unread_filter_shows_only_unread_chats(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $this->incoming($instance, '919811111111', 'Already read');
+        $this->incoming($instance, '919822222222', 'Still unread');
+        InboxConversation::where('phone', '919822222222')->update(['unread_count' => 2]);
+
+        $this->actingAs($instance->user)->get('/inbox')
+            ->assertSee('Already read')->assertSee('Still unread');
+
+        $this->actingAs($instance->user)->get('/inbox?filter=unread')
+            ->assertSee('Still unread')->assertDontSee('Already read')
+            // Opening a chat keeps the filter in its link.
+            ->assertSee('filter=unread&amp;chat=919822222222', false);
+
+        // The open chat stays listed, though opening it made it read.
+        $this->actingAs($instance->user)->get('/inbox?filter=unread&chat=919822222222')->assertSee('Still unread');
+        $this->assertSame(0, InboxConversation::where('phone', '919822222222')->value('unread_count'));
+
+        $this->actingAs($instance->user)->get('/inbox?filter=unread')->assertSee('No unread chats.');
+    }
+
+    public function test_a_chat_can_be_marked_as_unread(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $this->incoming($instance, '919811111111', 'Hello');
+
+        $this->actingAs($instance->user)->get('/inbox?chat=919811111111')->assertSee('Mark unread');
+
+        // Back to the list (staying in the chat would mark it read again).
+        $this->actingAs($instance->user)
+            ->post("/inbox/{$instance->instance_id}/unread", ['chat' => '919811111111'])
+            ->assertRedirect(route('inbox.index', ['instance' => $instance->instance_id]))
+            ->assertSessionHas('status', 'Marked as unread.');
+
+        $this->assertSame(1, InboxConversation::sole()->unread_count);
+        $this->actingAs($instance->user)->get('/inbox?filter=unread')->assertSee('Hello');
+
+        // Someone else's chat: not found.
+        $other = WhatsappSession::factory()->create();
+        $this->incoming($other, '919822222222', 'Not yours');
+        $this->actingAs($instance->user)->post("/inbox/{$instance->instance_id}/unread", ['chat' => '919822222222'])->assertNotFound();
+    }
+
+    // --- Rename -----------------------------------------------------------------
+
+    public function test_a_contact_can_be_given_your_own_name(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $this->incoming($instance, '919811111111', 'Hello');
+        InboxConversation::where('phone', '919811111111')->update(['name' => 'RK']);
+
+        $this->actingAs($instance->user)
+            ->post("/inbox/{$instance->instance_id}/name", ['chat' => '919811111111', 'name' => '  Ramesh – Pune shop '])
+            ->assertRedirect(route('inbox.index', ['instance' => $instance->instance_id, 'chat' => '919811111111']))
+            ->assertSessionHas('status', 'Name saved.');
+
+        $this->assertSame('Ramesh – Pune shop', InboxConversation::sole()->custom_name);
+        $this->actingAs($instance->user)->get('/inbox?chat=919811111111')->assertSee('Ramesh – Pune shop')->assertSee('Use WhatsApp name');
+        $this->actingAs($instance->user)->get('/inbox?search=pune')->assertSee('Hello');
+
+        // A new WhatsApp name is remembered, but doesn't replace yours.
+        InboxConversation::messageReceived($instance, '919811111111', 'Ramesh K');
+        $this->actingAs($instance->user)->get('/inbox')->assertSee('Ramesh – Pune shop')->assertDontSee('Ramesh K<');
+
+        // Back to the WhatsApp name.
+        $this->actingAs($instance->user)->post("/inbox/{$instance->instance_id}/name", ['chat' => '919811111111', 'name' => 'x', 'reset' => '1']);
+        $this->assertNull(InboxConversation::sole()->custom_name);
+        $this->actingAs($instance->user)->get('/inbox')->assertSee('Ramesh K');
+    }
+
+    public function test_only_your_own_conversations_can_be_renamed(): void
+    {
+        $instance = WhatsappSession::factory()->create();
+        $other = WhatsappSession::factory()->create();
+        $this->incoming($other, '919822222222', 'Not yours');
+
+        $this->actingAs($instance->user)->post("/inbox/{$instance->instance_id}/name", ['chat' => '919822222222', 'name' => 'Mine'])->assertNotFound();
+        $this->actingAs($instance->user)->post("/inbox/{$other->instance_id}/name", ['chat' => '919822222222', 'name' => 'Mine'])->assertNotFound();
+        $this->assertNull(InboxConversation::sole()->custom_name);
+    }
+
+    // --- Retry ------------------------------------------------------------------
+
+    public function test_a_failed_message_can_be_retried(): void
+    {
+        Http::fake(['*' => Http::response(['message_id' => 'WA-RETRY'], 200)]);
+        $instance = WhatsappSession::factory()->connected()->create(['chatbot_pause_minutes' => 30]);
+        $this->incoming($instance, '919811111111', 'Hello?');
+        $failed = $this->outgoing($instance, '919811111111', 'Sorry for the wait', ['status' => 'failed', 'error' => 'Timed out']);
+
+        $this->actingAs($instance->user)->get('/inbox?chat=919811111111')->assertSee('Retry');
+
+        $this->actingAs($instance->user)
+            ->post("/inbox/{$instance->instance_id}/messages/{$failed->id}/retry")
+            ->assertRedirect(route('inbox.index', ['instance' => $instance->instance_id, 'chat' => '919811111111']));
+
+        // A new message went out; the failed one stays as history.
+        $sent = Message::where('status', 'sent')->sole();
+        $this->assertSame('Sorry for the wait', $sent->body);
+        $this->assertSame('919811111111', $sent->to_number);
+        $this->assertSame('WA-RETRY', $sent->whatsapp_message_id);
+        $this->assertSame('failed', $failed->fresh()->status);
+        $this->assertSame(1, $instance->chatbotPauses()->count());
+
+        // It went through, so no more Retry button.
+        $this->actingAs($instance->user)->get('/inbox?chat=919811111111')->assertDontSee('Retry');
+    }
+
+    public function test_only_your_own_failed_messages_can_be_retried(): void
+    {
+        Http::fake();
+        $instance = WhatsappSession::factory()->connected()->create();
+        $sent = $this->outgoing($instance, '919811111111', 'Went fine');
+        $incoming = $this->incoming($instance, '919811111111', 'From the customer');
+        $someoneElses = $this->outgoing(WhatsappSession::factory()->connected()->create(), '919822222222', 'Not mine', ['status' => 'failed']);
+
+        foreach ([$sent, $incoming, $someoneElses] as $message) {
+            $this->actingAs($instance->user)->post("/inbox/{$instance->instance_id}/messages/{$message->id}/retry")->assertNotFound();
+        }
+
+        Http::assertNothingSent();
+    }
+
+    public function test_retry_needs_a_connected_instance(): void
+    {
+        Http::fake();
+        $instance = WhatsappSession::factory()->create(['status' => 'disconnected']);
+        $failed = $this->outgoing($instance, '919811111111', 'Hi', ['status' => 'failed']);
+
+        $this->actingAs($instance->user)->post("/inbox/{$instance->instance_id}/messages/{$failed->id}/retry")
+            ->assertSessionHas('error', 'This instance is not connected. Reconnect it to retry.');
+
+        Http::assertNothingSent();
     }
 }

@@ -50,9 +50,19 @@ class Message extends Model
     // phone — shown in the Inbox only; never counted toward plans or stats).
     public const DIRECTION_PHONE = 'phone';
 
+    protected static function booted(): void
+    {
+        // Keeps the Inbox conversation list up to date (its latest message).
+        static::created(fn (Message $message) => InboxConversation::messageAdded($message));
+    }
+
     protected function casts(): array
     {
         return [
+            // Message text is encrypted in the database with APP_KEY (privacy:
+            // unreadable in phpMyAdmin / DB backups). Losing or changing
+            // APP_KEY makes every stored message unreadable.
+            'body' => 'encrypted',
             'delivered_at' => 'datetime',
             'read_at' => 'datetime',
         ];
@@ -158,6 +168,20 @@ class Message extends Model
         return $this->media_status === 'stored'
             && $this->media_path !== null
             && Storage::disk('whatsapp_media')->exists($this->media_path);
+    }
+
+    /**
+     * Whether the Inbox may offer "Retry": an outgoing message that failed
+     * (and wasn't delivered by the Cloud API fallback instead), of a type
+     * we can send, with its file still stored if it had one.
+     */
+    public function canBeRetried(): bool
+    {
+        return $this->direction === 'outgoing'
+            && $this->status === 'failed'
+            && $this->fallback_status !== 'sent'
+            && in_array($this->type, ['text', 'image', 'video', 'audio', 'voice', 'document'], true)
+            && ($this->type === 'text' || $this->hasStoredMedia());
     }
 
     public function mediaIsInline(): bool

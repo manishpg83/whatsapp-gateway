@@ -32,11 +32,15 @@ use Illuminate\View\View;
  */
 class InboxController extends Controller
 {
-    // Conversations listed, newest first.
+    // Conversations listed, newest first — and how many more each
+    // "Load more chats" adds (up to MAX_PAGES times).
     private const CONVERSATIONS_SHOWN = 100;
 
-    // Messages shown in the open chat (the latest ones).
+    // Messages shown in the open chat (the latest ones) — and how many
+    // more each "Load earlier messages" adds (up to MAX_PAGES times).
     private const MESSAGES_SHOWN = 100;
+
+    private const MAX_PAGES = 20;
 
     public function index(Request $request): View
     {
@@ -52,19 +56,20 @@ class InboxController extends Controller
             $request->session()->put('inbox.instance', $selected->instance_id);
         }
 
-        [$search, $chat] = $this->searchAndChat($request);
+        $view = $this->viewState($request);
 
-        if ($selected && $chat !== null) {
-            InboxConversation::markRead($selected, $chat);
+        if ($selected && $view['chat'] !== null) {
+            InboxConversation::markRead($selected, $view['chat']);
         }
 
         return view('inbox.index', [
             'instances' => $instances,
             'selected' => $selected,
-            'search' => $search,
-            'chat' => $chat,
-            ...($selected ? $this->listData($selected, $search) + $this->threadData($selected, $chat) : [
-                'conversations' => collect(), 'thread' => collect(), 'threadTotal' => 0, 'chatName' => null, 'botPause' => null,
+            ...$view,
+            'listParams' => $selected ? $this->listParams($selected, $view) : [],
+            ...($selected ? $this->listData($selected, $view) + $this->threadData($selected, $view) : [
+                'conversations' => collect(), 'hasMoreChats' => false, 'unreadChats' => 0, 'thread' => collect(), 'threadTotal' => 0,
+                'hasOlder' => false, 'chatName' => null, 'customName' => null, 'botPause' => null,
             ]),
         ]);
     }
@@ -79,15 +84,16 @@ class InboxController extends Controller
     public function updates(Request $request, string $instance): JsonResponse
     {
         $session = $request->user()->whatsappSessions()->where('instance_id', $instance)->firstOrFail();
-        [$search, $chat] = $this->searchAndChat($request);
+        $view = $this->viewState($request);
+        $chat = $view['chat'];
 
         if ($chat !== null && $request->boolean('seen')) {
             InboxConversation::markRead($session, $chat);
         }
 
-        $list = $this->listData($session, $search);
-        $thread = $this->threadData($session, $chat);
-        $view = ['selected' => $session, 'search' => $search, 'chat' => $chat];
+        $list = $this->listData($session, $view);
+        $thread = $this->threadData($session, $view);
+        $view += ['selected' => $session, 'listParams' => $this->listParams($session, $view)];
 
         return response()->json([
             'list_version' => $list['listVersion'],
@@ -97,7 +103,7 @@ class InboxController extends Controller
             'thread_version' => $thread['threadVersion'],
             'thread' => $chat === null || $thread['threadVersion'] === $request->query('thread')
                 ? null
-                : view('inbox._thread', $view + $thread)->render(),
+                : view('inbox._thread', $view + $list + $thread)->render(),
             'thread_total' => number_format($thread['threadTotal']).' '.Str::plural('message', $thread['threadTotal']),
             'unread_total' => InboxConversation::unreadFor($request->user()),
         ]);
@@ -164,6 +170,101 @@ class InboxController extends Controller
     }
 
     /**
+     * "Retry" under a failed message: sends the same text (and file, if it
+     * is still stored) again, as a new message — the failed one stays, with
+     * its error, as history. Same rules as a reply: connected instance,
+     * within the plan, pauses the chatbot in this chat.
+     */
+    public function retry(Request $request, string $instance, int $message, MessageSender $sender, PlanLimiter $limiter): RedirectResponse
+    {
+        $session = $request->user()->whatsappSessions()->where('instance_id', $instance)->firstOrFail();
+        // Only this instance's own failed outgoing messages (CLAUDE.md §5).
+        $failed = $session->messages()->whereKey($message)->where('direction', 'outgoing')->where('status', 'failed')->firstOrFail();
+
+        abort_unless($failed->canBeRetried(), 404);
+
+        $back = redirect()->route('inbox.index', ['instance' => $session->instance_id, 'chat' => $failed->to_number]);
+
+        if ($session->status !== 'connected') {
+            return $back->with('error', 'This instance is not connected. Reconnect it to retry.');
+        }
+
+        if (! $limiter->canSendMessage($request->user())) {
+            return $back->with('error', "You've reached your plan's monthly message limit. Upgrade to send more.");
+        }
+
+        $media = $failed->media_path ? [
+            'path' => $failed->media_path,
+            'mime_type' => $failed->media_mime_type,
+            'file_name' => $failed->media_file_name,
+            'size' => (int) $failed->media_size,
+        ] : null;
+
+        $sent = $sender->send($session, $failed->to_number, $failed->body, type: $failed->type, media: $media, allowFallback: true);
+
+        if ($session->chatbot_pause_minutes > 0) {
+            ChatbotPause::extend($session, $failed->to_number, $session->chatbot_pause_minutes);
+        }
+
+        return match (true) {
+            $sent->fallback_status === 'sent' => $back->with('status', 'The linked device could not send it, so it was sent through the Cloud API fallback.'),
+            $sent->status === 'failed' => $back->with('error', 'It failed again. Check that the instance is connected and the number is on WhatsApp.'),
+            default => $back,
+        };
+    }
+
+    /**
+     * The chat header's ✏️: save the owner's own name for this customer, or
+     * (empty / "Use WhatsApp name") go back to their WhatsApp profile name.
+     */
+    public function rename(Request $request, string $instance): RedirectResponse
+    {
+        $session = $request->user()->whatsappSessions()->where('instance_id', $instance)->firstOrFail();
+
+        $data = $request->validate([
+            'chat' => ['required', 'regex:/^\d{5,20}$/'],
+            'name' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        abort_unless($this->conversation($session, $data['chat'])->exists(), 404);
+
+        $name = $request->boolean('reset') ? '' : trim((string) ($data['name'] ?? ''));
+
+        InboxConversation::updateOrCreate(
+            ['whatsapp_session_id' => $session->id, 'phone' => $data['chat']],
+            ['custom_name' => $name !== '' ? $name : null]
+        );
+
+        return redirect()->route('inbox.index', ['instance' => $session->instance_id, 'chat' => $data['chat']])
+            ->with('status', $name !== '' ? 'Name saved.' : 'Showing their WhatsApp name again.');
+    }
+
+    /**
+     * The chat header's "Mark as unread": the chat gets its unread badge
+     * back (at least 1), to come back to later. Goes back to the list —
+     * staying in the open chat would mark it read again straight away.
+     */
+    public function unread(Request $request, string $instance): RedirectResponse
+    {
+        $session = $request->user()->whatsappSessions()->where('instance_id', $instance)->firstOrFail();
+
+        $data = $request->validate([
+            'chat' => ['required', 'regex:/^\d{5,20}$/'],
+        ]);
+
+        abort_unless($this->conversation($session, $data['chat'])->exists(), 404);
+
+        $conversation = InboxConversation::firstOrCreate(['whatsapp_session_id' => $session->id, 'phone' => $data['chat']]);
+        $conversation->update(['unread_count' => max(1, $conversation->unread_count)]);
+
+        return redirect()->route('inbox.index', array_filter([
+            'instance' => $session->instance_id,
+            'search' => $request->input('search') ?: null,
+            'filter' => $request->input('filter') === 'unread' ? 'unread' : null,
+        ]))->with('status', 'Marked as unread.');
+    }
+
+    /**
      * The chat header's bot switch: turn the chatbot off for just this
      * customer (a long pause — see ChatbotPause::OFF_YEARS), or back on
      * (ends any pause, including one from a recent reply).
@@ -208,30 +309,68 @@ class InboxController extends Controller
     }
 
     /**
-     * The search box and the open chat's number, digits only (null = none).
+     * What the page shows, from the query string: the search text, the
+     * All / Unread filter, the open chat's number (digits only, null =
+     * none), and how many pages of
+     * conversations ("Load more chats") and of the chat's messages ("Load
+     * earlier messages") are loaded.
      *
-     * @return array{0: string, 1: ?string}
+     * @return array{search: string, unread: bool, chat: ?string, chats: int, older: int}
      */
-    private function searchAndChat(Request $request): array
+    private function viewState(Request $request): array
     {
         $chat = preg_replace('/\D/', '', (string) $request->query('chat', ''));
+        $page = fn (string $key) => max(1, min(self::MAX_PAGES, (int) $request->query($key, 1)));
 
-        return [preg_replace('/\D/', '', (string) $request->query('search', '')), $chat !== '' ? $chat : null];
+        return [
+            'search' => mb_substr(trim((string) $request->query('search', '')), 0, 50),
+            'unread' => $request->query('filter') === 'unread',
+            'chat' => $chat !== '' ? $chat : null,
+            'chats' => $page('chats'),
+            'older' => $page('older'),
+        ];
+    }
+
+    /**
+     * The query string that keeps the list as it is (instance, search,
+     * filter, chats loaded) — every Inbox link starts from this, so none
+     * of them drops one by accident.
+     *
+     * @param  array{search: string, unread: bool, chats: int}  $view
+     * @return array<string, string|int>
+     */
+    private function listParams(WhatsappSession $session, array $view): array
+    {
+        return array_filter([
+            'instance' => $session->instance_id,
+            'search' => $view['search'] ?: null,
+            'filter' => $view['unread'] ? 'unread' : null,
+            'chats' => $view['chats'] > 1 ? $view['chats'] : null,
+        ]);
     }
 
     /**
      * The conversation list, and a version string that changes whenever
      * anything shown in it does (new message, tick, unread count).
      *
-     * @return array{conversations: Collection, listVersion: string}
+     * @param  array{search: string, unread: bool, chat: ?string, chats: int}  $view
+     * @return array{conversations: Collection, hasMoreChats: bool, unreadChats: int, listVersion: string}
      */
-    private function listData(WhatsappSession $session, string $search): array
+    private function listData(WhatsappSession $session, array $view): array
     {
-        $conversations = $this->conversations($session, $search);
+        $limit = self::CONVERSATIONS_SHOWN * $view['chats'];
+        // One extra, to know whether there are more to load.
+        $conversations = $this->conversations($session, $view, $limit + 1);
+        $hasMore = $conversations->count() > $limit && $view['chats'] < self::MAX_PAGES;
+        $conversations = $conversations->take($limit);
+        // For the "Unread (3)" filter button.
+        $unreadChats = InboxConversation::where('whatsapp_session_id', $session->id)->where('unread_count', '>', 0)->count();
 
         return [
             'conversations' => $conversations,
-            'listVersion' => md5($conversations->map(fn ($c) => [$c->contact, $c->name, $c->last->id, $c->last->status, $c->unread])->toJson()),
+            'hasMoreChats' => $hasMore,
+            'unreadChats' => $unreadChats,
+            'listVersion' => md5($conversations->map(fn ($c) => [$c->contact, $c->name, $c->last->id, $c->last->status, $c->unread])->push($hasMore, $unreadChats)->toJson()),
         ];
     }
 
@@ -240,58 +379,73 @@ class InboxController extends Controller
      * changes with any new message or status (tick) change, the customer's
      * name, and the chatbot's pause in this chat (null = answering).
      *
-     * @return array{thread: Collection, threadTotal: int, threadVersion: string, chatName: ?string, botPause: ?ChatbotPause}
+     * @param  array{chat: ?string, older: int}  $view
+     * @return array{thread: Collection, threadTotal: int, hasOlder: bool, threadVersion: string, chatName: ?string, customName: ?string, botPause: ?ChatbotPause}
      */
-    private function threadData(WhatsappSession $session, ?string $chat): array
+    private function threadData(WhatsappSession $session, array $view): array
     {
+        $chat = $view['chat'];
+
         if ($chat === null) {
-            return ['thread' => collect(), 'threadTotal' => 0, 'threadVersion' => '', 'chatName' => null, 'botPause' => null];
+            return ['thread' => collect(), 'threadTotal' => 0, 'hasOlder' => false, 'threadVersion' => '', 'chatName' => null, 'customName' => null, 'botPause' => null];
         }
 
-        $thread = $this->conversation($session, $chat)->latest('id')->take(self::MESSAGES_SHOWN)->get()->reverse()->values();
+        $thread = $this->conversation($session, $chat)->latest('id')->take(self::MESSAGES_SHOWN * $view['older'])->get()->reverse()->values();
+        $total = $this->conversation($session, $chat)->count();
+        $info = InboxConversation::where('whatsapp_session_id', $session->id)->where('phone', $chat)->first();
 
         return [
             'thread' => $thread,
-            'threadTotal' => $this->conversation($session, $chat)->count(),
+            'threadTotal' => $total,
+            'hasOlder' => $total > $thread->count() && $view['older'] < self::MAX_PAGES,
             'threadVersion' => md5($thread->map(fn (Message $m) => [$m->id, $m->status, $m->fallback_status])->toJson()),
-            'chatName' => InboxConversation::where('whatsapp_session_id', $session->id)->where('phone', $chat)->value('name'),
+            'chatName' => $info?->displayName(),
+            'customName' => $info?->custom_name,
             'botPause' => $session->chatbotPauses()->where('phone', $chat)->where('paused_until', '>', now())->first(),
         ];
     }
 
     /**
-     * One row per customer number: its latest message, message count,
-     * unread count and WhatsApp profile name — newest first.
+     * One row per customer number: its latest message, unread count and
+     * WhatsApp profile name — newest first, matching the search (a name or
+     * a number) and the Unread filter (which keeps the open chat listed,
+     * though opening it made it read). Read from inbox_conversations,
+     * which remembers each chat's latest message (see
+     * InboxConversation::messageAdded()), so this stays fast however many
+     * messages the instance has.
      *
-     * @return Collection<int, object{contact: string, name: ?string, last: Message, total: int, unread: int}>
+     * @return Collection<int, object{contact: string, name: ?string, last: Message, unread: int}>
      */
-    private function conversations(WhatsappSession $session, string $search): Collection
+    private function conversations(WhatsappSession $session, array $view, int $limit): Collection
     {
-        $contact = "CASE WHEN direction = 'incoming' THEN from_number ELSE to_number END";
+        $search = $view['search'];
+        $digits = preg_replace('/\D/', '', $search);
+        // Typed text is matched literally — % and _ aren't wildcards.
+        $text = addcslashes($search, '%_\\');
 
-        $rows = $session->messages()
-            ->selectRaw("{$contact} as contact, MAX(id) as last_id, COUNT(*) as total")
-            ->when($search !== '', fn ($query) => $query->whereRaw("{$contact} LIKE ?", ["%{$search}%"]))
-            ->groupByRaw($contact)
-            ->orderByDesc('last_id')
-            ->take(self::CONVERSATIONS_SHOWN)
-            ->toBase()
-            ->get();
+        $rows = InboxConversation::where('whatsapp_session_id', $session->id)
+            ->whereNotNull('last_message_id')
+            // A name ("Ramesh") or a number ("98111", "+91 98111").
+            ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q
+                ->where('custom_name', 'like', "%{$text}%")
+                ->orWhere('name', 'like', "%{$text}%")
+                ->when($digits !== '', fn ($q) => $q->orWhere('phone', 'like', "%{$digits}%"))))
+            ->when($view['unread'], fn ($query) => $query->where(fn ($q) => $q
+                ->where('unread_count', '>', 0)
+                ->when($view['chat'] !== null, fn ($q) => $q->orWhere('phone', $view['chat']))))
+            ->orderByDesc('last_message_id')
+            ->take($limit)
+            ->get(['phone', 'name', 'custom_name', 'unread_count', 'last_message_id']);
 
-        $last = Message::whereIn('id', $rows->pluck('last_id'))->get()->keyBy('id');
-        $info = InboxConversation::where('whatsapp_session_id', $session->id)
-            ->whereIn('phone', $rows->pluck('contact')->filter())
-            ->get(['phone', 'name', 'unread_count'])
-            ->keyBy('phone');
+        $last = Message::whereIn('id', $rows->pluck('last_message_id'))->get()->keyBy('id');
 
         return $rows
-            ->filter(fn ($row) => $row->contact !== null && $row->contact !== '' && $last->has($row->last_id))
-            ->map(fn ($row) => (object) [
-                'contact' => (string) $row->contact,
-                'name' => $info[$row->contact]->name ?? null,
-                'last' => $last[$row->last_id],
-                'total' => (int) $row->total,
-                'unread' => (int) ($info[$row->contact]->unread_count ?? 0),
+            ->filter(fn (InboxConversation $row) => $last->has($row->last_message_id))
+            ->map(fn (InboxConversation $row) => (object) [
+                'contact' => $row->phone,
+                'name' => $row->displayName(),
+                'last' => $last[$row->last_message_id],
+                'unread' => $row->unread_count,
             ])
             ->values();
     }

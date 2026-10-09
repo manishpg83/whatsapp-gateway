@@ -164,4 +164,14 @@ class MessageTest extends TestCase
         $this->send($plainText, ['instance_id' => $instance->instance_id, 'to' => '919999999999', 'message' => 'hi'])
             ->assertHeader('X-RateLimit-Limit', 30);
     }
+
+    public function test_message_text_is_encrypted_in_the_database(): void
+    {
+        $message = Message::factory()->create(['body' => 'Private customer text']);
+
+        $raw = DB::table('messages')->where('id', $message->id)->value('body');
+
+        $this->assertStringNotContainsString('Private customer text', $raw);
+        $this->assertSame('Private customer text', $message->fresh()->body);
+    }
 }

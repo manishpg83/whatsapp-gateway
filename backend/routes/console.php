@@ -2,11 +2,13 @@
 
 use App\Models\Subscription;
 use App\Notifications\SubscriptionRenewalReminder;
+use App\Services\MediaCrypto;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
+use Illuminate\Support\Facades\Storage;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -54,3 +56,34 @@ Artisan::command('billing:renewal-reminders', function () {
 })->purpose('Email users whose paid plan renews within 3 days');
 
 Schedule::command('billing:renewal-reminders')->dailyAt('10:00')->timezone('Asia/Kolkata');
+
+/*
+ * Privacy (CLAUDE.md §17): encrypts media files saved before media
+ * encryption existed. Run once after deploying it; safe to run again —
+ * files that are already encrypted are skipped. --decrypt undoes it.
+ * Needs MEDIA_ENCRYPTION_KEY in .env (the same one the worker uses).
+ */
+Artisan::command('media:encrypt {--decrypt : Turn encrypted files back into normal files (undo)}', function () {
+    $crypto = app(MediaCrypto::class);
+    $disk = Storage::disk('whatsapp_media');
+    $changed = $skipped = $failed = 0;
+
+    foreach ($disk->allFiles() as $file) {
+        // Half-finished temp files from an interrupted run.
+        if (str_ends_with($file, '.encrypting') || str_ends_with($file, '.decrypting')) {
+            continue;
+        }
+
+        try {
+            $done = $this->option('decrypt')
+                ? $crypto->decryptInPlace($disk->path($file))
+                : $crypto->encryptInPlace($disk->path($file));
+            $done ? $changed++ : $skipped++;
+        } catch (Throwable $e) {
+            $failed++;
+            $this->error("{$file}: {$e->getMessage()}");
+        }
+    }
+
+    $this->info(($this->option('decrypt') ? 'Decrypted' : 'Encrypted').": {$changed}, already done: {$skipped}, failed: {$failed}");
+})->purpose('Encrypt (or with --decrypt, decrypt) the stored WhatsApp media files');

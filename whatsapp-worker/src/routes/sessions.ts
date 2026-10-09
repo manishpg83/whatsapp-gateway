@@ -3,7 +3,9 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requireInternalSecret } from "../auth.js";
 import type { Config } from "../config.js";
+import type { Readable } from "node:stream";
 import { OUTGOING_TYPES, buildOutgoingContent, resolveMediaPath } from "../whatsapp/outgoingMessage.js";
+import { openMediaStream } from "../whatsapp/mediaCrypto.js";
 import {
   SessionNotActiveError,
   checkNumbers,
@@ -136,6 +138,7 @@ export async function sessionsRoute(app: FastifyInstance, config: Config) {
 
       const { to, type, message, media } = parsed.data;
       let content;
+      let mediaStream: Readable | null = null;
 
       if (type === "text" || !media) {
         content = buildOutgoingContent("text", message, null);
@@ -148,6 +151,8 @@ export async function sessionsRoute(app: FastifyInstance, config: Config) {
 
         try {
           await fs.access(absolutePath);
+          // The file is stored encrypted; this decrypts it as Baileys reads it.
+          mediaStream = await openMediaStream(absolutePath, config.MEDIA_ENCRYPTION_KEY);
         } catch {
           return reply.code(400).send({ error: "Media file not found" });
         }
@@ -157,6 +162,7 @@ export async function sessionsRoute(app: FastifyInstance, config: Config) {
           mimeType: media.mime_type,
           fileName: media.file_name ?? null,
           absolutePath,
+          stream: mediaStream,
         });
       }
 
@@ -164,6 +170,9 @@ export async function sessionsRoute(app: FastifyInstance, config: Config) {
         const messageId = await sendMessage(instanceId, to, content);
         return reply.code(200).send({ message_id: messageId });
       } catch (err) {
+        // Not (fully) read — e.g. the session wasn't connected. Close the file.
+        mediaStream?.destroy();
+
         if (err instanceof SessionNotActiveError) {
           return reply.code(409).send({ error: err.message });
         }

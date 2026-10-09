@@ -178,3 +178,6 @@ sudo su
 Password: root
 npm ci
 npm run dev
+
+**To display the secret key file, run**
+cat ~/.ssh/github_actions_deploy_automatically

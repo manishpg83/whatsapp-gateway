@@ -16,6 +16,13 @@ class BulkTemplate extends Model
     // Most saved messages one user may keep.
     public const MAX_PER_USER = 50;
 
+    protected function casts(): array
+    {
+        return [
+            'body' => 'encrypted', // privacy: see CLAUDE.md §17
+        ];
+    }
+
     /**
      * @return BelongsTo<User, $this>
      */

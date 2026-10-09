@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -26,6 +27,8 @@ class CloudFallbackTest extends TestCase
         parent::setUp();
 
         $this->withoutVite();
+        // Never write test files into the real media folder.
+        Storage::fake('whatsapp_media');
     }
 
     protected function beforeRefreshingDatabase(): void

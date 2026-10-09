@@ -7,6 +7,7 @@ use App\Models\BulkCampaign;
 use App\Models\BulkTemplate;
 use App\Models\User;
 use App\Models\WhatsappSession;
+use App\Services\MediaCrypto;
 use App\Services\MediaFetcher;
 use App\Services\PlanLimiter;
 use App\Support\Site;
@@ -260,7 +261,7 @@ class BulkCampaignController extends Controller
 
         $inline = $campaign->mediaIsInline() && ! $request->boolean('download');
 
-        return Storage::disk('whatsapp_media')->response(
+        return app(MediaCrypto::class)->response(
             $campaign->media_path,
             $campaign->media_file_name ?: $campaign->type.'-'.basename($campaign->media_path),
             [
